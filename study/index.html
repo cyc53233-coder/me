@@ -348,17 +348,18 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   </div>
 
   <div class="row">
-    <span class="rowlab">묶음</span>
+    <span class="rowlab">기간 인쇄</span>
     <label class="field">
-      <span>시작</span><input type="date" id="bfrom">
+      <span>언제부터</span><input type="date" id="bfrom">
     </label>
     <label class="field">
-      <span>끝</span><input type="date" id="bto">
+      <span>언제까지</span><input type="date" id="bto">
     </label>
     <label class="check"><input type="checkbox" id="bcal"> 달마다 달력 한 장</label>
     <span class="pair">
-      <button type="button" id="bmake">묶음으로 보기</button>
-      <button type="button" id="bone">한 주만 보기</button>
+      <button type="button" class="go" id="bprint">이 기간 인쇄</button>
+      <button type="button" id="bmake">펼쳐 보기</button>
+      <button type="button" id="bone">한 기간만</button>
     </span>
     <span class="rowlab" id="bcount"></span>
   </div>
@@ -995,7 +996,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
       "교재 칸 · 메모줄 · 달력 칸은 눌러서 바로 쓸 수 있습니다. 스티커는 끌어서 옮기고, " +
       "누르면 나오는 단추로 크기 · 각도 · 삭제, 모서리 점을 끌면 크기가 바뀝니다. " +
       "글자 스티커는 두 번 누르면 고쳐집니다. 쓴 내용과 스티커 자리는 이 브라우저에 저장됩니다. " +
-      "묶음 줄에 시작·끝 날짜를 넣고 «묶음으로 보기»를 누르면 그 기간을 한 주씩 전부 뽑습니다."));
+      "«기간 인쇄» 줄에 언제부터 언제까지를 넣고 «이 기간 인쇄»를 누르면 그 기간을 한 주씩 전부 뽑습니다."));
   }
 
   /* 화면 폭에 맞춰 축소 */
@@ -1103,12 +1104,18 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   document.getElementById("bfrom").addEventListener("change", function(){ S.batch.from = this.value; save(); if(S.batch.on) render(); });
   document.getElementById("bto").addEventListener("change",   function(){ S.batch.to   = this.value; save(); if(S.batch.on) render(); });
   document.getElementById("bcal").addEventListener("change",  function(){ S.batch.cal  = this.checked; save(); if(S.batch.on) render(); });
-  document.getElementById("bmake").addEventListener("click", function(){
+  function openBatch(){
     if(!parse(S.batch.from)) S.batch.from = S.start;
     if(!parse(S.batch.to)){
       var f = parse(S.batch.from); S.batch.to = iso(new Date(f.getFullYear(), f.getMonth()+4, 0));
     }
     S.batch.on = true; SEL = null; save(); batchBar(); render();
+  }
+  document.getElementById("bmake").addEventListener("click", openBatch);
+  document.getElementById("bprint").addEventListener("click", function(){
+    openBatch();
+    // 장이 다 그려진 뒤에 인쇄합니다
+    setTimeout(doPrint, 500);
   });
   document.getElementById("bone").addEventListener("click", function(){
     S.batch.on = false; SEL = null; save(); batchBar(); render();
@@ -1227,8 +1234,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     });
   }
 
-  document.getElementById("export").addEventListener("click", function(){ select(null); savePrintFile(false); });
-  document.getElementById("print").addEventListener("click", function(){
+  function doPrint(){
     select(null);
     note("");
     printed = false;
@@ -1244,7 +1250,10 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
       note("이 화면에서는 인쇄창을 열 수 없습니다. 새 창(팝업)을 허용해 주시거나, " +
            "저장소의 index.html 을 받아서 열면 인쇄됩니다.");
     }, 800);
-  });
+  }
+
+  document.getElementById("export").addEventListener("click", function(){ select(null); savePrintFile(false); });
+  document.getElementById("print").addEventListener("click", doPrint);
   var armed = false, armT = null;
   document.getElementById("reset").addEventListener("click", function(){
     var btn = this;
