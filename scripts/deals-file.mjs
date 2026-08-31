@@ -40,7 +40,7 @@ export function writeDeals(deals) {
 
 const KEY_ORDER = [
   "title", "url", "price", "listPrice", "mall", "image",
-  "category", "note", "postedAt", "hot", "ended", "sample",
+  "category", "note", "postedAt", "hot", "ended", "sample", "sourceId",
 ];
 
 const js = (v) =>

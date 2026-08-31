@@ -1,0 +1,38 @@
+name: 가격 감시
+
+on:
+  schedule:
+    # 6시간마다
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: deals-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 가격 확인
+        id: check
+        run: node scripts/watch-prices.mjs
+
+      - name: 바뀐 상태 올리기
+        if: steps.check.outputs.changed == 'true'
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/deals.js
+          git commit -m "$(cat .deal-commit-message)"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"

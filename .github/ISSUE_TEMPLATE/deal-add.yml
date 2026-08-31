@@ -25,7 +25,7 @@ body:
       description: 적으면 할인율이 자동으로 계산됩니다.
       placeholder: "34000"
   - type: input
-    id: title
+    id: name
     attributes:
       label: 상품명
       description: 비워두면 링크에서 자동으로 가져옵니다. 못 가져오면 답글로 알려 드려요.

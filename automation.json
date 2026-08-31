@@ -1,0 +1,35 @@
+{
+  "_": "자동화 설정. 여기만 고치면 됩니다. 켜고 끄는 건 enabled.",
+
+  "coupang": {
+    "enabled": false,
+    "_": "쿠팡 골드박스에서 조건에 맞는 상품을 골라 내 딥링크로 자동 게시합니다. 파트너스 최종승인(누적 판매 15만원) 뒤 API 키를 넣고 true 로 바꾸세요.",
+    "maxPerRun": 3,
+    "minDiscountRate": 25,
+    "minPrice": 3000,
+    "maxPrice": 300000,
+    "excludeKeywords": ["성인", "렌탈", "상품권"],
+    "category": "쿠팡 골드박스"
+  },
+
+  "watch": {
+    "enabled": true,
+    "_": "올린 딜의 가격을 확인해서 오르거나 사라지면 마감 처리합니다.",
+    "risePercent": 5,
+    "maxChecks": 40
+  },
+
+  "scout": {
+    "enabled": true,
+    "_": "커뮤니티 핫딜판을 훑어 후보를 이슈로 보내줍니다. 링크는 사람이 토스에서 만들어야 합니다.",
+    "maxPerRun": 10,
+    "keepSeen": 400,
+    "excludeKeywords": ["종료", "품절", "마감"],
+    "sources": [
+      { "name": "뽐뿌", "rss": "https://www.ppomppu.co.kr/rss.php?id=ppomppu" },
+      { "name": "뽐뿌 해외", "rss": "https://www.ppomppu.co.kr/rss.php?id=ppomppu4" },
+      { "name": "쿨엔조이", "rss": "https://coolenjoy.net/rss.php?bo_table=jirum" },
+      { "name": "클리앙 알뜰구매", "rss": "https://www.clien.net/service/rss/board/jirum" }
+    ]
+  }
+}
