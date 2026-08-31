@@ -123,6 +123,9 @@ label.check{display:flex; align-items:center; gap:6px; font-size:13px; padding-b
   max-width:1260px; margin:8px auto 0; font-size:11.5px; line-height:1.55; color:var(--panel-soft);
 }
 .hint b{color:var(--panel-accent); font-weight:500}
+#status{color:var(--panel-accent); min-height:1em}
+button.warn{border-color:var(--panel-accent); color:var(--panel-accent); font-weight:500}
+#export[hidden]{display:none}
 
 /* ── 종이 ─────────────────────────────────────────────── */
 .stage{padding:22px 16px 44px; overflow-x:auto}
@@ -316,6 +319,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     <span class="spacer"></span>
     <span class="pair">
       <button type="button" id="reset">처음값으로</button>
+      <button type="button" id="export" hidden>인쇄용 파일 받기</button>
       <button type="button" class="go" id="print">인쇄 / PDF 저장</button>
     </span>
   </div>
@@ -366,6 +370,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     <span class="spacer"></span>
   </div>
 
+  <p class="hint" id="status"></p>
   <p class="hint" id="hint"></p>
 </div>
 
@@ -1130,14 +1135,130 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   }
   document.getElementById("prev").addEventListener("click", function(){ shift(-1); });
   document.getElementById("next").addEventListener("click", function(){ shift(1); });
-  document.getElementById("print").addEventListener("click", function(){ select(null); window.print(); });
+  /* ── 인쇄 ──────────────────────────────────────────────
+     아티팩트는 샌드박스 iframe 안이라 window.print() 가 무시될 수 있습니다.
+     beforeprint 가 오지 않으면 인쇄용 파일을 대신 건넵니다. */
+  var DL = null, printed = false, msgT = null;
+
+  function note(text){
+    var n = document.getElementById("status");
+    n.textContent = text || "";
+    clearTimeout(msgT);
+    if(text) msgT = setTimeout(function(){ n.textContent = ""; }, 12000);
+  }
+
+  if(window.claude && typeof window.claude.use === "function"){
+    window.claude.use("downloads").then(function(d){
+      DL = d;
+      if(d) document.getElementById("export").hidden = false;
+    }).catch(function(){});
+  }
+
+  /* 지금 보이는 장들을 그대로 담은, 열면 바로 인쇄창이 뜨는 파일 */
+  function buildPrintDoc(){
+    var clone = document.getElementById("fit").cloneNode(true);
+    clone.removeAttribute("style");
+    Array.prototype.forEach.call(clone.querySelectorAll(".grip,.tools"), function(n){
+      n.parentNode.removeChild(n);
+    });
+    Array.prototype.forEach.call(clone.querySelectorAll(".page"), function(n){
+      n.removeAttribute("style");
+    });
+    Array.prototype.forEach.call(clone.querySelectorAll(".st"), function(n){
+      n.className = n.className.replace(/\bsel\b/, "").trim();
+    });
+    // 사진은 파일 안에서 한 벌만 두고 열릴 때 붙입니다 (같은 그림 88개를 넣지 않으려고)
+    Array.prototype.forEach.call(clone.querySelectorAll("img.st"), function(im){
+      var k = /\b(peek|loaf|face)\b/.exec(im.className);
+      if(k){ im.setAttribute("data-art", k[1]); im.removeAttribute("src"); }
+    });
+    var vars = ["--srow","--memoline","--memoh"].map(function(v){
+      return v + ":" + document.documentElement.style.getPropertyValue(v);
+    }).join(";");
+    var css = document.querySelector("style").textContent;
+    return '<!doctype html>\n<html lang="ko"><head><meta charset="utf-8">' +
+      "<title>\uD559\uC2B5 \uACC4\uD68D\uD45C</title>" +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&display=swap">' +
+      "<style>" + css + "\n:root{" + vars + "}\n.bar{display:none}\n.stage{padding:0}</style>" +
+      "</hea" + "d><bo" + "dy><div class=\"stage\">" + clone.outerHTML + "</div>" +
+      "<scr" + "ipt>var A=" + JSON.stringify(ART) + ";" +
+      "Array.prototype.forEach.call(document.querySelectorAll('img[data-art]'),function(i){i.src=A[i.getAttribute('data-art')]});" +
+      "window.addEventListener('load',function(){setTimeout(function(){window.print()},500)});" +
+      "</scr" + "ipt></bo" + "dy></html>";
+  }
+
+  /* 새 창에 인쇄용 화면을 띄웁니다. 스크립트 print() 는 막혀도
+     브라우저가 직접 여는 인쇄창(Ctrl+P)은 막히지 않습니다. */
+  function openPrintWindow(){
+    var w = null;
+    try{ w = window.open("", "_blank"); }catch(err){ w = null; }
+    if(!w) return false;
+    try{
+      w.document.open();
+      w.document.write(buildPrintDoc());
+      w.document.close();
+      // document.write 로 넣은 스크립트는 실행되지 않을 수 있어, 사진은 이쪽에서 붙입니다.
+      Array.prototype.forEach.call(w.document.querySelectorAll("img[data-art]"), function(i){
+        i.src = ART[i.getAttribute("data-art")];
+      });
+      w.focus();
+      return true;
+    }catch(err){ return false; }
+  }
+
+  function savePrintFile(auto){
+    if(!DL){
+      note("이 화면에서는 인쇄창을 열 수 없습니다. 저장소의 index.html 을 받아서 열면 인쇄됩니다.");
+      return;
+    }
+    note("인쇄용 파일을 만드는 중…");
+    var doc;
+    try{ doc = buildPrintDoc(); }
+    catch(err){ note("인쇄용 파일을 만들지 못했습니다."); return; }
+    DL.save({ filename: "학습계획표.html", data: doc }).then(function(){
+      note(auto
+        ? "이 화면에서는 인쇄창이 열리지 않아 인쇄용 파일을 저장했습니다. 파일을 열면 인쇄창이 바로 뜹니다 — 거기서 «대상 → PDF로 저장»."
+        : "저장했습니다. 파일을 열면 인쇄창이 바로 뜹니다 — 거기서 «대상 → PDF로 저장».");
+    }).catch(function(err){
+      var c = err && err.code;
+      note(c === "declined" ? "저장을 취소했습니다."
+         : c === "too_large" ? "장수가 많아 파일이 너무 큽니다. 묶음 기간을 줄여서 다시 해 주세요."
+         : "인쇄용 파일을 저장하지 못했습니다" + (c ? " (" + c + ")" : "") + ".");
+    });
+  }
+
+  document.getElementById("export").addEventListener("click", function(){ select(null); savePrintFile(false); });
+  document.getElementById("print").addEventListener("click", function(){
+    select(null);
+    note("");
+    printed = false;
+    try{ window.print(); }catch(err){}
+    setTimeout(function(){
+      if(printed) return;
+      if(DL){ savePrintFile(true); return; }
+      if(openPrintWindow()){
+        note("이 화면에서는 인쇄창이 열리지 않아 새 창에 인쇄용 화면을 띄웠습니다. " +
+             "그 창에서 Ctrl+P (맥은 ⌘P) 를 누르면 인쇄창이 뜹니다 — 거기서 «대상 → PDF로 저장».");
+        return;
+      }
+      note("이 화면에서는 인쇄창을 열 수 없습니다. 새 창(팝업)을 허용해 주시거나, " +
+           "저장소의 index.html 을 받아서 열면 인쇄됩니다.");
+    }, 800);
+  });
+  var armed = false, armT = null;
   document.getElementById("reset").addEventListener("click", function(){
-    if(!confirm("적어 둔 내용과 스티커 자리까지 모두 처음값으로 되돌립니다. 계속할까요?")) return;
+    var btn = this;
+    if(!armed){
+      armed = true; btn.textContent = "한 번 더 누르면 지워집니다"; btn.className = "warn";
+      armT = setTimeout(function(){ armed = false; btn.textContent = "처음값으로"; btn.className = ""; }, 5000);
+      return;
+    }
+    clearTimeout(armT); armed = false; btn.textContent = "처음값으로"; btn.className = "";
     S = defaults(); SEL = null; save();
     var v = { start:S.start, days:String(S.days),
       e0n:S.exams[0].name, e0d:S.exams[0].date, e1n:S.exams[1].name, e1d:S.exams[1].date };
     Object.keys(v).forEach(function(id){ document.getElementById(id).value = v[id]; });
-    syncBar(); render();
+    syncBar(); batchBar(); render(); note("처음값으로 되돌렸습니다.");
   });
 
   document.getElementById("stage").addEventListener("input", function(e){
@@ -1149,6 +1270,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
 
   window.addEventListener("resize", fit);
   window.addEventListener("beforeprint", function(){
+    printed = true;
     Array.prototype.forEach.call(document.querySelectorAll(".page"), function(p){
       p.style.transform = "none"; p.style.marginBottom = "";
     });
