@@ -70,17 +70,29 @@ const seenSet = new Set(seen);
 const bad = (cfg.excludeKeywords || []).filter(Boolean);
 
 const results = await Promise.all((cfg.sources || []).map(readSource));
+
+// 한 곳이 자리를 다 차지하지 않도록 출처마다 몫을 나눠 가집니다.
+const share = Math.max(2, Math.ceil(cfg.maxPerRun / Math.max(1, results.length)));
+const taken = new Set();
 const fresh = [];
 for (const r of results) {
   const ok = r.items.filter(
-    (it) => it.title && it.link && !seenSet.has(it.link) && !bad.some((w) => it.title.includes(w))
+    (it) =>
+      it.title &&
+      it.link &&
+      !seenSet.has(it.link) &&
+      !taken.has(it.link) &&
+      !bad.some((w) => it.title.includes(w))
   );
   say(
     r.error
       ? `- ❌ ${r.src.name}: ${r.error}`
       : `- ✅ ${r.src.name}: ${r.items.length}건 중 새 글 ${ok.length}건`
   );
-  for (const it of ok.slice(0, cfg.maxPerRun)) fresh.push({ ...it, source: r.src.name });
+  for (const it of ok.slice(0, share)) {
+    taken.add(it.link);
+    fresh.push({ ...it, source: r.src.name });
+  }
 }
 
 if (!fresh.length) {
@@ -90,11 +102,23 @@ if (!fresh.length) {
 }
 
 const picks = fresh.slice(0, cfg.maxPerRun);
+
+/** 상품명이 미리 채워진 「딜 올리기」 폼 주소. 남는 건 링크 붙여넣기와 가격뿐입니다. */
+function postLink(p) {
+  const q = new URLSearchParams({
+    template: "deal-add.yml",
+    title: `딜: ${p.title}`.slice(0, 120),
+    name: p.title.slice(0, 200),
+    note: `${p.source} 후보`,
+  });
+  return `../../issues/new?${q.toString()}`;
+}
+
 const body = [
   "오늘의 딜 후보입니다. 괜찮은 게 있으면 **토스 앱에서 그 상품을 찾아 쉐어링크를 복사**한 뒤,",
-  "[「딜 올리기」 이슈](../../issues/new?template=deal-add.yml)에 붙여넣으세요.",
+  "옆의 **올리기**를 누르세요. 상품명은 이미 채워져 있으니 링크와 가격만 넣으면 됩니다.",
   "",
-  ...picks.map((p) => `- [ ] **[${p.source}]** [${p.title}](${p.link})`),
+  ...picks.map((p) => `- [ ] **[${p.source}]** [${p.title}](${p.link}) · [올리기](${postLink(p)})`),
   "",
   "---",
   "",
@@ -106,7 +130,7 @@ const body = [
 fs.writeFileSync(ISSUE_PATH, body + "\n", "utf8");
 fs.writeFileSync(
   SEEN_PATH,
-  JSON.stringify([...picks.map((p) => p.link), ...seen].slice(0, cfg.keepSeen), null, 0) + "\n",
+  JSON.stringify([...new Set([...picks.map((p) => p.link), ...seen])].slice(0, cfg.keepSeen)) + "\n",
   "utf8"
 );
 say(`\n후보 ${picks.length}건을 이슈로 보냅니다.`);

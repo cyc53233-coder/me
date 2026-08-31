@@ -2,8 +2,8 @@
   "_": "자동화 설정. 여기만 고치면 됩니다. 켜고 끄는 건 enabled.",
 
   "coupang": {
-    "enabled": true,
-    "_": "쿠팡 골드박스에서 조건에 맞는 상품을 골라 내 딥링크로 자동 게시합니다.",
+    "enabled": false,
+    "_": "쿠팡 골드박스에서 조건에 맞는 상품을 골라 내 딥링크로 자동 게시합니다. 파트너스 최종승인(누적 판매 15만원) 뒤 API 키를 넣고 true 로 바꾸세요.",
     "maxPerRun": 3,
     "minDiscountRate": 25,
     "minPrice": 3000,
@@ -22,7 +22,7 @@
   "scout": {
     "enabled": true,
     "_": "커뮤니티 핫딜판을 훑어 후보를 이슈로 보내줍니다. 링크는 사람이 토스에서 만들어야 합니다.",
-    "maxPerRun": 8,
+    "maxPerRun": 10,
     "keepSeen": 400,
     "excludeKeywords": ["종료", "품절", "마감"],
     "sources": [
