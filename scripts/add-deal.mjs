@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ROOT, readDeals, writeDeals, loadBrowserContext, nowKST } from "./deals-file.mjs";
+import { fetchMeta, toNumber } from "./meta.mjs";
 
 const MODE = process.env.MODE === "end" ? "end" : "add";
 const BODY = process.env.ISSUE_BODY || "";
@@ -32,45 +33,6 @@ function parseForm(body) {
 const field = (form, name) => (form.get(name) || "").trim();
 const checked = (form, name, label) =>
   new RegExp(`- \\[x\\] .*${label}`, "i").test(form.get(name) || "");
-const toNumber = (v) => Number(String(v).replace(/[^\d]/g, "")) || 0;
-
-/* ── 링크에서 상품 정보 긁어오기 (실패해도 진행) ──────────── */
-const unescapeHtml = (s) =>
-  String(s)
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&nbsp;/g, " ");
-
-function metaFrom(html, prop) {
-  const tag = html.match(
-    new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*>`, "i")
-  );
-  if (!tag) return "";
-  const content = tag[0].match(/content=["']([^"']*)["']/i);
-  return content ? unescapeHtml(content[1]).trim() : "";
-}
-
-async function fetchMeta(url) {
-  try {
-    const res = await fetch(url, {
-      redirect: "follow",
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
-        "accept-language": "ko-KR,ko;q=0.9",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return { error: `링크 응답이 ${res.status} 입니다` };
-    const html = (await res.text()).slice(0, 400000);
-    return {
-      title: metaFrom(html, "og:title") || metaFrom(html, "twitter:title"),
-      image: metaFrom(html, "og:image") || metaFrom(html, "twitter:image"),
-      price: toNumber(metaFrom(html, "product:price:amount")),
-    };
-  } catch (e) {
-    return { error: e.name === "TimeoutError" ? "링크를 여는 데 시간이 너무 걸렸습니다" : String(e.message || e) };
-  }
-}
 
 /* ── 답글 ─────────────────────────────────────────────────── */
 function comment(md) {
