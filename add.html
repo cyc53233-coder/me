@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{site} — 딜 올리기</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="./">
+      <span class="brand-emoji" data-site-emoji>🔥</span>
+      <span data-site-name>핫딜</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./">딜</a>
+      <a href="about.html">채널 소개</a>
+      <a href="add.html" aria-current="page">딜 올리기</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1>딜 올리기</h1>
+      <p>채우면 아래에 붙여넣을 코드와 카톡 문구가 만들어집니다.</p>
+      <p class="disclosure">
+        <span>📱</span>
+        <span>폰에서는 <a data-issue-link="deal-add.yml" href="#" target="_blank" rel="noopener">GitHub 이슈로 올리면</a>
+          코드를 만질 필요 없이 사이트에 자동으로 올라가고, 카톡 문구를 답글로 받습니다.
+          끝난 딜은 <a data-issue-link="deal-end.yml" href="#" target="_blank" rel="noopener">마감 이슈</a>로 내리세요.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="form">
+      <div class="field">
+        <label for="f-title">상품명</label>
+        <input id="f-title" placeholder="하림펫푸드 밥이보약 DOG, 3.4kg, 1개">
+      </div>
+      <div class="field">
+        <label for="f-url">내 링크</label>
+        <input id="f-url" placeholder="https://toss.im/_m/..." inputmode="url">
+        <small>토스 쉐어링크 / 쿠팡 파트너스에서 복사한 <b>내</b> 링크를 넣으세요.</small>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-price">지금 가격</label>
+          <input id="f-price" placeholder="19,900" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="f-list">평소 가격</label>
+          <input id="f-list" placeholder="34,000" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-mall">판매처</label>
+          <select id="f-mall">
+            <option value="">링크로 자동 판단</option>
+            <option value="toss">토스</option>
+            <option value="coupang">쿠팡</option>
+            <option value="naver">네이버</option>
+            <option value="11st">11번가</option>
+            <option value="gmarket">지마켓</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-cat">카테고리</label>
+          <input id="f-cat" placeholder="식품" list="cats">
+          <datalist id="cats">
+            <option>식품</option><option>생활</option><option>가전</option>
+            <option>패션</option><option>반려동물</option><option>육아</option>
+          </datalist>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-image">이미지 주소</label>
+        <input id="f-image" placeholder="비워두면 기본 아이콘이 들어갑니다" inputmode="url">
+      </div>
+      <div class="field">
+        <label for="f-note">한 줄 메모</label>
+        <input id="f-note" placeholder="평소가 3.4만대, 관절 사료 이 가격 잘 없어요">
+      </div>
+      <div class="field">
+        <label><input type="checkbox" id="f-hot" style="width:auto;margin-right:8px"> 🔥 대박 딜로 표시</label>
+      </div>
+    </div>
+
+    <div class="out-head">
+      <h2>1. data/deals.js 맨 위에 붙여넣기</h2>
+      <button class="btn" id="copy-code">복사</button>
+    </div>
+    <pre class="out" id="out-code"></pre>
+
+    <div class="out-head">
+      <h2>2. 카톡방에 붙여넣기</h2>
+      <button class="btn" id="copy-kakao">복사</button>
+    </div>
+    <pre class="out" id="out-kakao"></pre>
+
+    <div class="out-head"><h2>미리보기</h2></div>
+    <div class="preview" id="preview"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p data-site-disclosure></p>
+  </div>
+</footer>
+
+<script src="data/site.js"></script>
+<script src="assets/app.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const num = (v) => Number(String(v).replace(/[^\d]/g, "")) || 0;
+const jsStr = (v) => '"' + String(v ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+
+function nowStamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const tz = sign + p(Math.floor(Math.abs(off) / 60)) + ":" + p(Math.abs(off) % 60);
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}${tz}`;
+}
+
+let stamp = nowStamp();
+
+function current() {
+  return {
+    title: $("f-title").value.trim() || "상품명을 입력하세요",
+    url: $("f-url").value.trim() || "https://",
+    price: num($("f-price").value),
+    listPrice: num($("f-list").value),
+    mall: $("f-mall").value,
+    image: $("f-image").value.trim(),
+    category: $("f-cat").value.trim(),
+    note: $("f-note").value.trim(),
+    postedAt: stamp,
+    hot: $("f-hot").checked,
+  };
+}
+
+function codeFor(d) {
+  const lines = [
+    "  {",
+    `    title: ${jsStr(d.title)},`,
+    `    url: ${jsStr(d.url)},`,
+    `    price: ${d.price},`,
+  ];
+  if (d.listPrice) lines.push(`    listPrice: ${d.listPrice},`);
+  if (d.mall) lines.push(`    mall: ${jsStr(d.mall)},`);
+  if (d.image) lines.push(`    image: ${jsStr(d.image)},`);
+  if (d.category) lines.push(`    category: ${jsStr(d.category)},`);
+  if (d.note) lines.push(`    note: ${jsStr(d.note)},`);
+  lines.push(`    postedAt: ${jsStr(d.postedAt)},`);
+  if (d.hot) lines.push("    hot: true,");
+  lines.push("  },");
+  return lines.join("\n");
+}
+
+function refresh() {
+  const d = current();
+  $("out-code").textContent = codeFor(d);
+  $("out-kakao").textContent = kakaoText(d);
+  $("preview").innerHTML = dealCardHTML(d);
+  const copyBtn = $("preview").querySelector(".js-copy");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () =>
+      toast((await copyText(kakaoText(d))) ? "카톡 문구를 복사했어요" : "복사에 실패했어요")
+    );
+  }
+}
+
+document.querySelectorAll("input, select").forEach((el) => {
+  el.addEventListener("input", refresh);
+  el.addEventListener("change", refresh);
+});
+
+$("copy-code").addEventListener("click", async () =>
+  toast((await copyText($("out-code").textContent)) ? "코드를 복사했어요" : "복사에 실패했어요")
+);
+$("copy-kakao").addEventListener("click", async () =>
+  toast((await copyText($("out-kakao").textContent)) ? "카톡 문구를 복사했어요" : "복사에 실패했어요")
+);
+
+document.addEventListener("DOMContentLoaded", refresh);
+refresh();
+</script>
+</body>
+</html>
