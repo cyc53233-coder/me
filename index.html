@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{site} — 오늘의 핫딜</title>
+<meta name="description" content="매일 찾은 최저가 핫딜만 모아둔 곳. 가격이 확실히 떨어졌을 때만 올립니다.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="오늘의 핫딜">
+<meta property="og:description" content="매일 찾은 최저가 핫딜만 모아둔 곳.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="./">
+      <span class="brand-emoji" data-site-emoji>🔥</span>
+      <span data-site-name>핫딜</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./" aria-current="page">딜</a>
+      <a href="about.html">채널 소개</a>
+      <a href="add.html">딜 올리기</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1>오늘의 핫딜</h1>
+      <p data-site-tagline></p>
+      <div class="hero-stats">
+        <span><b id="stat-live">0</b>개 진행 중</span>
+        <span><b id="stat-total">0</b>개 누적</span>
+      </div>
+      <p class="disclosure">
+        <span>ℹ️</span>
+        <span data-site-disclosure></span>
+      </p>
+    </div>
+  </section>
+
+  <section class="wrap controls">
+    <div class="search">
+      <span>🔎</span>
+      <input id="q" type="search" placeholder="상품 이름으로 찾기" autocomplete="off">
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <button class="linkish" id="sort">최신순</button>
+      <span>·</span>
+      <button class="linkish" id="ended">마감 포함</button>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p data-site-disclosure></p>
+    <p>가격과 재고는 수시로 바뀝니다. 구매 전 판매 페이지에서 최종 가격을 확인해 주세요.</p>
+    <p>© <span data-site-name></span> · <a href="about.html">채널 소개</a></p>
+  </div>
+</footer>
+
+<script src="data/site.js"></script>
+<script src="data/deals.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
