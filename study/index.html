@@ -344,6 +344,22 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   </div>
 
   <div class="row">
+    <span class="rowlab">묶음</span>
+    <label class="field">
+      <span>시작</span><input type="date" id="bfrom">
+    </label>
+    <label class="field">
+      <span>끝</span><input type="date" id="bto">
+    </label>
+    <label class="check"><input type="checkbox" id="bcal"> 달마다 달력 한 장</label>
+    <span class="pair">
+      <button type="button" id="bmake">묶음으로 보기</button>
+      <button type="button" id="bone">한 주만 보기</button>
+    </span>
+    <span class="rowlab" id="bcount"></span>
+  </div>
+
+  <div class="row">
     <span class="rowlab">스티커</span>
     <span class="pal" id="palette"></span>
     <span class="pair"><button type="button" id="streset">스티커 처음값</button></span>
@@ -395,6 +411,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
       subjects: ["국어","기계","산안산기"],
       rows: 3, memoLines: 2, restRow: true, calDday: true,
       months: [],
+      batch: { on:false, from:"", to:"", cal:true },
       cells: {}, stickers: {}
     };
   }
@@ -411,6 +428,9 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   if(typeof S.restRow !== "boolean") S.restRow = true;
   if(typeof S.calDday !== "boolean") S.calDday = true;
   if(!Array.isArray(S.months)) S.months = [];
+  if(!S.batch || typeof S.batch !== "object") S.batch = D.batch;
+  if(typeof S.batch.on !== "boolean") S.batch.on = false;
+  if(typeof S.batch.cal !== "boolean") S.batch.cal = true;
   if(!S.cells || typeof S.cells !== "object") S.cells = {};
   if(!S.stickers || typeof S.stickers !== "object") S.stickers = {};
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -463,7 +483,11 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   }
 
   /* ── 제호 ── */
-  function masthead(eyebrow, titleNode, subText){
+  function refDay(first, last){
+    var t = new Date(); t.setHours(0,0,0,0);
+    return (serial(t) >= serial(first) && serial(t) <= serial(last)) ? t : first;
+  }
+  function masthead(eyebrow, titleNode, subText, ref){
     var m = el("header", "mast");
     var left = el("div");
     left.appendChild(el("div", "of", eyebrow));
@@ -472,7 +496,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     m.appendChild(left);
 
     var box = el("div", "counts");
-    var today = new Date(); today.setHours(0,0,0,0);
+    var today = ref || new Date(); today.setHours(0,0,0,0);
     S.exams.forEach(function(ex, i){
       var c = el("div", "count" + (i ? " b" : ""));
       c.appendChild(el("div", "who", examName(i)));
@@ -495,16 +519,17 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   }
 
   /* ── 1장: 계획표 ── */
-  function planSheet(days){
+  function planSheet(days, eyebrow){
     var sheet = el("div", "sheet");
     var a = days[0], b = days[days.length-1];
 
     var h1 = el("h1", "serif");
     h1.appendChild(editable(el("span"), "title", "학습 계획"));
     if(!S.cells.title) h1.firstChild.textContent = "학습 계획";
-    sheet.appendChild(masthead("첫째 장 · 학습 계획표", h1,
+    sheet.appendChild(masthead(eyebrow || "첫째 장 · 학습 계획표", h1,
       a.getFullYear() + "년 " + (a.getMonth()+1) + "월 " + a.getDate() + "일 – " +
-      (b.getMonth()+1) + "월 " + b.getDate() + "일 · " + days.length + "일"));
+      (b.getMonth()+1) + "월 " + b.getDate() + "일 · " + days.length + "일",
+      refDay(a, b)));
 
     var t = el("table", "grid"), n = days.length, ed = examDates();
     var cg = document.createElement("colgroup");
@@ -592,12 +617,13 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   }
 
   /* ── 달력 장 ── */
-  function calSheet(m, days, ordIdx){
+  function calSheet(m, days, eyebrow){
     var sheet = el("div", "sheet");
     var h1 = el("h1", "serif", (m.getMonth()+1) + "월");
     h1.appendChild(el("span", "yr", " " + m.getFullYear()));
-    sheet.appendChild(masthead((ORD[ordIdx] || (ordIdx+1) + "번째") + " 장 · 달력", h1,
-      "칸마다 그날 할 일을 적습니다."));
+    sheet.appendChild(masthead(eyebrow, h1, "칸마다 그날 할 일을 적습니다.",
+      refDay(new Date(m.getFullYear(), m.getMonth(), 1),
+             new Date(m.getFullYear(), m.getMonth()+1, 0))));
 
     var inRange = {}, examAt = {}, ed = examDates();
     days.forEach(function(d){ inRange[serial(d)] = true; });
@@ -880,17 +906,55 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     document.querySelectorAll(".sheet").forEach(function(s){ drawStickers(s, s.getAttribute("data-key")); });
   });
 
+  /* ── 한 기간만 보기 ── */
+  function singlePages(){
+    var days = dayList();
+    var pages = [{key:"plan", sheet:planSheet(days, "첫째 장 · 학습 계획표")}];
+    monthList(days).forEach(function(m, i){
+      pages.push({key:"cal-" + ym(m), sheet:calSheet(m, days, (ORD[i+1] || (i+2) + "번째") + " 장 · 달력")});
+    });
+    return pages;
+  }
+
+  /* ── 묶음: 시작일부터 끝나는 날까지 한 주씩, 달마다 달력을 앞에 ── */
+  function batchPages(){
+    var from = parse(S.batch.from), to = parse(S.batch.to);
+    if(!from || !to || serial(to) < serial(from)) return singlePages();
+
+    var weeks = [], d = new Date(from), guard = 0;
+    while(serial(d) <= serial(to) && guard++ < 400){ weeks.push(new Date(d)); d = addDays(d, S.days); }
+
+    var all = [];
+    weeks.forEach(function(w){ for(var i = 0; i < S.days; i++) all.push(addDays(w, i)); });
+
+    var months = [], m = new Date(from.getFullYear(), from.getMonth(), 1);
+    var mEnd = new Date(to.getFullYear(), to.getMonth(), 1);
+    while(m <= mEnd){ months.push(new Date(m)); m.setMonth(m.getMonth()+1); }
+
+    var pages = [];
+    months.forEach(function(mm){
+      if(S.batch.cal){
+        pages.push({ key:"cal-" + ym(mm),
+                     sheet: calSheet(mm, all, (mm.getMonth()+1) + "월 · 달력") });
+      }
+      weeks.forEach(function(w, wi){
+        if(w.getFullYear() !== mm.getFullYear() || w.getMonth() !== mm.getMonth()) return;
+        var days = [];
+        for(var i = 0; i < S.days; i++) days.push(addDays(w, i));
+        pages.push({ key:"plan-" + iso(w),
+                     sheet: planSheet(days, (wi+1) + "주차 · 학습 계획표") });
+      });
+    });
+    return pages;
+  }
+
   /* ══ 전체 그리기 ═══════════════════════════════════════ */
   function render(){
     layout();
-    var days = dayList();
     var fitBox = document.getElementById("fit");
     fitBox.textContent = "";
 
-    var pages = [{key:"plan", sheet:planSheet(days)}];
-    monthList(days).forEach(function(m, i){
-      pages.push({key:"cal-" + ym(m), sheet:calSheet(m, days, i+1)});
-    });
+    var pages = S.batch.on ? batchPages() : singlePages();
 
     pages.forEach(function(p){
       var page = el("div", "page");
@@ -902,10 +966,13 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
 
     // 배치는 실제 자리를 재서 정합니다 — 처음 보는 장에만.
     pages.forEach(function(p){
-      if(!S.stickers[p.key]) S.stickers[p.key] = (p.key === "plan" ? seedPlan(p.sheet) : seedCal(p.sheet));
+      if(!S.stickers[p.key]) S.stickers[p.key] =
+        (p.key.indexOf("cal-") === 0 ? seedCal(p.sheet) : seedPlan(p.sheet));
       drawStickers(p.sheet, p.key);
     });
     save();
+    document.getElementById("bcount").textContent =
+      S.batch.on ? ("모두 " + pages.length + "장") : "";
     renderHint();
     fit();
   }
@@ -922,7 +989,8 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     h.appendChild(document.createTextNode(
       "교재 칸 · 메모줄 · 달력 칸은 눌러서 바로 쓸 수 있습니다. 스티커는 끌어서 옮기고, " +
       "누르면 나오는 단추로 크기 · 각도 · 삭제, 모서리 점을 끌면 크기가 바뀝니다. " +
-      "글자 스티커는 두 번 누르면 고쳐집니다. 쓴 내용과 스티커 자리는 이 브라우저에 저장됩니다."));
+      "글자 스티커는 두 번 누르면 고쳐집니다. 쓴 내용과 스티커 자리는 이 브라우저에 저장됩니다. " +
+      "묶음 줄에 시작·끝 날짜를 넣고 «묶음으로 보기»를 누르면 그 기간을 한 주씩 전부 뽑습니다."));
   }
 
   /* 화면 폭에 맞춰 축소 */
@@ -1019,6 +1087,28 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     if(/^\d{4}-\d{2}$/.test(v) && S.months.indexOf(v) < 0){ S.months.push(v); save(); syncBar(); render(); }
   });
 
+  function batchBar(){
+    document.getElementById("bfrom").value = S.batch.from;
+    document.getElementById("bto").value   = S.batch.to;
+    document.getElementById("bcal").checked = S.batch.cal;
+    ["start","prev","next"].forEach(function(id){
+      document.getElementById(id).disabled = S.batch.on;
+    });
+  }
+  document.getElementById("bfrom").addEventListener("change", function(){ S.batch.from = this.value; save(); if(S.batch.on) render(); });
+  document.getElementById("bto").addEventListener("change",   function(){ S.batch.to   = this.value; save(); if(S.batch.on) render(); });
+  document.getElementById("bcal").addEventListener("change",  function(){ S.batch.cal  = this.checked; save(); if(S.batch.on) render(); });
+  document.getElementById("bmake").addEventListener("click", function(){
+    if(!parse(S.batch.from)) S.batch.from = S.start;
+    if(!parse(S.batch.to)){
+      var f = parse(S.batch.from); S.batch.to = iso(new Date(f.getFullYear(), f.getMonth()+4, 0));
+    }
+    S.batch.on = true; SEL = null; save(); batchBar(); render();
+  });
+  document.getElementById("bone").addEventListener("click", function(){
+    S.batch.on = false; SEL = null; save(); batchBar(); render();
+  });
+
   var pal = document.getElementById("palette");
   KINDS.forEach(function(k){
     var b = document.createElement("button");
@@ -1067,6 +1157,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 
   syncBar();
+  batchBar();
   render();
 })();
 </script>
