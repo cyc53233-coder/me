@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+
+  // 배포되면 https://hotdeal-v2.<내계정>.workers.dev 가 됩니다.
+  "name": "hotdeal-v2",
+
+  // Workers 런타임 동작을 이 날짜로 고정합니다. 올리면 새 동작이 켜지고,
+  // 그대로 두면 몇 년 뒤 배포해도 지금과 똑같이 돕니다.
+  "compatibility_date": "2026-08-31",
+
+  // nodejs_compat            : Next.js가 쓰는 Node 내장 모듈을 Workers에서 쓰게 합니다
+  // global_fetch_strictly_public : 내 Worker가 내 도메인을 fetch할 때 공개 인터넷을
+  //                            거치게 해, 로컬과 배포 후 동작이 갈리지 않게 합니다
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+  // 정적 파일(JS·CSS·이미지)은 Worker를 깨우지 않고 CDN에서 바로 나갑니다.
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  }
+
+  // 캐시(R2)와 이미지 최적화 바인딩은 일부러 뺐습니다. 지금은 모든 페이지가
+  // force-dynamic 이고 <img>를 쓰기 때문에 없어도 되고, 없는 R2 버킷을 적어 두면
+  // 배포가 실패합니다. 붙이는 방법은 README「더 해 볼 것」에 적어 두었습니다.
+}
