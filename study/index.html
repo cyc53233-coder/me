@@ -320,6 +320,7 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     <span class="pair">
       <button type="button" id="reset">처음값으로</button>
       <button type="button" id="export" hidden>인쇄용 파일 받기</button>
+      <button type="button" id="dump" hidden>설정 저장</button>
       <button type="button" class="go" id="print">인쇄 / PDF 저장</button>
     </span>
   </div>
@@ -1157,7 +1158,10 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   if(window.claude && typeof window.claude.use === "function"){
     window.claude.use("downloads").then(function(d){
       DL = d;
-      if(d) document.getElementById("export").hidden = false;
+      if(d){
+        document.getElementById("export").hidden = false;
+        document.getElementById("dump").hidden = false;
+      }
     }).catch(function(){});
   }
 
@@ -1182,7 +1186,9 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
     var vars = ["--srow","--memoline","--memoh"].map(function(v){
       return v + ":" + document.documentElement.style.getPropertyValue(v);
     }).join(";");
-    var css = document.querySelector("style").textContent;
+    var css = Array.prototype.map.call(document.querySelectorAll("style"), function(n){
+      return n.textContent;
+    }).join("\n");
     return '<!doctype html>\n<html lang="ko"><head><meta charset="utf-8">' +
       "<title>\uD559\uC2B5 \uACC4\uD68D\uD45C</title>" +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&display=swap">' +
@@ -1253,6 +1259,12 @@ td.mark.b{box-shadow:inset 0 0 0 .45mm var(--slate)}
   }
 
   document.getElementById("export").addEventListener("click", function(){ select(null); savePrintFile(false); });
+  document.getElementById("dump").addEventListener("click", function(){
+    if(!DL) return;
+    DL.save({ filename: "학습계획표-설정.json", data: JSON.stringify(S, null, 1) })
+      .then(function(){ note("설정을 저장했습니다. 이 파일을 보내 주시면 똑같은 상태로 다시 만들 수 있습니다."); })
+      .catch(function(err){ note("설정을 저장하지 못했습니다" + (err && err.code ? " (" + err.code + ")" : "") + "."); });
+  });
   document.getElementById("print").addEventListener("click", doPrint);
   var armed = false, armT = null;
   document.getElementById("reset").addEventListener("click", function(){
