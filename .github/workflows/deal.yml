@@ -1,0 +1,66 @@
+name: 딜 등록 · 마감
+
+on:
+  issues:
+    types: [opened, edited]
+
+# 이슈를 연 사람이 저장소 주인일 때만 돕니다.
+# 공개 저장소라 누구나 이슈를 열 수 있고, 이 조건이 없으면 남의 링크가 사이트에 올라갑니다.
+jobs:
+  apply:
+    if: >-
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.issue.state == 'open' &&
+      (contains(github.event.issue.body, '### 쉐어링크 주소') ||
+       contains(github.event.issue.body, '### 마감할 딜'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: deal-apply
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 딜 반영
+        id: apply
+        env:
+          MODE: ${{ contains(github.event.issue.body, '### 마감할 딜') && 'end' || 'add' }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: node scripts/add-deal.mjs
+
+      - name: 사이트에 올리기
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/deals.js
+          git commit -m "$(cat .deal-commit-message)"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+
+      - name: 이슈에 답글
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          test -f .deal-comment.md || exit 0
+          gh issue comment "$ISSUE_NUMBER" --body-file .deal-comment.md
+
+      - name: 이슈 닫기
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: gh issue close "$ISSUE_NUMBER"

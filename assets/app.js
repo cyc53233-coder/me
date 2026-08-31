@@ -264,6 +264,10 @@ function initChrome() {
     .querySelectorAll("[data-site-disclosure]")
     .forEach((el) => (el.textContent = SITE.disclosure || ""));
   if (SITE.name) document.title = document.title.replace("{site}", SITE.name);
+  document.querySelectorAll("[data-issue-link]").forEach((el) => {
+    if (!SITE.repo) return el.remove();
+    el.href = `https://github.com/${SITE.repo}/issues/new?template=${el.dataset.issueLink}`;
+  });
 }
 
 /* ── 채널 소개 화면 ───────────────────────────────────────── */

@@ -381,3 +381,4 @@ footer a { color: var(--muted); text-decoration: underline; }
 /* 이미지가 없는 딜은 썸네일 자리를 줄여 카드가 비어 보이지 않게 합니다 */
 .thumb.is-empty { aspect-ratio: 16 / 5; background: linear-gradient(140deg, #202634, #171b23); }
 .thumb.is-empty .thumb-fallback { font-size: 26px; }
+.disclosure a { color: var(--text); text-decoration: underline; }
