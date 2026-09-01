@@ -343,7 +343,7 @@
 <!-- Firebase (외부 호스팅에서만 동작 — claude.ai 아티팩트에서는 내장 공유 저장소를 사용) -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
 <script>
 "use strict";
@@ -392,11 +392,12 @@ const LID_KEY = "dani-ledger-lid";
 /* ---------- Firebase 설정 (외부 호스팅용) ----------
    Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱(웹 앱)의 구성 값을 그대로 붙여넣으세요.
    웹 구성 값은 전부 공개값이라 코드에 들어가도 됩니다 — 접근 보호는
-   Firestore 보안 규칙(ledger/README.md 참고)이 담당합니다. */
+   Realtime Database 보안 규칙(ledger/README.md 참고)이 담당합니다. */
 const FIREBASE_CONFIG = {
   apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
+  authDomain: "dani-yongcheol.firebaseapp.com",
+  databaseURL: "https://dani-yongcheol-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dani-yongcheol",
   appId: "PASTE_APP_ID",
 };
 const firebaseConfigured = () =>
@@ -1050,24 +1051,48 @@ async function migrateLocal(){
   } catch (err) { dbWriteFailed(err); migDismissed = false; renderMigBanner(); }
 }
 
-/* ================= Firebase (외부 호스팅에서의 실시간 공유) ================= */
+/* ================= Firebase (외부 호스팅에서의 실시간 공유) =================
+   Realtime Database를 connectSharedStore()가 기대하는 형태로 감싼다:
+   컬렉션 = 자식들을 담은 노드, 문서 = 그 아래 한 노드. */
+function rtdbAdapter(root){
+  const collection = p => ({
+    onSnapshot(next, error){
+      const ref = root.child(p);
+      const handler = ref.on("value", snap => {
+        const val = snap.val() || {};
+        next({ docs: Object.keys(val).map(id => ({ id, exists: true, data: () => val[id] })) });
+      }, e => { if (error) error(e); });
+      return () => ref.off("value", handler);
+    },
+    add: data => root.child(p).push(data),
+    doc: id => ({ delete: () => root.child(p).child(id).remove() }),
+  });
+  const doc = p => ({
+    onSnapshot(next, error){
+      const ref = root.child(p);
+      const handler = ref.on("value", snap => {
+        next({ exists: snap.exists(), data: () => snap.val() || {} });
+      }, e => { if (error) error(e); });
+      return () => ref.off("value", handler);
+    },
+    set: data => root.child(p).set(data),
+    delete: () => root.child(p).remove(),
+  });
+  return { collection, doc };
+}
+
 async function initFirebase(){
   if (!firebaseConfigured()) return false;
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     await firebase.auth().signInAnonymously();
-    const fsdb = firebase.firestore();
     let lid = hashLid();
     let created = false;
     if (!lid) { try { lid = localStorage.getItem(LID_KEY) || ""; } catch(e){} }
     if (!lid) { lid = newLid(); created = true; }
     try { localStorage.setItem(LID_KEY, lid); } catch(e){}
     if (hashLid() !== lid) { try { history.replaceState(null, "", "#l=" + lid); } catch(e){} }
-    const root = fsdb.collection("ledgers").doc(lid);
-    connectSharedStore({
-      collection: p => root.collection(p),
-      doc: p => { const seg = p.split("/"); return root.collection(seg[0]).doc(seg[1]); },
-    }, "fs");
+    connectSharedStore(rtdbAdapter(firebase.database().ref("ledgers/" + lid)), "fs");
     $("#inviteRow").hidden = false;
     $("#inviteUrl").value = location.href.split("#")[0] + "#l=" + lid;
     if (created) toast("공유 가계부를 새로 만들었어요 — 설정에서 초대 링크를 보내세요");

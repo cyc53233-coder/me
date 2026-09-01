@@ -2,6 +2,8 @@
 
 둘이서 함께 쓰는 생활비통장 가계부 — 단일 파일 웹앱(`index.html`).
 
+배포 주소: **https://dani-yongcheol.web.app**
+
 ## 구성
 
 - **통장 규칙** 카드가 페이지 최상단 (편집 가능, 공유 저장)
@@ -21,34 +23,45 @@
 같은 파일 하나가 환경에 따라 저장소를 고른다:
 
 1. **claude.ai 아티팩트** — 내장 공유 저장소(db 캐퍼빌리티). 같은 claude.ai 계정/조직 뷰어끼리 실시간 공유
-2. **외부 호스팅 + Firebase** — 아래 설정을 마치면 Firestore로 실시간 공유. **초대 링크**(`#l=코드`)를 아는 사람끼리 같은 가계부에 연결
+2. **외부 호스팅 + Firebase Realtime Database** — 초대 링크(`#l=코드`)를 아는 사람끼리 같은 가계부에 실시간 연결
 3. **둘 다 아니면** — 기기별 localStorage (헤더에 "이 기기에만 저장 중" 표시)
 
 공유 모드로 처음 연결될 때 이 기기에만 있던 기록이 있으면 "올릴까요?" 배너로 이사를 제안한다.
 
-## Firebase 설정 (외부 URL로 둘이 쓰려면)
+데이터는 `ledgers/<가계부 코드>/` 아래에 들어간다 — `entries/`(입금·지출), `meta/rules`, `meta/settings`, `meta/recurring`.
 
-1. [Firebase 콘솔](https://console.firebase.google.com)에서 프로젝트 열기 (v2에서 쓰던 프로젝트 재사용 가능)
-2. **빌드 > Firestore Database > 데이터베이스 만들기** (프로덕션 모드)
-3. Firestore **규칙** 탭에 붙여넣고 게시:
+## Firebase 설정
 
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /ledgers/{ledger}/{document=**} {
-         allow read, write: if request.auth != null;
+프로젝트: `dani-yongcheol` · Realtime Database 위치: 싱가포르(asia-southeast1)
+
+1. **Realtime Database > 규칙** 탭에 붙여넣고 게시:
+
+   ```json
+   {
+     "rules": {
+       "ledgers": {
+         "$ledger": { ".read": "auth != null", ".write": "auth != null" }
        }
      }
    }
    ```
 
-   접근 보호는 "로그인(익명) + 추측 불가능한 가계부 코드" 조합이다 — 초대 링크를 아는 사람만 해당 가계부를 읽고 쓸 수 있다.
-4. **빌드 > Authentication > 시작하기 > 로그인 방법 > 익명** 사용 설정
-5. **프로젝트 설정 > 일반 > 내 앱**에서 웹 앱 추가(</>) 후 구성 값을 `index.html`의 `FIREBASE_CONFIG`에 붙여넣기 (웹 구성 값은 공개값이라 커밋해도 된다)
-6. 정적 호스팅 아무 데나 올리기 — GitHub Pages(저장소 Settings > Pages), Netlify, Firebase Hosting 모두 가능
-7. 페이지를 처음 열면 가계부 코드가 만들어진다 — **설정 > 다니 초대하기**에서 링크를 복사해 보내면 끝
+   접근 보호는 "익명 로그인 + 추측 불가능한 가계부 코드" 조합이다 — 초대 링크를 아는 사람만 해당 가계부를 읽고 쓸 수 있다.
+2. **Authentication > 로그인 방법 > 익명** 사용 설정
+3. **프로젝트 설정 > 일반 > 내 앱**에서 웹 앱(`</>`) 등록 후 `apiKey`·`appId`를 `index.html`의 `FIREBASE_CONFIG`에 채운다 (웹 구성 값은 공개값이라 커밋해도 된다)
 
-## 아티팩트 발행 시
+## 배포
 
-`index.html`은 정식 HTML 문서다. claude.ai 아티팩트로 발행할 때는 발행 도구가 문서 스켈레톤을 대신 씌우므로, 다음 줄들만 제거한 사본을 발행한다: `<!doctype html>`, `<html lang="ko">`, `<head>`, charset/viewport `<meta>` 2줄, `</head>`, `<body>`, `</body>`, `</html>`, 그리고 Firebase SDK `<script>` 3줄과 그 주석 1줄 (아티팩트 CSP가 gstatic을 차단하므로 어차피 동작하지 않는다).
+`main`에 `ledger/` 변경이 푸시되면 [`firebase-hosting.yml`](../.github/workflows/firebase-hosting.yml)이 Firebase Hosting에 자동 배포한다. 저장소 시크릿 **`FIREBASE_SERVICE_ACCOUNT`** 가 필요하다 — Firebase 콘솔 > 프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성으로 받은 JSON 전체를 Settings > Secrets and variables > Actions 에 등록한다. (이 JSON은 비밀이므로 커밋하거나 채팅에 붙여넣지 말 것.)
+
+호스팅 루트는 `ledger/`라서 가계부가 도메인 최상단에서 열린다. 저장소 루트의 핫딜 사이트와 섞이지 않는다.
+
+## claude.ai 아티팩트로 발행할 때
+
+`index.html`은 정식 HTML 문서다. 아티팩트 발행 도구가 문서 스켈레톤을 대신 씌우고, 아티팩트 CSP는 외부 스크립트(Firebase SDK)를 차단하므로 변형본을 만들어 발행한다:
+
+```
+node ledger/build-artifact.mjs      # → ledger/artifact.html (gitignore됨)
+```
+
+이 스크립트가 어떤 줄을 빼는지가 유일한 기준이다 — 문서 스켈레톤이나 Firebase 스크립트 줄을 고치면 스크립트의 `DROP` 목록도 함께 고쳐야 하고, 어긋나면 오류로 알려 준다. CI에서도 `--check`로 검증한다.

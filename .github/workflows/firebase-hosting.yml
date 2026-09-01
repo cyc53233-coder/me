@@ -1,0 +1,32 @@
+name: 가계부 배포
+
+# ledger/ 를 Firebase Hosting(dani-yongcheol.web.app)에 올립니다.
+# FIREBASE_SERVICE_ACCOUNT 시크릿이 있어야 돕니다 —
+# Firebase 콘솔 > 프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성으로 받은
+# JSON 전체를 저장소 Settings > Secrets and variables > Actions 에 넣어 주세요.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ledger/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/firebase-hosting.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 아티팩트 변형이 최신인지 확인
+        run: node ledger/build-artifact.mjs --check
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: dani-yongcheol
+          channelId: live
