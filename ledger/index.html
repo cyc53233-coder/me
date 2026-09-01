@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>다니랑 생활비 통장</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -156,6 +161,8 @@
     *{animation:none !important; transition:none !important}
   }
 </style>
+</head>
+<body>
 
 <div class="wrap">
 
@@ -197,6 +204,16 @@
       <label class="f">누가<select id="recWho"></select></label>
       <label class="f" style="flex:0 0 auto; justify-content:flex-end"><span>&nbsp;</span><button class="ghost" id="recAdd">추가</button></label>
     </div>
+
+    <div id="inviteRow" hidden>
+      <hr class="divider">
+      <h2 style="border:none; margin:0 0 4px; padding:0">다니 초대하기</h2>
+      <p class="rules-hint" style="margin:0 0 10px">아래 링크를 보내면 같은 가계부에 바로 연결돼요. 링크를 아는 사람은 누구나 열 수 있으니 둘만 알게 보관하세요.</p>
+      <div class="frow">
+        <input id="inviteUrl" readonly>
+        <button class="ghost" id="copyInvite" style="flex:0 0 auto">초대 링크 복사</button>
+      </div>
+    </div>
   </section>
 
   <!-- 1. 통장 규칙 (최상단) -->
@@ -232,6 +249,13 @@
     <div class="tile"><div class="tl">이번 달 지출</div><div class="tv num neg" id="tOut">0원</div></div>
     <div class="tile"><div class="tl">이번 달 남은 돈</div><div class="tv num" id="tNet">0원</div></div>
     <div class="tile hl"><div class="tl">통장 잔액 (누적)</div><div class="tv num bal" id="tBal">0원</div></div>
+  </div>
+
+  <!-- 이 기기 기록 → 공유 저장소 이사 제안 -->
+  <div class="banner" id="migBanner" role="status">
+    <span class="grow" id="migText"></span>
+    <button class="primary mini" id="migUpload">올리기</button>
+    <button class="ghost mini" id="migClose">닫기</button>
   </div>
 
   <!-- 3. 수입 -->
@@ -316,6 +340,11 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<!-- Firebase (외부 호스팅에서만 동작 — claude.ai 아티팩트에서는 내장 공유 저장소를 사용) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
 <script>
 "use strict";
 
@@ -358,6 +387,30 @@ function toast(msg){
 const CATEGORIES = ["식비","마트·장보기","외식·배달","카페·간식","생활용품","주거·공과금","통신·구독","교통","건강","데이트","기타"];
 const DEFAULT_RULES = "매달 25일까지 각자 생활비를 입금해요\n쓴 날 바로 기록해요 (미루면 잊어버려요)\n큰 지출은 미리 서로 이야기해요";
 const LS_KEY = "dani-ledger-v1";
+const LID_KEY = "dani-ledger-lid";
+
+/* ---------- Firebase 설정 (외부 호스팅용) ----------
+   Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱(웹 앱)의 구성 값을 그대로 붙여넣으세요.
+   웹 구성 값은 전부 공개값이라 코드에 들어가도 됩니다 — 접근 보호는
+   Firestore 보안 규칙(ledger/README.md 참고)이 담당합니다. */
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE_PROJECT.firebaseapp.com",
+  projectId: "PASTE_PROJECT_ID",
+  appId: "PASTE_APP_ID",
+};
+const firebaseConfigured = () =>
+  typeof firebase !== "undefined" && FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("PASTE");
+
+function hashLid(){
+  const m = location.hash.match(/l=([A-Za-z0-9]{8,})/);
+  return m ? m[1] : "";
+}
+function newLid(){
+  let s = "";
+  while (s.length < 22) s += Math.random().toString(36).slice(2);
+  return s.slice(0, 22);
+}
 
 const state = {
   entries: new Map(),          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
@@ -416,7 +469,10 @@ async function saveRecurringDoc(){
   renderSettings(); renderRecBanner();
 }
 function dbWriteFailed(err){
-  toast(err && err.code === "quota_exceeded" ? "저장 공간이 가득 찼어요 — 오래된 기록을 지워 주세요" : "저장하지 못했어요. 잠시 후 다시 시도해 주세요");
+  const code = err && err.code;
+  if (code === "quota_exceeded") toast("저장 공간이 가득 찼어요 — 오래된 기록을 지워 주세요");
+  else if (code === "permission-denied") toast("저장 권한이 없어요 — Firestore 보안 규칙을 확인해 주세요");
+  else toast("저장하지 못했어요. 잠시 후 다시 시도해 주세요");
 }
 
 /* ================= 렌더 ================= */
@@ -643,11 +699,15 @@ let currentAbort = null;
 
 function setConn(mode){
   const conn = $("#conn");
-  conn.classList.toggle("on", mode === "db");
-  $("#connText").textContent = mode === "db" ? "공유 저장소 연결됨" : "이 기기에만 저장 중";
-  $("#footNote").textContent = mode === "db"
-    ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요."
-    : "지금은 이 기기에만 저장돼요. claude.ai에서 열면 둘이 함께 쓸 수 있어요.";
+  const shared = mode === "db" || mode === "fs";
+  conn.classList.toggle("on", shared);
+  $("#connText").textContent =
+    mode === "db" ? "실시간 공유 연결됨" :
+    mode === "fs" ? "실시간 공유 연결됨 (Firebase)" : "이 기기에만 저장 중";
+  $("#footNote").textContent =
+    mode === "db" ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요." :
+    mode === "fs" ? "초대 링크를 아는 사람끼리 같은 기록을 실시간으로 봐요." :
+    "지금은 이 기기에만 저장돼요. 공유하려면 claude.ai 아티팩트로 열거나 Firebase 설정을 넣어 주세요.";
 }
 
 function autoStatus(msg, withStop){
@@ -924,36 +984,113 @@ function bindEvents(){
       toast("내보내기에 실패했어요 — 다시 시도해 주세요");
     }
   });
+
+  // 초대 링크 (Firebase 모드)
+  $("#copyInvite").addEventListener("click", async () => {
+    const url = $("#inviteUrl").value;
+    try { await navigator.clipboard.writeText(url); toast("초대 링크를 복사했어요 — 다니에게 보내세요"); }
+    catch (e) { $("#inviteUrl").focus(); $("#inviteUrl").select(); toast("길게 눌러 직접 복사해 주세요"); }
+  });
+
+  // 기기 기록 → 공유 저장소 이사
+  $("#migUpload").addEventListener("click", migrateLocal);
+  $("#migClose").addEventListener("click", () => { migDismissed = true; renderMigBanner(); });
+}
+
+/* ================= 공유 저장소 연결 (아티팩트 db · Firebase 공용) ================= */
+let localBackup = null;   // 공유 모드 전환 직전의 이 기기 기록 (이사 제안용)
+let migDismissed = false;
+
+function connectSharedStore(adapter, mode){
+  db = adapter;
+  state.mode = mode;
+  localBackup = {
+    entries: [...state.entries.values()],
+    rules: state.rules, members: state.members, recurring: state.recurring,
+  };
+  state.entries = new Map();   // 공유 데이터만 사용 (기기 데이터와 섞지 않음)
+  state.rules = ""; state.recurring = [];
+  setConn(mode);
+  db.collection("entries").onSnapshot(snap => {
+    state.entries = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
+    renderAll(); renderMigBanner();
+  }, () => toast("공유 저장소 연결이 끊겼어요 — 새로고침해 주세요"));
+  db.doc("meta/rules").onSnapshot(snap => {
+    state.rules = snap.exists ? String(snap.data().text || "") : "";
+    renderRules();
+  }, () => {});
+  db.doc("meta/settings").onSnapshot(snap => {
+    const m = snap.exists && snap.data().members;
+    if (Array.isArray(m) && m.length === 2) { state.members = m.map(String); renderAll(); }
+  }, () => {});
+  db.doc("meta/recurring").onSnapshot(snap => {
+    const items = snap.exists && snap.data().items;
+    state.recurring = Array.isArray(items) ? items : [];
+    renderSettings(); renderRecBanner();
+  }, () => {});
+}
+
+/* 이 기기에만 있던 기록을 공유 저장소로 올리는 배너 */
+function renderMigBanner(){
+  const b = $("#migBanner");
+  const show = !migDismissed && localBackup && localBackup.entries.length > 0 && state.entries.size === 0;
+  b.classList.toggle("show", !!show);
+  if (show) $("#migText").textContent =
+    "이 기기에 기록 " + localBackup.entries.length + "건이 있어요. 공유 가계부로 올릴까요?";
+}
+async function migrateLocal(){
+  if (!db || !localBackup) return;
+  const b = localBackup;
+  migDismissed = true; renderMigBanner();
+  try {
+    for (const e of b.entries) { const { id, ...rest } = e; await db.collection("entries").add(rest); }
+    if (b.rules && !state.rules) await db.doc("meta/rules").set({ text: b.rules, updatedAt: Date.now() });
+    if (b.recurring.length && !state.recurring.length) await db.doc("meta/recurring").set({ items: b.recurring, updatedAt: Date.now() });
+    toast("기록 " + b.entries.length + "건을 옮겼어요");
+  } catch (err) { dbWriteFailed(err); migDismissed = false; renderMigBanner(); }
+}
+
+/* ================= Firebase (외부 호스팅에서의 실시간 공유) ================= */
+async function initFirebase(){
+  if (!firebaseConfigured()) return false;
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    await firebase.auth().signInAnonymously();
+    const fsdb = firebase.firestore();
+    let lid = hashLid();
+    let created = false;
+    if (!lid) { try { lid = localStorage.getItem(LID_KEY) || ""; } catch(e){} }
+    if (!lid) { lid = newLid(); created = true; }
+    try { localStorage.setItem(LID_KEY, lid); } catch(e){}
+    if (hashLid() !== lid) { try { history.replaceState(null, "", "#l=" + lid); } catch(e){} }
+    const root = fsdb.collection("ledgers").doc(lid);
+    connectSharedStore({
+      collection: p => root.collection(p),
+      doc: p => { const seg = p.split("/"); return root.collection(seg[0]).doc(seg[1]); },
+    }, "fs");
+    $("#inviteRow").hidden = false;
+    $("#inviteUrl").value = location.href.split("#")[0] + "#l=" + lid;
+    if (created) toast("공유 가계부를 새로 만들었어요 — 설정에서 초대 링크를 보내세요");
+    window.addEventListener("hashchange", () => {
+      const h = hashLid();
+      if (h && h !== lid) { try { localStorage.setItem(LID_KEY, h); } catch(e){} location.reload(); }
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 /* ================= 캐퍼빌리티 초기화 ================= */
 async function initCapabilities(){
   const use = window.claude && window.claude.use ? name => window.claude.use(name) : () => Promise.resolve(null);
 
-  // db: 공유 저장소
-  try { db = await use("db"); } catch(e){ db = null; }
-  if (db) {
-    state.mode = "db";
-    state.entries = new Map();   // 공유 데이터만 사용 (기기 데이터와 섞지 않음)
-    setConn("db");
-    db.collection("entries").onSnapshot(snap => {
-      state.entries = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
-      renderAll();
-    }, () => toast("공유 저장소 연결이 끊겼어요 — 새로고침해 주세요"));
-    db.doc("meta/rules").onSnapshot(snap => {
-      state.rules = snap.exists ? String(snap.data().text || "") : "";
-      renderRules();
-    }, () => {});
-    db.doc("meta/settings").onSnapshot(snap => {
-      const m = snap.exists && snap.data().members;
-      if (Array.isArray(m) && m.length === 2) { state.members = m.map(String); renderAll(); }
-    }, () => {});
-    db.doc("meta/recurring").onSnapshot(snap => {
-      const items = snap.exists && snap.data().items;
-      state.recurring = Array.isArray(items) ? items : [];
-      renderSettings(); renderRecBanner();
-    }, () => {});
-  } else {
+  // 1) claude.ai 아티팩트 내장 공유 저장소 → 2) Firebase → 3) 이 기기(localStorage)
+  let artifactDb = null;
+  try { artifactDb = await use("db"); } catch(e){ artifactDb = null; }
+  if (artifactDb) {
+    connectSharedStore(artifactDb, "db");
+  } else if (!(await initFirebase())) {
     setConn("local");
   }
 
@@ -988,3 +1125,5 @@ function init(){
 }
 init();
 </script>
+</body>
+</html>
