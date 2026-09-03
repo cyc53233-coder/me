@@ -157,6 +157,41 @@
     padding:9px 16px; border-radius:99px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; max-width:85vw; text-align:center}
   #toast.show{opacity:1; transform:translate(-50%,0)}
 
+  /* ---------- 금액 칸 계산기 ---------- */
+  label.f:has(input.amt){position:relative}
+  .calc-open{position:absolute; top:-2px; right:0; font-size:11px; padding:1px 8px;
+    background:var(--yellow-soft); color:var(--tag-ink); border:1px solid var(--yellow-line);
+    border-radius:5px; cursor:pointer; line-height:1.6}
+  .calc-open:hover{background:var(--yellow)}
+  .amt-preview{font-size:12px; color:var(--muted); text-align:right; padding:3px 2px 0;
+    font-family:'IBM Plex Mono',ui-monospace,monospace}
+  .amt-preview.bad{color:var(--expense)}
+
+  /* ---------- 계산기 패드 ---------- */
+  #calcSheet{display:none; position:fixed; inset:0; z-index:50}
+  #calcSheet.show{display:block}
+  #calcBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #calcPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,100%); background:var(--card); border:1px solid var(--line);
+    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:10px;
+    box-shadow:0 -6px 24px rgba(25,25,25,.14)}
+  @media(min-width:520px){
+    #calcPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}
+  }
+  #calcScreen{background:var(--track); border-radius:10px; padding:10px 12px; text-align:right}
+  #calcExpr{font-size:14px; color:var(--muted); min-height:1.5em; word-break:break-all}
+  #calcResult{font-size:26px; font-weight:600; color:var(--ink); margin-top:2px}
+  #calcResult.bad{color:var(--muted); font-size:18px}
+  #calcKeys{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+  #calcKeys button{background:var(--paper); border:1px solid var(--input-line); border-radius:8px;
+    padding:13px 4px; font-size:17px; cursor:pointer; font-family:'IBM Plex Mono',ui-monospace,monospace}
+  #calcKeys button:hover{background:var(--track)}
+  #calcKeys button.op{background:var(--yellow-soft); border-color:var(--yellow-line); color:var(--tag-ink)}
+  #calcKeys button.fn{background:var(--track); color:var(--muted)}
+  #calcKeys button.eq{grid-column:span 4; background:var(--yellow); border-color:var(--yellow-line); font-weight:700}
+  #calcActions{display:flex; gap:8px}
+  #calcActions button{flex:1}
+
   @media (prefers-reduced-motion: reduce){
     *{animation:none !important; transition:none !important}
   }
@@ -338,6 +373,22 @@
 
 </div>
 
+<!-- 계산기 패드 -->
+<div id="calcSheet" role="dialog" aria-modal="true" aria-label="계산기" aria-hidden="true">
+  <div id="calcBackdrop"></div>
+  <div id="calcPanel">
+    <div id="calcScreen">
+      <div id="calcExpr" class="num">0</div>
+      <div id="calcResult" class="num">0원</div>
+    </div>
+    <div id="calcKeys"></div>
+    <div id="calcActions">
+      <button class="ghost" id="calcCancel">닫기</button>
+      <button class="primary" id="calcApply">이 금액 넣기</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <!-- Firebase (외부 호스팅에서만 동작 — claude.ai 아티팩트에서는 내장 공유 저장소를 사용) -->
@@ -353,6 +404,79 @@ const $ = s => document.querySelector(s);
 const fmtWon = n => (n < 0 ? "−" : "") + Math.abs(Math.round(n)).toLocaleString("ko-KR") + "원";
 const parseAmt = v => Number(String(v).replace(/[^\d]/g, "")) || 0;
 const pad2 = n => String(n).padStart(2, "0");
+
+/* ================= 금액 수식 계산기 =================
+   금액 칸과 계산기 패드가 함께 쓰는 계산 엔진.
+   eval()·new Function()은 쓰지 않는다 — 계산 결과가 공유 저장소를 거쳐
+   상대방 화면에도 렌더되므로 문자열 실행 경로를 아예 만들지 않는다.
+   계산할 수 없으면 예외 대신 null을 돌려주고, 호출부가 조용히 처리한다. */
+/*CALC_START*/
+function evalAmount(src){
+  const text = String(src == null ? "" : src)
+    .replace(/[,\s]/g, "")
+    .replace(/[×xX]/g, "*")
+    .replace(/[÷]/g, "/")
+    .replace(/[−–—]/g, "-");
+  if (!text) return null;
+  if (/[^0-9+\-*/().]/.test(text)) return null;
+
+  let i = 0;
+  const peek = () => text[i];
+  const eat = ch => (text[i] === ch ? (i++, true) : false);
+
+  // 식 = 항 (('+'|'-') 항)*
+  function parseExpr(){
+    let left = parseTerm();
+    if (left === null) return null;
+    for (;;) {
+      const op = peek();
+      if (op !== "+" && op !== "-") return left;
+      i++;
+      const right = parseTerm();
+      if (right === null) return null;
+      left = op === "+" ? left + right : left - right;
+    }
+  }
+  // 항 = 인수 (('*'|'/') 인수)*
+  function parseTerm(){
+    let left = parseFactor();
+    if (left === null) return null;
+    for (;;) {
+      const op = peek();
+      if (op !== "*" && op !== "/") return left;
+      i++;
+      const right = parseFactor();
+      if (right === null) return null;
+      if (op === "/" && right === 0) return null;   // 0으로 나누기
+      left = op === "*" ? left * right : left / right;
+    }
+  }
+  // 인수 = ('+'|'-')? ( '(' 식 ')' | 숫자 )
+  function parseFactor(){
+    if (eat("+")) return parseFactor();
+    if (eat("-")) { const v = parseFactor(); return v === null ? null : -v; }
+    if (eat("(")) {
+      const v = parseExpr();
+      if (v === null || !eat(")")) return null;
+      return v;
+    }
+    const start = i;
+    while (i < text.length && /[0-9.]/.test(text[i])) i++;
+    if (i === start) return null;
+    const num = Number(text.slice(start, i));
+    return Number.isFinite(num) ? num : null;
+  }
+
+  const value = parseExpr();
+  if (value === null || i !== text.length) return null;   // 남은 문자가 있으면 실패
+  if (!Number.isFinite(value)) return null;
+  const won = Math.round(value);
+  if (won <= 0) return null;                              // 금액이므로 0·음수는 거부
+  return won;
+}
+/** 수식 문자를 품고 있는지 — 순수 숫자면 미리보기를 띄우지 않는다. */
+const looksLikeFormula = v => /[+\-*/×÷()]/.test(String(v).replace(/^\s*[-−]/, ""));
+/*CALC_END*/
 function todayStr(){
   const d = new Date();
   return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
@@ -610,11 +734,128 @@ function buildWhoSelect(sel){
   const s = $(sel); s.textContent = "";
   [["m0", state.members[0]], ["m1", state.members[1]], ["both", "같이"]].forEach(([v, n]) => s.append(new Option(n, v)));
 }
-function bindAmtFormat(input){
+/* 금액 칸: 순수 숫자면 예전처럼 콤마만 붙이고, 수식이 섞이면 그대로 두되
+   바로 아래에 계산 결과를 미리 보여 준다. */
+function bindAmtField(input){
+  const preview = document.createElement("div");
+  preview.className = "amt-preview";
+  preview.hidden = true;
+  input.insertAdjacentElement("afterend", preview);
+
   input.addEventListener("input", () => {
-    const n = parseAmt(input.value);
-    input.value = n ? n.toLocaleString("ko-KR") : "";
+    const raw = input.value;
+    const cleaned = raw.replace(/[^0-9+\-*/×÷().,]/g, "");
+    if (looksLikeFormula(cleaned)) {
+      // 수식은 사용자가 친 그대로 둔다 (커서가 튀지 않게)
+      if (cleaned !== raw) input.value = cleaned;
+    } else {
+      const n = parseAmt(cleaned);
+      input.value = n ? n.toLocaleString("ko-KR") : "";
+    }
+    updateAmtPreview(input);
   });
+  input.addEventListener("blur", () => {
+    // 칸을 벗어나면 계산된 금액으로 확정
+    const won = evalAmount(input.value);
+    if (won !== null && looksLikeFormula(input.value)) {
+      input.value = won.toLocaleString("ko-KR");
+      updateAmtPreview(input);
+    }
+  });
+}
+function updateAmtPreview(input){
+  const preview = input.nextElementSibling;
+  if (!preview || !preview.classList.contains("amt-preview")) return;
+  if (!looksLikeFormula(input.value)) { preview.hidden = true; return; }
+  const won = evalAmount(input.value);
+  preview.hidden = false;
+  preview.classList.toggle("bad", won === null);
+  preview.textContent = won === null ? "계산할 수 없는 식이에요" : "= " + won.toLocaleString("ko-KR") + "원";
+}
+/** 금액 칸을 비우고 미리보기도 함께 지운다. */
+function clearAmtField(input){
+  input.value = "";
+  updateAmtPreview(input);
+}
+/** 저장이 막힌 이유를 구분해 안내한다 — 빈 칸인지, 계산이 안 되는 식인지. */
+function amtError(value){
+  const v = String(value || "").trim();
+  if (!v) return "금액을 입력해 주세요";
+  if (looksLikeFormula(v)) return "계산할 수 없는 식이에요 — 다시 확인해 주세요";
+  return "금액을 입력해 주세요";
+}
+
+/* ================= 계산기 패드 ================= */
+let calcTarget = null;      // 어느 금액 칸에서 열었는지
+let calcExpr = "";
+
+function calcRender(){
+  $("#calcExpr").textContent = calcExpr || "0";
+  const won = evalAmount(calcExpr);
+  const out = $("#calcResult");
+  out.textContent = calcExpr === "" ? "0원"
+    : won === null ? "계산 중…" : won.toLocaleString("ko-KR") + "원";
+  out.classList.toggle("bad", calcExpr !== "" && won === null);
+  $("#calcApply").disabled = won === null;
+}
+function calcOpen(input){
+  calcTarget = input;
+  calcExpr = looksLikeFormula(input.value) ? input.value.replace(/,/g, "")
+    : String(parseAmt(input.value) || "");
+  calcRender();
+  $("#calcSheet").classList.add("show");
+  $("#calcSheet").setAttribute("aria-hidden", "false");
+  $("#calcKeys").querySelector("button").focus();
+}
+function calcClose(){
+  $("#calcSheet").classList.remove("show");
+  $("#calcSheet").setAttribute("aria-hidden", "true");
+  if (calcTarget) calcTarget.focus();
+  calcTarget = null;
+}
+function calcPress(key){
+  if (key === "C") calcExpr = "";
+  else if (key === "←") calcExpr = calcExpr.slice(0, -1);
+  else if (key === "=") {
+    const won = evalAmount(calcExpr);
+    if (won !== null) calcExpr = String(won);
+  } else calcExpr += key;
+  calcRender();
+}
+function calcApply(){
+  const won = evalAmount(calcExpr);
+  if (won === null || !calcTarget) return;
+  const input = calcTarget;
+  input.value = won.toLocaleString("ko-KR");
+  updateAmtPreview(input);
+  calcClose();
+}
+function buildCalcPad(){
+  const keys = ["7","8","9","÷", "4","5","6","×", "1","2","3","−", "0","00",".","+", "(",")","←","C", "="];
+  const box = $("#calcKeys");
+  box.textContent = "";
+  keys.forEach(k => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = k;
+    if (/[÷×−+()]/.test(k)) b.className = "op";
+    if (k === "C" || k === "←") b.className = "fn";
+    if (k === "=") b.className = "eq";
+    b.addEventListener("click", () => calcPress(k));
+    box.append(b);
+  });
+}
+/** 금액 칸 라벨 우측 위에 계산기 열기 버튼을 단다 (CSS로 위치 고정). */
+function attachCalcButton(input){
+  const label = input.closest("label.f");
+  if (!label) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "calc-open";
+  btn.textContent = "계산기";
+  btn.setAttribute("aria-label", "계산기 열기");
+  btn.addEventListener("click", () => calcOpen(input));
+  label.append(btn);
 }
 
 /* ================= 카테고리 자동 추천 ================= */
@@ -683,7 +924,7 @@ function parseSms(text){
 /* ================= 자동화: 폼 채우기 ================= */
 function fillExpenseForm({amount, merchant, date, category}, sourceLabel){
   $("#expAdder").open = true;
-  if (amount) $("#expAmt").value = amount.toLocaleString("ko-KR");
+  if (amount) { $("#expAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#expAmt")); }
   if (merchant) $("#expMemo").value = merchant;
   $("#expDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
   const cat = (category && CATEGORIES.includes(category)) ? category : suggestCategory(merchant || "");
@@ -898,31 +1139,31 @@ function bindEvents(){
   $("#toThis").addEventListener("click", () => { state.month = thisMonth(); renderAll(); });
 
   // 입금 저장
-  bindAmtFormat($("#incAmt"));
+  bindAmtField($("#incAmt")); attachCalcButton($("#incAmt"));
   $("#incSave").addEventListener("click", () => {
-    const amount = parseAmt($("#incAmt").value);
+    const amount = evalAmount($("#incAmt").value);
     const date = $("#incDate").value || todayStr();
-    if (!amount) { toast("금액을 입력해 주세요"); $("#incAmt").focus(); return; }
+    if (!amount) { toast(amtError($("#incAmt").value)); $("#incAmt").focus(); return; }
     addEntry({ type: "income", date, month: date.slice(0,7), who: segValue($("#incWho")),
       category: "", memo: $("#incMemo").value.trim(), amount, createdAt: Date.now() }).catch(dbWriteFailed);
-    $("#incAmt").value = ""; $("#incMemo").value = ""; $("#incDate").value = todayStr();
+    clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
     state.month = date.slice(0,7); renderAll();
     toast("입금을 저장했어요");
   });
 
   // 지출 저장
-  bindAmtFormat($("#expAmt"));
+  bindAmtField($("#expAmt")); attachCalcButton($("#expAmt"));
   $("#expMemo").addEventListener("change", () => {
     const cat = suggestCategory($("#expMemo").value);
     if (cat) { $("#expCat").value = cat; }
   });
   $("#expSave").addEventListener("click", () => {
-    const amount = parseAmt($("#expAmt").value);
+    const amount = evalAmount($("#expAmt").value);
     const date = $("#expDate").value || todayStr();
-    if (!amount) { toast("금액을 입력해 주세요"); $("#expAmt").focus(); return; }
+    if (!amount) { toast(amtError($("#expAmt").value)); $("#expAmt").focus(); return; }
     addEntry({ type: "expense", date, month: date.slice(0,7), who: segValue($("#expWho")),
       category: $("#expCat").value, memo: $("#expMemo").value.trim(), amount, createdAt: Date.now() }).catch(dbWriteFailed);
-    $("#expAmt").value = ""; $("#expMemo").value = ""; $("#expDate").value = todayStr(); $("#expCat").value = CATEGORIES[0];
+    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = todayStr(); $("#expCat").value = CATEGORIES[0];
     state.month = date.slice(0,7); renderAll();
     toast("지출을 저장했어요");
   });
@@ -945,15 +1186,15 @@ function bindEvents(){
 
   // 고정지출
   $("#recFill").addEventListener("click", fillRecurring);
-  bindAmtFormat($("#recAmt"));
+  bindAmtField($("#recAmt")); attachCalcButton($("#recAmt"));
   $("#recAdd").addEventListener("click", () => {
     const day = Number($("#recDay").value) || 0;
-    const amount = parseAmt($("#recAmt").value);
+    const amount = evalAmount($("#recAmt").value);
     const memo = $("#recMemo").value.trim();
     if (!day || day < 1 || day > 31) { toast("며칠에 나가는지 입력해 주세요 (1–31)"); return; }
     if (!amount || !memo) { toast("금액과 내용을 입력해 주세요"); return; }
     state.recurring.push({ id: newId(), day, amount, memo, category: $("#recCat").value, who: $("#recWho").value });
-    $("#recDay").value = ""; $("#recAmt").value = ""; $("#recMemo").value = "";
+    $("#recDay").value = ""; clearAmtField($("#recAmt")); $("#recMemo").value = "";
     saveRecurringDoc().catch(dbWriteFailed);
     toast("고정지출을 등록했어요");
   });
@@ -996,6 +1237,15 @@ function bindEvents(){
   // 기기 기록 → 공유 저장소 이사
   $("#migUpload").addEventListener("click", migrateLocal);
   $("#migClose").addEventListener("click", () => { migDismissed = true; renderMigBanner(); });
+
+  // 계산기 패드
+  buildCalcPad();
+  $("#calcApply").addEventListener("click", calcApply);
+  $("#calcCancel").addEventListener("click", calcClose);
+  $("#calcBackdrop").addEventListener("click", calcClose);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && $("#calcSheet").classList.contains("show")) calcClose();
+  });
 }
 
 /* ================= 공유 저장소 연결 (아티팩트 db · Firebase 공용) ================= */
