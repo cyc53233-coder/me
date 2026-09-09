@@ -2,3 +2,4 @@ node_modules/
 .deal-comment.md
 .deal-commit-message
 ledger/artifact.html
+ledger/node_modules/

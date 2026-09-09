@@ -2,11 +2,24 @@
   "hosting": {
     "public": "ledger",
     "cleanUrls": true,
-    "ignore": ["README.md", "build-artifact.mjs", "artifact.html"],
+    "ignore": [
+      "README.md",
+      "build-artifact.mjs",
+      "artifact.html",
+      "package.json",
+      "package-lock.json",
+      "test/**",
+      "node_modules/**"
+    ],
     "headers": [
       {
         "source": "/index.html",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       }
     ]
   }
