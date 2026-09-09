@@ -1,0 +1,82 @@
+name: 허브 도구 등록 · 게시 · 내리기
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+# 세 가지 경우에만 돕니다.
+#  preview — 누구든 "도구 등록" 이슈를 열거나 고치면: 형식 검사 + 미리보기 답글 (사이트에는 안 올라감)
+#  publish — 운영자(라벨을 붙일 권한이 있는 사람)가 "게시" 라벨을 붙이면: 사이트에 올림
+#  retire  — 저장소 주인이 "도구 내리기" 이슈를 열면: 내림 처리
+jobs:
+  apply:
+    if: >-
+      github.event.issue.state == 'open' && (
+        (github.event.action != 'labeled' &&
+         contains(github.event.issue.body, '### 도구 이름')) ||
+        (github.event.action == 'labeled' &&
+         github.event.label.name == '게시' &&
+         contains(github.event.issue.body, '### 도구 이름')) ||
+        (github.event.action != 'labeled' &&
+         contains(github.event.issue.body, '### 내릴 도구') &&
+         github.event.issue.user.login == github.repository_owner)
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: hub-apply
+      cancel-in-progress: false
+    env:
+      MODE: >-
+        ${{ github.event.action == 'labeled' && 'publish'
+            || (contains(github.event.issue.body, '### 내릴 도구') && 'retire' || 'preview') }}
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 도구 반영
+        id: apply
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/idea-hub/
+        run: node idea-hub/scripts/apply.mjs
+
+      - name: 사이트에 올리기
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add idea-hub/data/tools.js
+          git commit -m "$(cat .hub-commit-message)"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+
+      - name: 이슈에 답글
+        if: always()
+        run: |
+          test -f .hub-comment.md || exit 0
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file .hub-comment.md
+
+      - name: 검토중 라벨
+        if: success() && env.MODE == 'preview'
+        run: |
+          gh label create "검토중" --repo "$GITHUB_REPOSITORY" --color FBCA04 --description "허브 도구 — 운영자 확인 대기" --force
+          gh label create "게시" --repo "$GITHUB_REPOSITORY" --color 0E8A16 --description "허브 도구 — 붙이면 사이트에 올라갑니다" --force
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "검토중"
+
+      - name: 이슈 닫기
+        if: success() && steps.apply.outputs.changed == 'true'
+        run: |
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label "검토중" || true
+          gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --comment "게시가 끝나 이슈를 닫습니다. 질문과 의견은 계속 이 이슈에 남길 수 있습니다."

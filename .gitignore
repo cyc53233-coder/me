@@ -1,3 +1,5 @@
 node_modules/
 .deal-comment.md
 .deal-commit-message
+.hub-comment.md
+.hub-commit-message
