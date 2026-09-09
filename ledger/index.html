@@ -153,6 +153,8 @@
 
   /* ---------- footer / toast ---------- */
   footer{color:var(--muted); font-size:12px; text-align:center; line-height:1.7}
+  footer .warn{color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line);
+    border-radius:8px; padding:8px 12px; display:block; text-align:left; margin-bottom:6px}
   #toast{position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:#FFFFFF;
     padding:9px 16px; border-radius:99px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; max-width:85vw; text-align:center}
   #toast.show{opacity:1; transform:translate(-50%,0)}
@@ -948,10 +950,13 @@ function setConn(mode){
   $("#connText").textContent =
     mode === "db" ? "실시간 공유 연결됨" :
     mode === "fs" ? "실시간 공유 연결됨 (Firebase)" : "이 기기에만 저장 중";
-  $("#footNote").textContent =
+  const note = $("#footNote");
+  note.textContent =
     mode === "db" ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요." :
     mode === "fs" ? "초대 링크를 아는 사람끼리 같은 기록을 실시간으로 봐요." :
+    fbFailReason ? "공유가 안 켜졌어요 — " + fbFailReason :
     "지금은 이 기기에만 저장돼요. 공유하려면 claude.ai 아티팩트로 열거나 Firebase 설정을 넣어 주세요.";
+  note.classList.toggle("warn", mode !== "db" && mode !== "fs" && !!fbFailReason);
 }
 
 function autoStatus(msg, withStop){
@@ -1333,8 +1338,35 @@ function rtdbAdapter(root){
   return { collection, doc };
 }
 
+/* 연결 실패 이유를 화면에 그대로 보여 준다 — "이 기기에만 저장 중"만으로는
+   콘솔에서 무엇이 빠졌는지 알 수 없어 사용자가 스스로 고칠 수 없다. */
+let fbFailReason = "";
+const FB_ERR_MSG = {
+  "auth/operation-not-allowed": "익명 로그인이 꺼져 있어요 — Firebase 콘솔 > Authentication > 로그인 방법 > 익명을 켜 주세요",
+  "auth/configuration-not-found": "Authentication이 아직 시작되지 않았어요 — Firebase 콘솔 > Authentication > 시작하기 > 익명을 켜 주세요",
+  "auth/admin-restricted-operation": "익명 로그인이 꺼져 있어요 — Firebase 콘솔 > Authentication > 로그인 방법 > 익명을 켜 주세요",
+  "auth/unauthorized-domain": "이 주소가 승인되지 않았어요 — Firebase 콘솔 > Authentication > 설정 > 승인된 도메인에 " + location.hostname + " 을 추가해 주세요",
+  "auth/api-key-not-valid": "API 키가 올바르지 않아요 — 웹 앱 구성값을 다시 확인해 주세요",
+  "auth/invalid-api-key": "API 키가 올바르지 않아요 — 웹 앱 구성값을 다시 확인해 주세요",
+  "auth/network-request-failed": "네트워크에 연결하지 못했어요 — 잠시 후 새로고침해 주세요",
+};
+function fbReasonFor(e){
+  const code = String((e && e.code) || "");
+  if (FB_ERR_MSG[code]) return FB_ERR_MSG[code];
+  const msg = String((e && e.message) || e || "");
+  if (/PERMISSION_DENIED/i.test(code + " " + msg))
+    return "데이터베이스 규칙이 막고 있어요 — Realtime Database > 규칙을 게시했는지 확인해 주세요";
+  return "Firebase에 연결하지 못했어요" + (code ? " (" + code + ")" : msg ? " (" + msg.slice(0, 80) + ")" : "");
+}
+
 async function initFirebase(){
-  if (!firebaseConfigured()) return false;
+  if (!firebaseConfigured()) {
+    if (typeof firebase === "undefined")
+      fbFailReason = "Firebase 스크립트를 불러오지 못했어요 — 새로고침하거나 네트워크를 확인해 주세요";
+    else if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("PASTE"))
+      fbFailReason = "Firebase 설정값이 아직 비어 있어요 (오래된 화면일 수 있어요 — 새로고침해 주세요)";
+    return false;
+  }
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     await firebase.auth().signInAnonymously();
@@ -1354,6 +1386,7 @@ async function initFirebase(){
     });
     return true;
   } catch (e) {
+    fbFailReason = fbReasonFor(e);
     return false;
   }
 }
