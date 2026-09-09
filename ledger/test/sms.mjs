@@ -14,7 +14,7 @@ const html = readFileSync(INDEX, "utf-8");
 const m = html.match(/\/\*SMS_PARSE_START\*\/([\s\S]*?)\/\*SMS_PARSE_END\*\//);
 if (!m) { console.error("parse function not found"); process.exit(1); }
 const pad2 = n => String(n).padStart(2, "0");
-const parseSms = new Function("pad2", m[1] + "; return parseSms;")(pad2);
+const { parseSms, parseItems } = new Function("pad2", m[1] + "; return { parseSms, parseItems };")(pad2);
 
 const cases = [
   {
@@ -67,6 +67,44 @@ for (const [text, want] of kinds) {
   if (!ok) fail++;
   console.log((ok ? "PASS" : "FAIL"), "구분:", text.split("\n").pop().slice(0, 22), "->", got);
 }
+
+// 여러 품목 (쿠팡 주문 완료 화면을 OCR한 것과 비슷한 텍스트)
+const coupang = `주문 완료
+로켓프레시 내일(수) 새벽 도착 (상품 3개)
+판매자 : 쿠팡
+오뚜기 컵누들 베트남 쌀국수, 47g, 6개
+6,940 원 로켓프레시
+수량: 1개
+곰곰 칼국수 김치, 500g, 1개
+5,990 원 로켓프레시
+수량: 1개
+국내산 양배추, 1개입, 1개
+3,090 원 로켓프레시
+수량: 1개
+배송 3건 중 2
+황태를 그대로 담다 무염 황태가루100g 강아지 애견 고양이 간식 보양식, 1개
+7,740 원 판매자로켓
+수량: 1개
+유즈코쇼 38g 유자고추
+5,390 원 판매자로켓
+총 결제금액 29,150원`;
+const mi = parseItems(coupang);
+const okN = mi.items.length === 5;
+if (!okN) fail++;
+console.log((okN ? "PASS" : "FAIL"), "여러 품목: 5개 추출 ->", mi.items.length, JSON.stringify(mi.items.map(x => x.amount)));
+const okSum = mi.items.reduce((a, x) => a + x.amount, 0) === 29150;
+if (!okSum) fail++;
+console.log((okSum ? "PASS" : "FAIL"), "여러 품목: 합계 29,150 ->", mi.items.reduce((a, x) => a + x.amount, 0));
+const okTotal = mi.total === 29150;
+if (!okTotal) fail++;
+console.log((okTotal ? "PASS" : "FAIL"), "여러 품목: 총액 줄은 품목에서 제외 ->", mi.total);
+const okName = mi.items[0].name.includes("쌀국수") && mi.items[4].name.includes("유자고추");
+if (!okName) fail++;
+console.log((okName ? "PASS" : "FAIL"), "여러 품목: 이름 매칭 ->", mi.items[0].name, "/", mi.items[4].name);
+const single = parseItems("[Web발신]\n신한카드 승인 12,300원 08/31 스타벅스");
+const okSingle = single.items.length === 1;
+if (!okSingle) fail++;
+console.log((okSingle ? "PASS" : "FAIL"), "단일 문자는 1개 ->", single.items.length);
 
 // date sanity for the first case
 const d = parseSms(cases[0].text).date;
