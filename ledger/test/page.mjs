@@ -18,10 +18,12 @@ writeFileSync(`${SCRATCH}/wrapped.html`, wrapped);
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
 const fails = [];
 const check = (name, cond, extra="") => { console.log((cond ? "PASS " : "FAIL ") + name + (extra ? " — " + extra : "")); if (!cond) fails.push(name); };
+let page;   // goTab 이 현재 페이지를 쓰도록
+const goTab = async n => { await page.click("#tb-" + n); await page.waitForTimeout(120); };
 
 async function newPage(scheme, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 940 }, colorScheme: scheme, locale: "ko-KR" });
-  const page = await ctx.newPage();
+  page = await ctx.newPage();
   page.on("pageerror", e => { console.log("PAGEERROR", e.message); fails.push("pageerror: " + e.message); });
   await page.goto("file://" + SCRATCH + "/wrapped.html");
   await page.waitForTimeout(600);
@@ -30,16 +32,16 @@ async function newPage(scheme, width) {
 
 // ---- mobile light: full interaction flow ----
 {
-  const { ctx, page } = await newPage("light", 390);
+  const { ctx, page: pg } = await newPage("light", 390);
+  page = pg;
 
-  check("규칙 카드가 최상단(설정 제외)", await page.evaluate(() => {
-    const cards = [...document.querySelectorAll(".wrap > section.card")].filter(c => c.id !== "settingsPanel");
-    return cards[0] && cards[0].id === "rulesCard";
-  }));
+  check("기본 탭은 일일", await page.evaluate(() => document.querySelector("#tb-daily").getAttribute("aria-selected") === "true" && !document.querySelector("#tab-daily").hidden));
+  check("다른 탭은 숨김", await page.evaluate(() => ["cal","income","stats"].every(t => document.querySelector("#tab-"+t).hidden)));
   check("예시 규칙 3줄 렌더", await page.locator("#rulesList li").count() === 3);
   check("로컬 모드 표시", (await page.locator("#connText").textContent()).includes("이 기기"));
 
   // 입금 추가
+  await goTab("income");
   await page.click("#incAdder summary");
   await page.fill("#incAmt", "700000");
   check("금액 콤마 포맷", await page.inputValue("#incAmt") === "700,000");
@@ -49,6 +51,7 @@ async function newPage(scheme, width) {
   check("입금 합계", (await page.locator("#incSum").textContent()).includes("700,000"));
 
   // 지출 추가 + 카테고리 자동 추천
+  await goTab("daily");
   await page.click("#expAdder summary");
   await page.fill("#expAmt", "45900");
   await page.fill("#expMemo", "이마트 장보기");
@@ -91,24 +94,51 @@ async function newPage(scheme, width) {
 
   // 고정지출 등록 → 배너 → 채우기
   await page.click("#settingsBtn");
-  await page.fill("#recDay", "25");
+  // 아직 나갈 날이 안 된 고정지출은 재촉하지 않아야 한다
+  const todayD = new Date().getDate();
+  const futureDay = todayD < 28 ? String(todayD + 1) : null;
+  if (futureDay) {
+    await page.fill("#recDay", futureDay);
+    await page.fill("#recAmt", "9000");
+    await page.fill("#recMemo", "미래 고정지출");
+    await page.click("#recAdd");
+    await page.waitForTimeout(200);
+    check("고정지출: 날짜 전이면 배너 없음", await page.locator("#recBanner.show").count() === 0);
+    await page.locator("#recList .row .del").last().click();   // 정리
+    await page.waitForTimeout(200);
+  }
+
+  await page.fill("#recDay", String(Math.max(1, todayD)));
   await page.fill("#recAmt", "55000");
   await page.fill("#recMemo", "통신비");
   await page.selectOption("#recCat", "통신·구독");
   await page.click("#recAdd");
   await page.waitForTimeout(200);
-  check("고정지출 배너 표시", await page.locator("#recBanner.show").count() === 1);
+  check("고정지출: 날짜가 지나면 배너 표시", await page.locator("#recBanner.show").count() === 1);
+  await page.keyboard.press("Escape"); await page.waitForTimeout(250);   // 서랍 뒤 배너를 누르려면 닫아야 한다
   await page.click("#recFill");
   await page.waitForTimeout(200);
   check("고정지출 채움 → 배너 사라짐", await page.locator("#recBanner.show").count() === 0);
   check("지출 3건", await page.locator("#expRows .row").count() === 3);
   check("지출 합계 106,400", (await page.locator("#expSum").textContent()).includes("106,400"));
 
-  // 이름 변경 반영
+  // 이름 변경 반영 (설정은 서랍 안)
+  await page.click("#settingsBtn"); await page.waitForTimeout(250);
   await page.fill("#setM0", "채영");
   await page.click("#saveSettings");
   await page.waitForTimeout(200);
   check("이름 변경 → 세그먼트 반영", (await page.locator("#expWho button").first().textContent()) === "채영");
+
+  // ===== 사이드바 서랍 =====
+  check("서랍: 메뉴로 열림", await page.locator("#drawerWrap.open").count() === 1);
+  check("서랍: 규칙이 서랍 안에", await page.locator("#drawer #rulesCard").count() === 1);
+  check("서랍: 규칙 3줄 그대로", await page.locator("#drawer #rulesList li").count() === 3);
+  check("서랍: 최근 활동 로그 표시", await page.locator("#logRows .logrow").count() >= 1);
+  check("서랍: 설정이 서랍 안에", await page.locator("#drawer #settingsPanel").count() === 1);
+  check("서랍: 본문에 규칙 카드 없음", await page.locator(".wrap #rulesCard").count() === 0);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  check("서랍: Esc로 닫힘", await page.locator("#drawerWrap.open").count() === 0);
 
   // 삭제 두 번 탭
   const delBtn = page.locator("#expRows .row .del").first();
@@ -118,7 +148,44 @@ async function newPage(scheme, width) {
   await page.waitForTimeout(200);
   check("삭제 완료 → 2건", await page.locator("#expRows .row").count() === 2);
 
+  // ===== 고치기 / 되돌리기 =====
+  const firstRow = page.locator("#expRows .row").first();
+  const beforeText = await firstRow.textContent();
+  await firstRow.click();
+  await page.waitForTimeout(250);
+  check("고치기: 폼에 값이 실림", (await page.inputValue("#expAmt")).length > 0, await page.inputValue("#expAmt"));
+  check("고치기: 저장 버튼 문구 변경", (await page.locator("#expSave").textContent()).includes("고친"));
+  check("고치기: 취소 버튼 노출", await page.locator("#expCancel").isVisible());
+  const rowsBeforeEdit = await page.locator("#expRows .row").count();
+  await page.fill("#expAmt", "77777");
+  await page.click("#expSave");
+  await page.waitForTimeout(300);
+  check("고치기: 건수가 늘지 않음", await page.locator("#expRows .row").count() === rowsBeforeEdit);
+  check("고치기: 새 금액 반영", (await page.locator("#expRows").textContent()).includes("77,777"));
+  check("고치기: 저장 후 버튼 원복", (await page.locator("#expSave").textContent()) === "지출 저장");
+  check("고치기: 취소 버튼 숨김", await page.locator("#expCancel").isHidden());
+
+  // 고치기 취소
+  await page.locator("#expRows .row").first().click();
+  await page.waitForTimeout(200);
+  await page.click("#expCancel");
+  await page.waitForTimeout(200);
+  check("고치기 취소: 폼 비워짐", (await page.inputValue("#expAmt")) === "");
+  check("고치기 취소: 버튼 원복", (await page.locator("#expSave").textContent()) === "지출 저장");
+
+  // 삭제 → 되돌리기
+  const beforeDel = await page.locator("#expRows .row").count();
+  const del = page.locator("#expRows .row .del").first();
+  await del.click(); await del.click();
+  await page.waitForTimeout(300);
+  check("삭제: 한 건 줄어듦", await page.locator("#expRows .row").count() === beforeDel - 1);
+  check("삭제: 되돌리기 버튼 제공", await page.locator("#toast .toast-act").count() === 1);
+  await page.click("#toast .toast-act");
+  await page.waitForTimeout(400);
+  check("되돌리기: 건수 복구", await page.locator("#expRows .row").count() === beforeDel);
+
   // ===== 달력 =====
+  await goTab("cal");
   check("달력: 요일 머리 7칸", await page.locator("#calGrid .cal-h").count() === 7);
   const cells = await page.locator("#calGrid .cal-c:not(.pad)").count();
   check("달력: 이번 달 날짜 수", cells === new Date(2026, 9, 0).getDate() || cells >= 28, cells + "칸");
@@ -131,11 +198,23 @@ async function newPage(scheme, width) {
   await dayCell.click();
   await page.waitForTimeout(250);
   check("달력: 날짜 선택 표시", await page.locator("#calGrid .cal-c.sel").count() === 1);
+  await page.waitForTimeout(450);
+  check("달력: 지출 폼 열림", await page.evaluate(() => document.querySelector("#expAdder").open));
+  const pickedDate = await page.inputValue("#expDate");
+  check("달력: 폼 날짜가 고른 날", /^\d{4}-\d{2}-\d{2}$/.test(pickedDate) && pickedDate.slice(0,7) === (await page.evaluate(() => document.querySelector("#monthLabel").textContent)).replace(/(\d{4})년 (\d+)월/, (m,y,mo) => y + "-" + String(mo).padStart(2,"0")), pickedDate);
+  check("달력: 금액칸에 커서", await page.evaluate(() => document.activeElement && document.activeElement.id === "expAmt"));
   check("달력: 필터 칩 노출", await page.locator("#expRows .filter-chip").count() === 1);
   check("달력: 합계 라벨이 그날로 바뀜", (await page.locator("#expSumLabel").textContent()).includes("일 지출 합계"));
   const filteredRows = await page.locator("#expRows .row").count();
   check("달력: 그날 내역만 남음", filteredRows >= 1 && filteredRows < 3, filteredRows + "건");
-  check("달력: 전체 보기 버튼 노출", await page.locator("#calClear").isVisible());
+  check("달력: 클릭 시 일일 탭으로 전환", await page.evaluate(() => !document.querySelector("#tab-daily").hidden));
+  await page.fill("#expAmt", "1500");
+  await page.fill("#expMemo", "그날 추가");
+  await page.click("#expSave");
+  await page.waitForTimeout(300);
+  check("달력: 그날에 저장하면 필터 유지", await page.locator("#expRows .filter-chip").count() === 1);
+  check("달력: 방금 저장한 것이 보임", (await page.locator("#expRows").textContent()).includes("그날 추가"));
+  check("달력: 날짜칸이 그날로 유지", (await page.inputValue("#expDate")) === pickedDate);
 
   // 칩으로 해제
   await page.locator("#expRows .filter-chip").click();
@@ -144,6 +223,7 @@ async function newPage(scheme, width) {
   check("달력: 합계 라벨 원복", (await page.locator("#expSumLabel").textContent()).includes("이번 달"));
 
   // 달을 옮기면 필터가 따라오지 않는다
+  await goTab("cal");
   await dayCell.click(); await page.waitForTimeout(150);
   await page.click("#prevM"); await page.waitForTimeout(200);
   check("달력: 달 이동 시 필터 해제", await page.locator("#expRows .filter-chip").count() === 0);
@@ -212,7 +292,7 @@ async function newPage(scheme, width) {
   await page.reload(); await page.waitForTimeout(600);
   // 계산기 테스트가 지출 1건(13,500)을 더 저장했으므로 이번 달 3건
   const afterReload = await page.locator("#expRows .row").count();
-  check("새로고침 후 데이터 유지", afterReload === 3, afterReload + "건");
+  check("새로고침 후 데이터 유지", afterReload === 4, afterReload + "건");
   check("새로고침 후 수식 저장분 유지", (await page.locator("#expRows").textContent()).includes("13,500"));
   check("새로고침 후 이름 유지", (await page.locator("#expWho button").first().textContent()) === "채영");
 
@@ -225,11 +305,12 @@ async function newPage(scheme, width) {
 
 // ---- desktop, dark OS setting: single white theme must hold ----
 {
-  const { ctx, page } = await newPage("dark", 800);
+  const { ctx, page: pg } = await newPage("dark", 800);
+  page = pg;
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   check("다크 OS에서도 화이트 유지(단일 테마)", bg === "rgb(255, 255, 255)", bg);
-  await page.click("#incAdder summary");
-  await page.click("#expAdder summary");
+  await goTab("income"); await page.click("#incAdder summary");
+  await goTab("daily");  await page.click("#expAdder summary");
   await page.screenshot({ path: SCRATCH + "/shot-desktop.png", fullPage: true });
   await ctx.close();
 }
@@ -237,13 +318,14 @@ async function newPage(scheme, width) {
 // ---- 호스팅 변형(index.html 원본, Firebase 스크립트 포함): 미설정 시 로컬 모드로 폴백 ----
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, colorScheme: "light", locale: "ko-KR" });
-  const page = await ctx.newPage();
+  page = await ctx.newPage();
   page.on("pageerror", e => { console.log("PAGEERROR(hosted)", e.message); fails.push("hosted pageerror: " + e.message); });
   await page.goto("file://" + INDEX);
   await page.waitForTimeout(800);
   check("호스팅판: 로컬 모드 폴백", (await page.locator("#connText").textContent()).includes("이 기기"));
   check("호스팅판: 초대 UI 숨김", await page.locator("#inviteRow").isHidden());
   check("호스팅판: 이사 배너 숨김", await page.locator("#migBanner.show").count() === 0);
+  await page.click("#tb-income"); await page.waitForTimeout(120);
   await page.click("#incAdder summary");
   await page.fill("#incAmt", "10000");
   await page.click("#incSave");
@@ -255,7 +337,7 @@ async function newPage(scheme, width) {
 // ---- RTDB 어댑터: 가짜 firebase.database() 스텁으로 연결까지 통과시키기 ----
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, colorScheme: "light", locale: "ko-KR" });
-  const page = await ctx.newPage();
+  page = await ctx.newPage();
   page.on("pageerror", e => { console.log("PAGEERROR(rtdb)", e.message); fails.push("rtdb pageerror: " + e.message); });
 
   // 페이지 스크립트보다 먼저 firebase 스텁을 심는다 (in-memory RTDB 흉내)
@@ -316,9 +398,11 @@ async function newPage(scheme, width) {
   check("RTDB: 합계 반영", (await page.locator("#expSum").textContent()).includes("8,800"));
 
   // 규칙 저장 → meta/rules 경로에 set
+  await page.click("#settingsBtn"); await page.waitForTimeout(200);
   await page.click("#rulesEditBtn");
   await page.fill("#rulesText", "커피는 하루 한 잔");
   await page.click("#rulesSave");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(200);
   await page.waitForTimeout(300);
   const rulesPath = await page.evaluate(() => Object.keys(window.__rtdb.store).find(k => k.endsWith("/meta/rules")));
   check("RTDB: 규칙이 meta/rules 경로에 저장", !!rulesPath, rulesPath);
@@ -351,7 +435,7 @@ for (const [label, stub, expect] of [
    "auth/weird-thing"],
 ]) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, locale: "ko-KR" });
-  const page = await ctx.newPage();
+  page = await ctx.newPage();
   page.on("pageerror", e => { console.log("PAGEERROR(fb)", e.message); fails.push("fb pageerror: " + e.message); });
   await page.addInitScript(new Function(`
     window.firebase = {
@@ -373,7 +457,7 @@ for (const [label, stub, expect] of [
 // 그 스크립트는 일부러 뺀 것이라 사용자가 네트워크를 의심하게 만든다
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, locale: "ko-KR" });
-  const page = await ctx.newPage();
+  page = await ctx.newPage();
   await page.addInitScript(() => { window.claude = { use: () => Promise.resolve(null) }; });
   await page.goto("file://" + SCRATCH + "/hosted-stub.html");
   await page.waitForTimeout(900);
@@ -386,7 +470,7 @@ for (const [label, stub, expect] of [
 // SDK 자체가 안 뜬 경우
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, locale: "ko-KR" });
-  const page = await ctx.newPage();
+  page = await ctx.newPage();
   await page.goto("file://" + SCRATCH + "/hosted-stub.html");   // firebase 전역 없음
   await page.waitForTimeout(900);
   const note = await page.locator("#footNote").textContent();
