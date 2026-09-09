@@ -1,7 +1,9 @@
 /** automation.json 을 읽습니다. 없거나 깨졌으면 기본값으로 돕니다. */
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT } from "./deals-file.mjs";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const DEFAULTS = {
   coupang: { enabled: false, maxPerRun: 3, minDiscountRate: 25, minPrice: 0, maxPrice: 10000000, excludeKeywords: [], category: "쿠팡 골드박스" },

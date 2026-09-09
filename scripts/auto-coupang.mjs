@@ -3,29 +3,30 @@
  * .github/workflows/auto-coupang.yml 에서 정해진 시각마다 돕니다.
  */
 import fs from "node:fs";
-import path from "node:path";
-import { ROOT, readDeals, writeDeals, nowKST } from "./deals-file.mjs";
 import { loadConfig } from "./config.mjs";
 import { goldbox, deeplink, hasKeys } from "./coupang.mjs";
+import { won } from "./kakao.mjs";
+import { hasCreds, listRecentKeys, insertDeal } from "./supabase.mjs";
 
 const cfg = loadConfig().coupang;
-const out = [];
-const say = (line) => { out.push(line); console.log(line); };
-
-function finish(changed, message) {
-  fs.appendFileSync(process.env.GITHUB_OUTPUT || "/dev/null", `changed=${changed ? "true" : "false"}\n`);
-  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY || "/dev/null", out.join("\n") + "\n");
-  if (message) fs.writeFileSync(path.join(ROOT, ".deal-commit-message"), message, "utf8");
-}
+const lines = [];
+const say = (l) => { lines.push(l); console.log(l); };
+const finish = () =>
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY || "/dev/null", lines.join("\n") + "\n");
 
 if (!cfg.enabled) {
   say("automation.json 에서 coupang.enabled 가 꺼져 있어 아무것도 하지 않았습니다.");
-  finish(false);
+  finish();
   process.exit(0);
 }
 if (!hasKeys()) {
   say("COUPANG_ACCESS_KEY / COUPANG_SECRET_KEY 가 없어 건너뜁니다. 저장소 Settings → Secrets 에 넣어 주세요.");
-  finish(false);
+  finish();
+  process.exit(0);
+}
+if (!hasCreds()) {
+  say("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없어 건너뜁니다.");
+  finish();
   process.exit(0);
 }
 
@@ -38,7 +39,6 @@ function normalize(item) {
     Number(item.discountRate ?? 0) ||
     (listPrice > price && price ? Math.round((1 - price / listPrice) * 100) : 0);
   return {
-    id: String(item.productId ?? item.productItemId ?? ""),
     title: String(item.productName ?? "").trim(),
     url: String(item.productUrl ?? ""),
     image: String(item.productImage ?? ""),
@@ -59,14 +59,14 @@ if (items.length) {
   say(`\n<details><summary>응답 필드</summary>\n\n\`\`\`\n${Object.keys(sample || {}).join(", ")}\n\`\`\`\n</details>`);
 }
 
-const deals = readDeals();
-const posted = new Set(deals.map((d) => String(d.sourceId || "")).filter(Boolean));
-const postedUrls = new Set(deals.map((d) => d.url));
+const known = await listRecentKeys(200);
+const knownTitles = new Set(known.map((d) => d.title));
+const knownUrls = new Set(known.map((d) => d.url));
 const bad = (cfg.excludeKeywords || []).filter(Boolean);
 
 const picks = items
-  .filter((it) => it.id && it.title && it.url && it.price)
-  .filter((it) => !posted.has(it.id) && !postedUrls.has(it.url))
+  .filter((it) => it.title && it.url && it.price)
+  .filter((it) => !knownTitles.has(it.title) && !knownUrls.has(it.url))
   .filter((it) => it.price >= cfg.minPrice && it.price <= cfg.maxPrice)
   .filter((it) => !bad.some((w) => it.title.includes(w)))
   .filter((it) => !it.rate || it.rate >= cfg.minDiscountRate)
@@ -74,9 +74,8 @@ const picks = items
   .slice(0, cfg.maxPerRun);
 
 say(`\n조건을 통과한 상품: **${picks.length}개** (한 번에 최대 ${cfg.maxPerRun}개)`);
-
 if (!picks.length) {
-  finish(false);
+  finish();
   process.exit(0);
 }
 
@@ -92,37 +91,35 @@ if (needsLink.length) {
     });
   } catch (e) {
     say(`\n⚠️ 딥링크 변환에 실패해 이번 회차를 건너뜁니다: ${e.message}`);
-    finish(false);
+    finish();
     process.exit(0);
   }
 }
 
-const stillRaw = picks.filter((p) => !p.url.includes("link.coupang.com"));
-if (stillRaw.length) {
-  say(`\n⚠️ 제휴 링크로 바꾸지 못한 ${stillRaw.length}개는 올리지 않았습니다. 수수료가 안 붙는 링크는 올릴 이유가 없습니다.`);
+const ready = picks.filter((p) => p.url.includes("link.coupang.com"));
+if (ready.length < picks.length) {
+  say(`\n⚠️ 제휴 링크로 바꾸지 못한 ${picks.length - ready.length}개는 올리지 않았습니다. 수수료가 안 붙는 링크는 올릴 이유가 없습니다.`);
 }
-
-const fresh = picks
-  .filter((p) => p.url.includes("link.coupang.com"))
-  .map((p) => ({
-    title: p.title,
-    url: p.url,
-    price: p.price,
-    listPrice: p.listPrice || undefined,
-    mall: "coupang",
-    image: p.image || undefined,
-    category: p.category || cfg.category,
-    note: [p.rate ? `${p.rate}% 할인` : "", p.isRocket ? "로켓배송" : ""].filter(Boolean).join(" · ") || undefined,
-    postedAt: nowKST(),
-    hot: p.rate >= 50 || undefined,
-    sourceId: p.id,
-  }));
-
-if (!fresh.length) {
-  finish(false);
+if (!ready.length) {
+  finish();
   process.exit(0);
 }
 
-writeDeals([...fresh, ...deals]);
-say(`\n올린 딜:\n${fresh.map((d) => `- ${d.title} — ${d.price.toLocaleString("ko-KR")}원`).join("\n")}`);
-finish(true, `딜 추가(쿠팡 자동): ${fresh.length}건`);
+const posted = [];
+for (const p of ready) {
+  await insertDeal({
+    title: p.title,
+    url: p.url,
+    price: p.price,
+    list_price: p.listPrice || null,
+    mall: "coupang",
+    image: p.image || null,
+    category: p.category || cfg.category,
+    note: [p.rate ? `${p.rate}% 할인` : "", p.isRocket ? "로켓배송" : ""].filter(Boolean).join(" · ") || null,
+    hot: p.rate >= 50,
+  });
+  posted.push(`- ${p.title} — ${won(p.price)}`);
+}
+
+say(`\n올린 딜:\n${posted.join("\n")}`);
+finish();

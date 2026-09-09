@@ -4,10 +4,11 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT } from "./deals-file.mjs";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 import { unescapeHtml } from "./meta.mjs";
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cfg = loadConfig().scout;
 const SEEN_PATH = path.join(ROOT, "data", "seen.json");
 const ISSUE_PATH = path.join(ROOT, ".scout-issue.md");

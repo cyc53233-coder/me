@@ -9,8 +9,6 @@ on:
 jobs:
   post:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     concurrency:
       group: deals-write
       cancel-in-progress: false
@@ -21,22 +19,10 @@ jobs:
           node-version: "22"
 
       - name: 골드박스에서 딜 고르기
-        id: pick
         env:
           COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
           COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
           COUPANG_SUB_ID: ${{ secrets.COUPANG_SUB_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/auto-coupang.mjs
-
-      - name: 사이트에 올리기
-        if: steps.pick.outputs.changed == 'true'
-        env:
-          BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          set -e
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/deals.js
-          git commit -m "$(cat .deal-commit-message)"
-          git pull --rebase origin "$BRANCH"
-          git push origin "HEAD:$BRANCH"

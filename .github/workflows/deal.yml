@@ -15,10 +15,9 @@ jobs:
        contains(github.event.issue.body, '### 마감할 딜'))
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       issues: write
     concurrency:
-      group: deal-apply
+      group: deals-write
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -28,26 +27,13 @@ jobs:
           node-version: "22"
 
       - name: 딜 반영
-        id: apply
         env:
           MODE: ${{ contains(github.event.issue.body, '### 마감할 딜') && 'end' || 'add' }}
           ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          SITE_URL: ${{ vars.SITE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/add-deal.mjs
-
-      - name: 사이트에 올리기
-        if: steps.apply.outputs.changed == 'true'
-        env:
-          BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          set -e
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/deals.js
-          git commit -m "$(cat .deal-commit-message)"
-          git pull --rebase origin "$BRANCH"
-          git push origin "HEAD:$BRANCH"
 
       - name: 이슈에 답글
         if: always()
