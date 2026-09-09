@@ -229,6 +229,32 @@ async function newPage(scheme, width) {
   check("달력: 달 이동 시 필터 해제", await page.locator("#expRows .filter-chip").count() === 0);
   await page.click("#toThis"); await page.waitForTimeout(200);
 
+  // ===== 여러 품목 스크린샷/문자 =====
+  await goTab("daily");
+  const beforeMulti = await page.locator("#expRows .row").count();
+  await page.click("#pasteBtn");
+  await page.fill("#pasteText", "주문 완료\n판매자 : 쿠팡\n오뚜기 컵누들\n6,940 원\n수량: 1개\n곰곰 김치\n5,990 원\n국내산 양배추\n3,090 원\n총 결제금액 16,020원");
+  await page.click("#pasteParse");
+  await page.waitForTimeout(300);
+  check("여러 품목: 확인 시트 열림", await page.locator("#multiSheet.show").count() === 1);
+  check("여러 품목: 3행", await page.locator("#multiRows .mrow").count() === 3);
+  check("여러 품목: 가게 추정 쿠팡", (await page.inputValue("#multiStore")) === "쿠팡");
+  await page.click("#multiEach");
+  await page.waitForTimeout(400);
+  check("여러 품목: 각각 등록 → 3건 증가", await page.locator("#expRows .row").count() === beforeMulti + 3);
+  check("여러 품목: 시트 닫힘", await page.locator("#multiSheet.show").count() === 0);
+  check("여러 품목: 가게명 붙음", (await page.locator("#expRows").textContent()).includes("쿠팡 · "));
+
+  await page.click("#pasteBtn");
+  await page.fill("#pasteText", "쿠팡\n사과\n4,000 원\n배\n6,000 원");
+  await page.click("#pasteParse");
+  await page.waitForTimeout(300);
+  await page.locator("#multiRows .mrow input[type=checkbox]").nth(1).uncheck();
+  await page.click("#multiMerge");
+  await page.waitForTimeout(400);
+  check("여러 품목: 체크 해제 반영 + 합쳐서 1건", await page.locator("#expRows .row").count() === beforeMulti + 4);
+  check("여러 품목: 합친 금액 4,000", (await page.locator("#expRows .row").first().textContent()).includes("4,000"));
+
   // ===== 계산기: 금액 칸 수식 =====
   await page.evaluate(() => { document.querySelector("#expAdder").open = true; });
   await page.fill("#expAmt", "12000+3500-2000");
@@ -292,7 +318,7 @@ async function newPage(scheme, width) {
   await page.reload(); await page.waitForTimeout(600);
   // 계산기 테스트가 지출 1건(13,500)을 더 저장했으므로 이번 달 3건
   const afterReload = await page.locator("#expRows .row").count();
-  check("새로고침 후 데이터 유지", afterReload === 4, afterReload + "건");
+  check("새로고침 후 데이터 유지", afterReload === 8, afterReload + "건");
   check("새로고침 후 수식 저장분 유지", (await page.locator("#expRows").textContent()).includes("13,500"));
   check("새로고침 후 이름 유지", (await page.locator("#expWho button").first().textContent()) === "채영");
 
