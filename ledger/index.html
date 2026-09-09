@@ -136,6 +136,26 @@
   .sumline{display:flex; justify-content:space-between; border-top:2px solid var(--ink); margin-top:6px; padding-top:9px; font-size:13px; color:var(--muted)}
   .sumline b{color:var(--ink); font-size:15px}
 
+  /* ---------- 달력 ---------- */
+  #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+  .cal-h{text-align:center; font-size:11px; color:var(--muted); padding:2px 0}
+  .cal-h.sun{color:var(--expense)} .cal-h.sat{color:var(--income)}
+  .cal-c{background:var(--paper); border:1px solid var(--line); border-radius:7px; min-height:48px;
+    padding:4px 2px; display:flex; flex-direction:column; align-items:center; gap:1px;
+    position:relative; cursor:pointer; font:inherit; color:var(--ink)}
+  .cal-c.pad{border:none; background:none; cursor:default; min-height:0}
+  .cal-c .cal-d{font-size:12px; line-height:1.2}
+  .cal-c .cal-a{font-size:10px; color:var(--expense); line-height:1.2; font-variant-numeric:tabular-nums}
+  /* 지출 많은 날일수록 진하게 — 한 색의 명도 단계 */
+  .cal-c.lv1{background:#FFF8DE} .cal-c.lv2{background:#FFEDB0} .cal-c.lv3{background:var(--yellow)}
+  .cal-c.today .cal-d{font-weight:700; text-decoration:underline}
+  .cal-c.sel{outline:2px solid var(--ink); outline-offset:1px}
+  .cal-c:hover:not(.pad){border-color:var(--ink)}
+  .cal-in{position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--income)}
+  .cal-key{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--income); vertical-align:middle}
+  .filter-chip{display:inline-flex; align-items:center; gap:6px; background:var(--ink); color:#FFFFFF;
+    border:none; border-radius:99px; padding:3px 10px; font-size:12px; cursor:pointer; margin-bottom:10px}
+
   /* ---------- charts ---------- */
   .crow{display:flex; align-items:center; gap:10px; padding:5px 0}
   .crow .clabel{flex:none; width:6em; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
@@ -160,11 +180,12 @@
   #toast.show{opacity:1; transform:translate(-50%,0)}
 
   /* ---------- 금액 칸 계산기 ---------- */
-  label.f:has(input.amt){position:relative}
-  .calc-open{position:absolute; top:-2px; right:0; font-size:11px; padding:1px 8px;
-    background:var(--yellow-soft); color:var(--tag-ink); border:1px solid var(--yellow-line);
-    border-radius:5px; cursor:pointer; line-height:1.6}
-  .calc-open:hover{background:var(--yellow)}
+  .amt-row{display:flex; gap:8px; align-items:stretch}
+  .amt-row input.amt{flex:1; min-width:0}
+  .calc-open{flex:none; background:var(--yellow); color:var(--ink);
+    border:1px solid var(--yellow-line); border-radius:8px; padding:0 14px;
+    font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; min-height:44px}
+  .calc-open:hover{filter:brightness(.97)}
   .amt-preview{font-size:12px; color:var(--muted); text-align:right; padding:3px 2px 0;
     font-family:'IBM Plex Mono',ui-monospace,monospace}
   .amt-preview.bad{color:var(--expense)}
@@ -232,8 +253,10 @@
     <p class="rules-hint" style="margin:0 0 10px">월세·통신비처럼 매달 나가는 지출을 등록해 두면, 그 달에 아직 기록이 없을 때 위쪽 배너에서 한 번에 채울 수 있어요.</p>
     <div class="rows reclist" id="recList"></div>
     <div class="frow" style="margin-top:10px">
-      <label class="f" style="flex:0 0 4.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
       <label class="f">금액<input id="recAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+    </div>
+    <div class="frow" style="margin-top:8px">
+      <label class="f" style="flex:0 0 5.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
       <label class="f">내용<input id="recMemo" placeholder="예: 월세"></label>
     </div>
     <div class="frow" style="margin-top:8px">
@@ -288,6 +311,13 @@
     <div class="tile hl"><div class="tl">통장 잔액 (누적)</div><div class="tv num bal" id="tBal">0원</div></div>
   </div>
 
+  <!-- 달력 -->
+  <section class="card" aria-label="달력">
+    <h2 class="serif">달력 <span class="spacer"></span><button class="ghost mini" id="calClear" hidden>전체 보기</button></h2>
+    <div id="calGrid"></div>
+    <p class="rules-hint" id="calHint">날짜를 누르면 그날 쓴 내역만 볼 수 있어요. <span class="cal-key"></span> 파란 점은 입금이 있던 날이에요.</p>
+  </section>
+
   <!-- 이 기기 기록 → 공유 저장소 이사 제안 -->
   <div class="banner" id="migBanner" role="status">
     <span class="grow" id="migText"></span>
@@ -303,10 +333,12 @@
       <div class="formbody">
         <div class="frow">
           <label class="f">금액 (원)<input id="incAmt" class="amt" inputmode="numeric" placeholder="0"></label>
-          <label class="f">날짜<input id="incDate" type="date"></label>
         </div>
         <div class="frow">
+          <label class="f">날짜<input id="incDate" type="date"></label>
           <label class="f">내용<input id="incMemo" placeholder="예: 9월 생활비"></label>
+        </div>
+        <div class="frow">
           <label class="f">누가<div class="seg" id="incWho"></div></label>
         </div>
         <div><button class="primary" id="incSave">입금 저장</button></div>
@@ -321,7 +353,7 @@
     <h2 class="serif">지출 내역</h2>
 
     <div class="autorow">
-      <button class="ghost" id="photoBtn" hidden>사진으로 등록</button>
+      <button class="ghost" id="photoBtn" hidden>스크린샷으로 등록</button>
       <button class="ghost" id="pasteBtn">결제 문자 붙여넣기</button>
     </div>
     <input type="file" id="photoFile" accept="image/*" hidden>
@@ -339,11 +371,13 @@
       <div class="formbody" id="expForm">
         <div class="frow">
           <label class="f">금액 (원)<input id="expAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+        </div>
+        <div class="frow">
           <label class="f">날짜<input id="expDate" type="date"></label>
+          <label class="f">카테고리<select id="expCat"></select></label>
         </div>
         <div class="frow">
           <label class="f">내용 · 가맹점<input id="expMemo" placeholder="예: 이마트 장보기"></label>
-          <label class="f">카테고리<select id="expCat"></select></label>
         </div>
         <div class="frow">
           <label class="f">누가 썼나<div class="seg" id="expWho"></div></label>
@@ -353,7 +387,7 @@
     </details>
 
     <div class="rows" id="expRows"></div>
-    <div class="sumline"><span>이번 달 지출 합계</span><b class="num" id="expSum">0원</b></div>
+    <div class="sumline"><span id="expSumLabel">이번 달 지출 합계</span><b class="num" id="expSum">0원</b></div>
   </section>
 
   <!-- 5. 분석 -->
@@ -397,6 +431,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+<!-- 스크린샷 글자 인식 (외부 호스팅 전용 — 아티팩트에서는 Claude가 이미지를 직접 본다) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 
 <script>
 "use strict";
@@ -545,6 +582,7 @@ const state = {
   members: ["나", "다니"],
   recurring: [],               // {id, day, amount, category, memo, who}
   month: thisMonth(),
+  dayFilter: "",              // 달력에서 고른 날짜 (YYYY-MM-DD), 빈 값이면 그 달 전체
   mode: "local",               // 'local' | 'db'
 };
 const whoName = w => w === "both" ? "같이" : (w === "m1" ? state.members[1] : state.members[0]);
@@ -606,8 +644,59 @@ function dbWriteFailed(err){
 
 /* ================= 렌더 ================= */
 function renderAll(){
-  renderRules(); renderMonth(); renderTiles(); renderIncome(); renderExpense();
+  renderRules(); renderMonth(); renderTiles(); renderCalendar(); renderIncome(); renderExpense();
   renderCharts(); renderSettings(); renderRecBanner();
+}
+
+/* 달력 칸에 들어갈 짧은 금액 — 45,900 → "4.6만" */
+function compactWon(n){
+  if (n >= 10000) { const m = n / 10000; return (m >= 10 ? Math.round(m) : Math.round(m * 10) / 10) + "만"; }
+  if (n >= 1000) return Math.round(n / 1000) + "천";
+  return String(Math.round(n));
+}
+
+function renderCalendar(){
+  const grid = $("#calGrid");
+  grid.textContent = "";
+  const y = Number(state.month.slice(0, 4)), mo = Number(state.month.slice(5));
+  const lead = new Date(y, mo - 1, 1).getDay();          // 그 달 1일의 요일
+  const lastDate = new Date(y, mo, 0).getDate();
+
+  const spent = new Map(), gotPaid = new Set();
+  state.entries.forEach(e => {
+    if (e.month !== state.month || !e.date) return;
+    const d = Number(e.date.slice(8));
+    if (e.type === "expense") spent.set(d, (spent.get(d) || 0) + (Number(e.amount) || 0));
+    else gotPaid.add(d);
+  });
+  const max = spent.size ? Math.max(...spent.values()) : 0;
+
+  ["일","월","화","수","목","금","토"].forEach((w, i) =>
+    grid.append(el("div", "cal-h" + (i === 0 ? " sun" : i === 6 ? " sat" : ""), w)));
+  for (let i = 0; i < lead; i++) grid.append(el("div", "cal-c pad"));
+
+  for (let d = 1; d <= lastDate; d++) {
+    const iso = state.month + "-" + pad2(d);
+    const amt = spent.get(d) || 0;
+    const cell = el("button", "cal-c");
+    cell.type = "button";
+    if (amt > 0 && max > 0) cell.classList.add("lv" + Math.min(3, Math.ceil(amt / max * 3)));
+    if (iso === todayStr()) cell.classList.add("today");
+    if (state.dayFilter === iso) cell.classList.add("sel");
+    cell.append(el("span", "cal-d", String(d)));
+    if (amt > 0) cell.append(el("span", "cal-a num", compactWon(amt)));
+    if (gotPaid.has(d)) cell.append(el("span", "cal-in"));
+    cell.setAttribute("aria-label",
+      mo + "월 " + d + "일" + (amt > 0 ? ", 지출 " + fmtWon(amt) : ", 지출 없음") + (gotPaid.has(d) ? ", 입금 있음" : ""));
+    cell.setAttribute("aria-pressed", String(state.dayFilter === iso));
+    cell.addEventListener("click", () => {
+      state.dayFilter = state.dayFilter === iso ? "" : iso;   // 같은 날 다시 누르면 해제
+      renderAll();
+      if (state.dayFilter) $("#expRows").scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    grid.append(cell);
+  }
+  $("#calClear").hidden = !state.dayFilter;
 }
 
 function renderRules(){
@@ -675,11 +764,25 @@ function entryRow(e){
 function renderList(sel, type, sumSel, emptyMsg){
   const box = $(sel);
   box.textContent = "";
-  const list = monthEntries(type);
+  let list = monthEntries(type);
+  const filtered = type === "expense" && state.dayFilter;
+  if (filtered) {
+    const day = Number(state.dayFilter.slice(8));
+    list = list.filter(e => e.date === state.dayFilter);
+    const chip = el("button", "filter-chip", Number(state.month.slice(5)) + "월 " + day + "일만 보는 중  ✕");
+    chip.type = "button";
+    chip.addEventListener("click", () => { state.dayFilter = ""; renderAll(); });
+    box.append(chip);
+    emptyMsg = "이 날은 쓴 기록이 없어요.";
+  }
   if (!list.length) box.append(el("div", "empty", emptyMsg));
   else list.forEach(e => box.append(entryRow(e)));
   const total = sum(list);
   $(sumSel).textContent = (total > 0 ? (type === "income" ? "+" : "−") : "") + fmtWon(total);
+  if (type === "expense")
+    $("#expSumLabel").textContent = filtered
+      ? Number(state.month.slice(5)) + "월 " + Number(state.dayFilter.slice(8)) + "일 지출 합계"
+      : "이번 달 지출 합계";
 }
 const renderIncome  = () => renderList("#incRows", "income", "#incSum", "아직 입금 기록이 없어요.");
 const renderExpense = () => renderList("#expRows", "expense", "#expSum", "이번 달 지출이 아직 없어요.");
@@ -745,6 +848,7 @@ function bindAmtField(input){
   preview.className = "amt-preview";
   preview.hidden = true;
   input.insertAdjacentElement("afterend", preview);
+  input._amtPreview = preview;   // 계산기 버튼이 입력칸을 감싸도 참조가 끊기지 않게
 
   input.addEventListener("input", () => {
     const raw = input.value;
@@ -768,8 +872,8 @@ function bindAmtField(input){
   });
 }
 function updateAmtPreview(input){
-  const preview = input.nextElementSibling;
-  if (!preview || !preview.classList.contains("amt-preview")) return;
+  const preview = input._amtPreview;
+  if (!preview) return;
   if (!looksLikeFormula(input.value)) { preview.hidden = true; return; }
   const won = evalAmount(input.value);
   preview.hidden = false;
@@ -849,17 +953,18 @@ function buildCalcPad(){
     box.append(b);
   });
 }
-/** 금액 칸 라벨 우측 위에 계산기 열기 버튼을 단다 (CSS로 위치 고정). */
+/** 금액 칸 왼쪽에 계산기 버튼을 붙인다 — 입력칸과 한 줄로 묶어 누르기 쉽게. */
 function attachCalcButton(input){
-  const label = input.closest("label.f");
-  if (!label) return;
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "calc-open";
-  btn.textContent = "계산기";
+  btn.textContent = "🖩 계산기";
   btn.setAttribute("aria-label", "계산기 열기");
   btn.addEventListener("click", () => calcOpen(input));
-  label.append(btn);
+  const row = document.createElement("div");
+  row.className = "amt-row";
+  input.replaceWith(row);          // 미리보기는 라벨에 남아 줄 아래로 온다
+  row.append(btn, input);
 }
 
 /* ================= 카테고리 자동 추천 ================= */
@@ -895,8 +1000,11 @@ function suggestCategory(memo){
 /* ================= 결제 문자 파싱 ================= */
 /*SMS_PARSE_START*/
 function parseSms(text){
-  const out = { amount: 0, merchant: "", date: "" };
+  const out = { amount: 0, merchant: "", date: "", kind: "expense" };
   if (!text) return out;
+  // 입금인지 지출인지 — 통장 입금 알림과 카드 승인 알림을 가른다.
+  // 카드 쪽 낱말(승인·결제·출금)이 하나라도 있으면 지출로 본다.
+  if (/입금|이체|송금|받으심|급여/.test(text) && !/승인|결제|출금|사용/.test(text)) out.kind = "income";
   // 금액: "12,300원" | "12,300 원" | "KRW 12,300" — 취소 문자는 음수 취급 없이 그대로
   const amt = text.match(/([\d,]{2,})\s*원/) || text.match(/KRW\s*([\d,]{2,})/i);
   if (amt) out.amount = Number(amt[1].replace(/,/g, "")) || 0;
@@ -926,6 +1034,21 @@ function parseSms(text){
 /*SMS_PARSE_END*/
 
 /* ================= 자동화: 폼 채우기 ================= */
+/** 입금 알림에서 읽은 값을 입금 폼에 채운다 (저장은 사용자가 확인 후). */
+function fillIncomeForm({amount, merchant, date}, sourceLabel){
+  $("#incAdder").open = true;
+  if (amount) { $("#incAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#incAmt")); }
+  if (merchant) $("#incMemo").value = merchant;
+  $("#incDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
+  $("#incAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+  toast(sourceLabel + " — 입금으로 읽었어요. 확인하고 저장을 눌러 주세요");
+}
+/** 읽은 결과를 종류에 맞는 폼으로 보낸다. */
+function fillFromParsed(parsed, sourceLabel){
+  if (parsed.kind === "income") fillIncomeForm(parsed, sourceLabel);
+  else fillExpenseForm({ ...parsed, category: parsed.category || "" }, sourceLabel);
+}
+
 function fillExpenseForm({amount, merchant, date, category}, sourceLabel){
   $("#expAdder").open = true;
   if (amount) { $("#expAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#expAmt")); }
@@ -980,13 +1103,49 @@ const SAMPLE_HIDE_CODES = ["not_granted","sampling_disabled","not_declared","cap
 
 function extractPrompt(){
   return "이미지는 한국의 카드 결제 알림 스크린샷, 간편결제 알림, 또는 영수증 사진입니다. 결제 한 건의 정보를 추출하세요.\n" +
-    'JSON 객체 하나로만 답하세요: {"amount": 결제금액(원 단위 정수), "merchant": "가맹점명", "date": "YYYY-MM-DD" 또는 알 수 없으면 null, "category": 다음 중 하나 — ' +
-    CATEGORIES.join(", ") + "}\n" +
-    '결제 정보를 찾을 수 없으면 {"error": "짧은 이유"}로만 답하세요. 결제 취소·입금 알림도 {"error": ...}로 답하세요.';
+    'JSON 객체 하나로만 답하세요: {"kind": "expense" 또는 "income", "amount": 금액(원 단위 정수), "merchant": "가맹점명 또는 보낸 사람", "date": "YYYY-MM-DD" 또는 알 수 없으면 null, "category": 다음 중 하나 — ' +
+    CATEGORIES.join(", ") + '}\n' +
+    '카드 승인·결제·출금이면 kind는 "expense", 통장 입금·이체 받음이면 "income"입니다.\n' +
+    '금액을 찾을 수 없거나 결제 취소 알림이면 {"error": "짧은 이유"}로만 답하세요.';
+}
+
+/* ---------- 스크린샷에서 글자 읽기 (외부 호스팅) ----------
+   아티팩트에서는 Claude가 이미지를 직접 보지만, 그 밖에서는 그 경로가 없다.
+   브라우저 안에서 도는 OCR로 글자만 뽑아내 기존 문자 파서에 그대로 먹인다. */
+const ocrAvailable = () => typeof Tesseract !== "undefined";
+let ocrBusy = false;
+
+async function extractByOcr(file){
+  if (ocrBusy) return;
+  ocrBusy = true;
+  $("#photoBtn").disabled = true;
+  autoStatus("사진에서 글자를 읽는 중… 처음 한 번은 인식기를 받느라 오래 걸려요", false);
+  try {
+    const { data } = await Tesseract.recognize(file, "kor+eng", {
+      logger: m => {
+        if (m.status === "recognizing text") autoStatus("글자 읽는 중… " + Math.round((m.progress || 0) * 100) + "%", false);
+        else if (m.status) autoStatus("인식기 준비 중… (" + m.status + ")", false);
+      },
+    });
+    const text = String((data && data.text) || "");
+    const parsed = parseSms(text);
+    if (parsed.amount > 0) {
+      fillFromParsed(parsed, "스크린샷에서 읽었어요");
+      autoStatus("");
+    } else {
+      autoStatus("금액을 찾지 못했어요. 사진이 흐리면 '결제 문자 붙여넣기'로 글자를 넣어 주세요.");
+    }
+  } catch (e) {
+    autoStatus("사진을 읽지 못했어요 — 다시 시도하거나 문자 붙여넣기를 써 주세요");
+  } finally {
+    ocrBusy = false;
+    $("#photoBtn").disabled = false;
+    $("#photoFile").value = "";
+  }
 }
 
 async function extractFromImage(file){
-  if (!sampleFn) return;
+  if (!sampleFn) return ocrAvailable() ? extractByOcr(file) : undefined;
   currentAbort = new AbortController();
   autoStatus("사진을 읽는 중… (몇 초 걸려요)", true);
   $("#photoBtn").disabled = true;
@@ -995,12 +1154,13 @@ async function extractFromImage(file){
       images: file, modelTier: "quick", signal: currentAbort.signal,
     });
     if (data && typeof data === "object" && !data.error && Number(data.amount) > 0) {
-      fillExpenseForm({
+      fillFromParsed({
+        kind: data.kind === "income" ? "income" : "expense",
         amount: Math.round(Number(data.amount)),
         merchant: typeof data.merchant === "string" ? data.merchant.slice(0, 40) : "",
         date: typeof data.date === "string" ? data.date : "",
         category: typeof data.category === "string" ? data.category : "",
-      }, "사진에서 읽었어요");
+      }, "스크린샷에서 읽었어요");
       autoStatus("");
     } else {
       autoStatus((data && typeof data.error === "string" ? data.error + " — " : "") + "결제 정보를 찾지 못했어요. 직접 적어 주세요.");
@@ -1022,7 +1182,7 @@ async function parsePastedText(){
   if (!text) { toast("문자 내용을 먼저 붙여넣어 주세요"); return; }
   const parsed = parseSms(text);
   if (parsed.amount > 0) {
-    fillExpenseForm({ amount: parsed.amount, merchant: parsed.merchant, date: parsed.date, category: "" }, "문자에서 읽었어요");
+    fillFromParsed(parsed, "문자에서 읽었어요");
     $("#pasteBox").classList.remove("show");
     $("#pasteText").value = "";
     return;
@@ -1036,7 +1196,8 @@ async function parsePastedText(){
       "다음은 결제 알림 문자입니다. " + extractPrompt().split("\n").slice(1).join("\n") + "\n\n문자:\n" + text.slice(0, 3000),
       { modelTier: "quick", signal: currentAbort.signal });
     if (data && !data.error && Number(data.amount) > 0) {
-      fillExpenseForm({
+      fillFromParsed({
+        kind: data.kind === "income" ? "income" : "expense",
         amount: Math.round(Number(data.amount)),
         merchant: typeof data.merchant === "string" ? data.merchant.slice(0, 40) : "",
         date: typeof data.date === "string" ? data.date : "",
@@ -1141,9 +1302,11 @@ function bindEvents(){
   });
 
   // 월 이동
-  $("#prevM").addEventListener("click", () => { state.month = shiftMonth(state.month, -1); renderAll(); });
-  $("#nextM").addEventListener("click", () => { state.month = shiftMonth(state.month, +1); renderAll(); });
-  $("#toThis").addEventListener("click", () => { state.month = thisMonth(); renderAll(); });
+  const goMonth = m => { state.month = m; state.dayFilter = ""; renderAll(); };
+  $("#prevM").addEventListener("click", () => goMonth(shiftMonth(state.month, -1)));
+  $("#nextM").addEventListener("click", () => goMonth(shiftMonth(state.month, +1)));
+  $("#toThis").addEventListener("click", () => goMonth(thisMonth()));
+  $("#calClear").addEventListener("click", () => { state.dayFilter = ""; renderAll(); });
 
   // 입금 저장
   bindAmtField($("#incAmt")); attachCalcButton($("#incAmt"));
@@ -1362,7 +1525,10 @@ function fbReasonFor(e){
 async function initFirebase(){
   if (!firebaseConfigured()) {
     if (typeof firebase === "undefined")
-      fbFailReason = "Firebase 스크립트를 불러오지 못했어요 — 새로고침하거나 네트워크를 확인해 주세요";
+      // 아티팩트에서는 Firebase 스크립트를 일부러 뺀다 — 거기서 "못 불러왔다"고 하면 거짓말이 된다
+      fbFailReason = (window.claude && window.claude.use)
+        ? "이 화면에서는 공유 저장소를 쓸 수 없어요 — 기록은 이 기기에만 남습니다"
+        : "Firebase 스크립트를 불러오지 못했어요 — 새로고침하거나 네트워크를 확인해 주세요";
     else if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("PASTE"))
       fbFailReason = "Firebase 설정값이 아직 비어 있어요 (오래된 화면일 수 있어요 — 새로고침해 주세요)";
     return false;
@@ -1416,6 +1582,9 @@ async function initCapabilities(){
       }
     }
   } catch(e){ sampleFn = null; }
+
+  // Claude 이미지 인식이 없으면 브라우저 OCR로 스크린샷 등록을 켠다
+  if (!sampleImagesOk && ocrAvailable()) $("#photoBtn").hidden = false;
 
   // downloads: CSV
   try { downloadsNs = await use("downloads"); } catch(e){ downloadsNs = null; }

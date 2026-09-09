@@ -32,6 +32,8 @@ const DROP = [
   '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>',
   '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>',
   '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>',
+  '<!-- 스크린샷 글자 인식 (외부 호스팅 전용 — 아티팩트에서는 Claude가 이미지를 직접 본다) -->',
+  '<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>',
 ];
 
 export function buildArtifact(html) {
@@ -46,7 +48,7 @@ export function buildArtifact(html) {
         "바뀌었다면 build-artifact.mjs의 DROP 목록을 맞춰 주세요.",
     );
   }
-  if (/<script[^>]+gstatic\.com/.test(kept.join("\n"))) {
+  if (/<script[^>]+(gstatic\.com|jsdelivr\.net)/.test(kept.join("\n"))) {
     throw new Error("아티팩트 변형에 외부 스크립트가 남아 있습니다 (아티팩트 CSP에서 차단됨).");
   }
   return kept.join("\n").replace(/^\n+/, "");

@@ -53,6 +53,21 @@ for (const c of cases) {
   if (!ok) fail++;
   console.log((ok ? "PASS" : "FAIL"), c.name, "->", JSON.stringify(r));
 }
+// 입금/지출 구분
+const kinds = [
+  ["[Web발신]\n신한카드(1234)승인 12,300원(일시불)08/31 12:34 스타벅스", "expense"],
+  ["[Web발신]\n농협 입금 500,000원\n09/01 09:00 홍길동", "income"],
+  ["[Web발신]\n카카오뱅크 이체 300,000원 09/02 다니", "income"],
+  ["[Web발신]\n국민 출금 20,000원 09/02 ATM", "expense"],
+  ["[Web발신]\n토스 급여 입금 2,500,000원 09/25", "income"],
+];
+for (const [text, want] of kinds) {
+  const got = parseSms(text).kind;
+  const ok = got === want;
+  if (!ok) fail++;
+  console.log((ok ? "PASS" : "FAIL"), "구분:", text.split("\n").pop().slice(0, 22), "->", got);
+}
+
 // date sanity for the first case
 const d = parseSms(cases[0].text).date;
 console.log(/^\d{4}-08-31$/.test(d) ? "PASS" : "FAIL", "date parse ->", d);

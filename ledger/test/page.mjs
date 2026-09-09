@@ -118,28 +118,59 @@ async function newPage(scheme, width) {
   await page.waitForTimeout(200);
   check("삭제 완료 → 2건", await page.locator("#expRows .row").count() === 2);
 
+  // ===== 달력 =====
+  check("달력: 요일 머리 7칸", await page.locator("#calGrid .cal-h").count() === 7);
+  const cells = await page.locator("#calGrid .cal-c:not(.pad)").count();
+  check("달력: 이번 달 날짜 수", cells === new Date(2026, 9, 0).getDate() || cells >= 28, cells + "칸");
+  check("달력: 지출 있는 날 표시", await page.locator("#calGrid .cal-c .cal-a").count() >= 1);
+  check("달력: 입금 있는 날 점 표시", await page.locator("#calGrid .cal-in").count() >= 1);
+  check("달력: 오늘 표시", await page.locator("#calGrid .cal-c.today").count() === 1);
+
+  // 지출이 있는 날을 눌러 필터
+  const dayCell = page.locator("#calGrid .cal-c:not(.pad)").filter({ has: page.locator(".cal-a") }).first();
+  await dayCell.click();
+  await page.waitForTimeout(250);
+  check("달력: 날짜 선택 표시", await page.locator("#calGrid .cal-c.sel").count() === 1);
+  check("달력: 필터 칩 노출", await page.locator("#expRows .filter-chip").count() === 1);
+  check("달력: 합계 라벨이 그날로 바뀜", (await page.locator("#expSumLabel").textContent()).includes("일 지출 합계"));
+  const filteredRows = await page.locator("#expRows .row").count();
+  check("달력: 그날 내역만 남음", filteredRows >= 1 && filteredRows < 3, filteredRows + "건");
+  check("달력: 전체 보기 버튼 노출", await page.locator("#calClear").isVisible());
+
+  // 칩으로 해제
+  await page.locator("#expRows .filter-chip").click();
+  await page.waitForTimeout(250);
+  check("달력: 필터 해제됨", await page.locator("#expRows .filter-chip").count() === 0);
+  check("달력: 합계 라벨 원복", (await page.locator("#expSumLabel").textContent()).includes("이번 달"));
+
+  // 달을 옮기면 필터가 따라오지 않는다
+  await dayCell.click(); await page.waitForTimeout(150);
+  await page.click("#prevM"); await page.waitForTimeout(200);
+  check("달력: 달 이동 시 필터 해제", await page.locator("#expRows .filter-chip").count() === 0);
+  await page.click("#toThis"); await page.waitForTimeout(200);
+
   // ===== 계산기: 금액 칸 수식 =====
   await page.evaluate(() => { document.querySelector("#expAdder").open = true; });
   await page.fill("#expAmt", "12000+3500-2000");
   await page.waitForTimeout(120);
-  check("수식 미리보기 표시", (await page.locator("#expAmt + .amt-preview").textContent()).includes("13,500"));
+  check("수식 미리보기 표시", (await page.locator(".amt-row:has(#expAmt) + .amt-preview").textContent()).includes("13,500"));
   await page.fill("#expMemo", "계산기 테스트");
   await page.click("#expSave");
   await page.waitForTimeout(200);
   check("수식 계산값으로 저장", (await page.locator("#expRows .row").first().textContent()).includes("13,500"));
-  check("저장 후 미리보기 정리", await page.locator("#expAmt + .amt-preview").isHidden());
+  check("저장 후 미리보기 정리", await page.locator(".amt-row:has(#expAmt) + .amt-preview").isHidden());
 
   // 순수 숫자는 예전 그대로 (회귀)
   await page.fill("#expAmt", "45900");
   await page.waitForTimeout(80);
   check("순수 숫자 콤마 포맷 유지", await page.inputValue("#expAmt") === "45,900");
-  check("순수 숫자엔 미리보기 없음", await page.locator("#expAmt + .amt-preview").isHidden());
+  check("순수 숫자엔 미리보기 없음", await page.locator(".amt-row:has(#expAmt) + .amt-preview").isHidden());
 
   // 잘못된 식은 저장을 막는다
   const beforeBad = await page.locator("#expRows .row").count();
   await page.fill("#expAmt", "1000+");
   await page.waitForTimeout(80);
-  check("잘못된 식 미리보기 경고", (await page.locator("#expAmt + .amt-preview").textContent()).includes("계산할 수 없"));
+  check("잘못된 식 미리보기 경고", (await page.locator(".amt-row:has(#expAmt) + .amt-preview").textContent()).includes("계산할 수 없"));
   await page.click("#expSave");
   await page.waitForTimeout(200);
   check("잘못된 식은 저장 안 됨", await page.locator("#expRows .row").count() === beforeBad);
@@ -151,7 +182,7 @@ async function newPage(scheme, width) {
   check("칸 벗어나면 계산값 확정", await page.inputValue("#expAmt") === "3,000");
 
   // ===== 계산기: 패드 =====
-  await page.click("#expAmt ~ .calc-open, label.f:has(#expAmt) .calc-open");
+  await page.click(".amt-row:has(#expAmt) .calc-open");
   await page.waitForTimeout(150);
   check("패드 열림", await page.locator("#calcSheet.show").count() === 1);
   for (const k of ["C", "1", "2", "3", "+", "7", "="]) {
@@ -165,7 +196,7 @@ async function newPage(scheme, width) {
   check("넣기 후 패드 닫힘", await page.locator("#calcSheet.show").count() === 0);
 
   // Esc로 닫기
-  await page.click("label.f:has(#expAmt) .calc-open");
+  await page.click(".amt-row:has(#expAmt) .calc-open");
   await page.waitForTimeout(150);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(150);
@@ -335,6 +366,20 @@ for (const [label, stub, expect] of [
   check(`실패 안내: ${label}`, note.includes("공유가 안 켜졌어요") && note.includes(expect), note.slice(0, 70));
   check(`실패 안내: ${label} — 강조 표시`, await page.locator("#footNote.warn").count() === 1);
   check(`실패 안내: ${label} — 앱은 계속 동작`, (await page.locator("#connText").textContent()).includes("이 기기"));
+  await ctx.close();
+}
+
+// 아티팩트 안(window.claude 있음)에서는 "스크립트 못 불러옴"이라고 하면 안 된다 —
+// 그 스크립트는 일부러 뺀 것이라 사용자가 네트워크를 의심하게 만든다
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, locale: "ko-KR" });
+  const page = await ctx.newPage();
+  await page.addInitScript(() => { window.claude = { use: () => Promise.resolve(null) }; });
+  await page.goto("file://" + SCRATCH + "/hosted-stub.html");
+  await page.waitForTimeout(900);
+  const note = await page.locator("#footNote").textContent();
+  check("실패 안내: 아티팩트 문맥은 네트워크를 탓하지 않음",
+    note.includes("이 화면에서는") && !note.includes("네트워크"), note.slice(0, 70));
   await ctx.close();
 }
 
