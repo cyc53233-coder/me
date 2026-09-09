@@ -596,7 +596,9 @@ async function saveRecurringDoc(){
 function dbWriteFailed(err){
   const code = err && err.code;
   if (code === "quota_exceeded") toast("저장 공간이 가득 찼어요 — 오래된 기록을 지워 주세요");
-  else if (code === "permission-denied") toast("저장 권한이 없어요 — Firestore 보안 규칙을 확인해 주세요");
+  // 권한 거부: 아티팩트 db는 'permission-denied', Realtime Database는 'PERMISSION_DENIED'
+  else if (/permission[_-]denied/i.test(String(code) + " " + String(err && err.message)))
+    toast("저장 권한이 없어요 — 보안 규칙과 익명 로그인 설정을 확인해 주세요");
   else toast("저장하지 못했어요. 잠시 후 다시 시도해 주세요");
 }
 
