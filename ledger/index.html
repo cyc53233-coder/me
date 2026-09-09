@@ -244,6 +244,24 @@
     font-family:'IBM Plex Mono',ui-monospace,monospace}
   .amt-preview.bad{color:var(--expense)}
 
+  /* ---------- CSV 가져오기 시트 ---------- */
+  #csvSheet{display:none; position:fixed; inset:0; z-index:52}
+  #csvSheet.show{display:block}
+  #csvBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #csvPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:min(520px,100%);
+    max-height:88vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
+    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:8px}
+  @media(min-width:560px){#csvPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}}
+  .crow-csv{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line-dash); font-size:13px}
+  .crow-csv input[type="checkbox"]{width:20px; height:20px}
+  .crow-csv .cmemo{color:var(--muted); font-size:12px}
+  .crow-csv .camt.in{color:var(--income)} .crow-csv .camt.ex{color:var(--expense)}
+  .crow-csv.dup .ctext{opacity:.6}
+  .crow-csv.err{grid-template-columns:1fr; color:var(--muted); background:#FAFAFA}
+  .cbadge{grid-column:2 / span 2; font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:5px; padding:1px 7px; justify-self:start}
+  #csvActions{display:flex; gap:8px; margin-top:6px}
+  #csvActions button{flex:1}
+
   /* ---------- 여러 품목 시트 ---------- */
   #multiSheet{display:none; position:fixed; inset:0; z-index:52}
   #multiSheet.show{display:block}
@@ -441,8 +459,10 @@
 
   <!-- 5. 분석 -->
 
-  <div style="display:flex; justify-content:center; gap:8px">
-    <button class="ghost mini" id="csvBtn" hidden>전체 내역 CSV로 내보내기</button>
+  <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap">
+    <button class="ghost mini" id="csvBtn">전체 내역 CSV로 내보내기</button>
+    <button class="ghost mini" id="csvImportBtn">CSV 가져오기</button>
+    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
   </div>
 
   <footer>
@@ -514,6 +534,20 @@
     </div>
   </section>
   </aside>
+</div>
+
+<!-- CSV 가져오기 미리보기 -->
+<div id="csvSheet" role="dialog" aria-modal="true" aria-label="CSV 가져오기" aria-hidden="true">
+  <div id="csvBackdrop"></div>
+  <div id="csvPanel">
+    <h2 class="serif">CSV 가져오기 <span class="spacer"></span><span class="rules-hint" id="csvFileName"></span></h2>
+    <p class="rules-hint" id="csvHint"></p>
+    <div id="csvRows"></div>
+    <div id="csvActions">
+      <button class="primary" id="csvGo">가져오기</button>
+      <button class="ghost" id="csvCancel">취소</button>
+    </div>
+  </div>
 </div>
 
 <!-- 여러 품목 확인 시트 -->
@@ -1330,6 +1364,156 @@ function parseItems(text){
 }
 /*SMS_PARSE_END*/
 
+/* ================= CSV 가져오기 ================= */
+/*CSV_START*/
+/** 앱 내보내기 형식(날짜,구분,카테고리,내용,누가,금액)을 읽는다.
+    RFC4180 따옴표·쉼표 포함 필드·BOM·CRLF 처리, 열 순서는 헤더로 찾는다. */
+function parseCsv(text){
+  const src = String(text || "").replace(/^\uFEFF/, "");
+  const table = [];
+  let row = [], cell = "", q = false;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (q) {
+      if (c === '"') { if (src[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && src[i + 1] === "\n") i++;
+      row.push(cell); table.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); table.push(row); }
+  const rows = [], errors = [];
+  if (!table.length) return { rows, errors: [{ line: 1, reason: "비어 있는 파일" }] };
+  const head = table[0].map(h => h.trim());
+  const col = name => head.findIndex(h => h.startsWith(name));
+  const ci = { date: col("날짜"), type: col("구분"), category: col("카테고리"), memo: col("내용"), who: col("누가"), amount: col("금액") };
+  if (ci.date < 0 || ci.type < 0 || ci.amount < 0)
+    return { rows, errors: [{ line: 1, reason: "머리글에 날짜·구분·금액이 있어야 해요" }] };
+  for (let r = 1; r < table.length; r++) {
+    const t = table[r];
+    if (t.every(x => !x.trim())) continue;
+    const line = r + 1;
+    const get = k => (ci[k] >= 0 ? String(t[ci[k]] ?? "").trim() : "");
+    const date = get("date"), typeK = get("type"), amount = Number(get("amount").replace(/[^\d.-]/g, ""));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { errors.push({ line, reason: "날짜 형식(YYYY-MM-DD)이 아니에요: " + date }); continue; }
+    const type = /입금|income/i.test(typeK) ? "income" : /지출|expense/i.test(typeK) ? "expense" : "";
+    if (!type) { errors.push({ line, reason: "구분은 입금/지출이어야 해요: " + typeK }); continue; }
+    if (!(amount > 0)) { errors.push({ line, reason: "금액이 0보다 커야 해요: " + get("amount") }); continue; }
+    rows.push({ line, date, type, category: get("category"), memo: get("memo"), who: get("who"), amount: Math.round(amount) });
+  }
+  return { rows, errors };
+}
+/*CSV_END*/
+
+/* 이름 → 사람 키. 현재 설정 이름과 맞추고, 못 맞추면 첫 번째 사람. */
+function whoKeyFromName(name){
+  const n = String(name || "").trim();
+  if (!n || n === "같이" || n === "both") return n === "" ? "m0" : "both";
+  if (n === state.members[0] || n === "나" || n === "m0") return "m0";
+  if (n === state.members[1] || n === "m1") return "m1";
+  return "";     // 모르는 이름
+}
+const entryKey = e => [e.date, e.type, Math.round(Number(e.amount) || 0), (e.memo || "").trim(), e.who].join("|");
+
+let csvPending = null;   // 미리보기 중인 행들
+function openCsvSheet(parsed, filename){
+  const existing = new Set([...state.entries.values()].map(entryKey));
+  const seen = new Set();
+  const box = $("#csvRows");
+  box.textContent = "";
+  csvPending = [];
+  parsed.rows.forEach(r => {
+    let who = whoKeyFromName(r.who), warn = "";
+    if (!who) { who = "m0"; warn = "'" + r.who + "'는 모르는 이름이라 " + state.members[0] + "(으)로"; }
+    const entry = { type: r.type, date: r.date, month: r.date.slice(0, 7), who, category: r.type === "expense" ? (CATEGORIES.includes(r.category) ? r.category : (r.category || "기타")) : "", memo: r.memo, amount: r.amount };
+    const key = entryKey(entry);
+    let badge = "";
+    if (existing.has(key)) badge = "이미 있음";
+    else if (seen.has(key)) badge = "파일 안 중복";
+    seen.add(key);
+    const item = { entry, badge, warn, line: r.line, checked: !badge };
+    csvPending.push(item);
+    const div = el("div", "crow-csv" + (badge ? " dup" : ""));
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = item.checked;
+    cb.setAttribute("aria-label", r.line + "행 포함");
+    cb.addEventListener("change", () => { item.checked = cb.checked; updateCsvCount(); });
+    const txt = el("div", "ctext");
+    txt.append(el("div", "", r.date.slice(5).replace("-", ".") + " · " + (r.type === "income" ? "입금" : "지출") + (entry.category ? " · " + entry.category : "") + " · " + whoName(who)));
+    txt.append(el("div", "cmemo", (r.memo || "—") + (warn ? "  ⚠ " + warn : "")));
+    const amt = el("div", "camt num " + (r.type === "income" ? "in" : "ex"), (r.type === "income" ? "+" : "−") + fmtWon(r.amount));
+    div.append(cb, txt, amt);
+    if (badge) div.append(el("span", "cbadge", badge));
+    box.append(div);
+  });
+  parsed.errors.forEach(e => {
+    const div = el("div", "crow-csv err");
+    div.append(el("div", "ctext", e.line + "행 건너뜀 — " + e.reason));
+    box.append(div);
+  });
+  $("#csvFileName").textContent = filename || "";
+  updateCsvCount();
+  $("#csvSheet").classList.add("show");
+  $("#csvSheet").setAttribute("aria-hidden", "false");
+  $("#csvGo").focus();
+}
+function updateCsvCount(){
+  const n = (csvPending || []).filter(x => x.checked).length;
+  const dup = (csvPending || []).filter(x => x.badge).length;
+  $("#csvGo").textContent = n + "건 가져오기";
+  $("#csvGo").disabled = n === 0;
+  $("#csvHint").textContent = (csvPending || []).length + "건 읽었어요." + (dup ? " " + dup + "건은 이미 있거나 중복이라 체크를 풀어 뒀어요 — 진짜 두 번 넣은 거면 다시 체크하세요." : "");
+}
+function closeCsvSheet(){
+  $("#csvSheet").classList.remove("show");
+  $("#csvSheet").setAttribute("aria-hidden", "true");
+  csvPending = null;
+  $("#csvFile").value = "";
+}
+async function importCsvRows(){
+  const picked = (csvPending || []).filter(x => x.checked);
+  if (!picked.length) return;
+  const go = $("#csvGo"); go.disabled = true;
+  let done = 0;
+  try {
+    for (const x of picked) {
+      go.textContent = "가져오는 중… " + (done + 1) + "/" + picked.length;
+      await addEntry({ ...x.entry, createdAt: Date.now() + done });
+      done++;
+    }
+    const last = picked[picked.length - 1].entry;
+    closeCsvSheet();
+    state.month = last.month; state.dayFilter = "";
+    showTab(last.type === "income" ? "income" : "daily");
+    renderAll();
+    toast(done + "건을 가져왔어요");
+  } catch (err) {
+    dbWriteFailed(err);
+    toast(done + "건까지 들어갔고 " + (picked.length - done) + "건은 실패했어요 — 다시 올리면 들어간 것은 '이미 있음'으로 걸러져요");
+    go.disabled = false; updateCsvCount();
+  }
+}
+function handleCsvFile(file){
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const parsed = parseCsv(String(rd.result || ""));
+    if (!parsed.rows.length) { toast(parsed.errors[0] ? parsed.errors[0].reason : "읽을 수 있는 행이 없어요"); $("#csvFile").value = ""; return; }
+    openCsvSheet(parsed, file.name);
+  };
+  rd.onerror = () => { toast("파일을 읽지 못했어요"); $("#csvFile").value = ""; };
+  rd.readAsText(file, "utf-8");
+}
+/** downloads 캐퍼빌리티가 없을 때의 내려받기 폴백 (호스팅·로컬). */
+function downloadTextFallback(filename, text){
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + text.replace(/^\uFEFF/, "")], { type: "text/csv;charset=utf-8" }));
+  a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /* ================= 여러 품목 등록 ================= */
 let multiCtx = null;   // { kind, date, who }
 const STORE_WORDS = [["쿠팡", /쿠팡|로켓/], ["배달의민족", /배민|배달의민족/], ["네이버", /네이버/], ["컬리", /컬리/], ["SSG", /ssg|이마트몰/i], ["11번가", /11번가/], ["G마켓", /g마켓|지마켓/i]];
@@ -1835,7 +2019,7 @@ function bindEvents(){
 
   // CSV
   $("#csvBtn").addEventListener("click", async () => {
-    if (!downloadsNs) return;
+    if (!downloadsNs) { downloadTextFallback("생활비통장.csv", buildCsv()); toast("CSV를 내려받아요"); return; }
     try {
       await downloadsNs.save({ filename: "생활비통장.csv", data: buildCsv() });
       toast("CSV를 내보냈어요");
@@ -1844,6 +2028,14 @@ function bindEvents(){
       toast("내보내기에 실패했어요 — 다시 시도해 주세요");
     }
   });
+
+  // CSV 가져오기
+  $("#csvImportBtn").addEventListener("click", () => $("#csvFile").click());
+  $("#csvFile").addEventListener("change", () => handleCsvFile($("#csvFile").files && $("#csvFile").files[0]));
+  $("#csvGo").addEventListener("click", importCsvRows);
+  $("#csvCancel").addEventListener("click", closeCsvSheet);
+  $("#csvBackdrop").addEventListener("click", closeCsvSheet);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#csvSheet").classList.contains("show")) closeCsvSheet(); });
 
   // 초대 링크 (Firebase 모드)
   $("#copyInvite").addEventListener("click", async () => {
@@ -2052,8 +2244,7 @@ async function initCapabilities(){
   if (!sampleImagesOk && ocrAvailable()) $("#photoBtn").hidden = false;
 
   // downloads: CSV
-  try { downloadsNs = await use("downloads"); } catch(e){ downloadsNs = null; }
-  if (downloadsNs) $("#csvBtn").hidden = false;
+  try { downloadsNs = await use("downloads"); } catch(e){ downloadsNs = null; }   // 없으면 Blob 폴백
 }
 
 /* ================= 시작 ================= */

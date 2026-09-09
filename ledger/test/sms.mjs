@@ -106,6 +106,28 @@ const okSingle = single.items.length === 1;
 if (!okSingle) fail++;
 console.log((okSingle ? "PASS" : "FAIL"), "단일 문자는 1개 ->", single.items.length);
 
+// CSV 파서 (첨부 파일 원문)
+{
+  const mc = html.match(/\/\*CSV_START\*\/([\s\S]*?)\/\*CSV_END\*\//);
+  const parseCsv = new Function(mc[1] + "; return parseCsv;")();
+  const { readFileSync: rf } = await import("node:fs");
+  const { fileURLToPath: f2p } = await import("node:url");
+  const { dirname: dn, join: jn } = await import("node:path");
+  const fx = rf(jn(dn(f2p(import.meta.url)), "fixtures", "export-sample.csv"), "utf-8");
+  const r = parseCsv(fx);
+  const chk = (name, ok, extra="") => { if (!ok) fail++; console.log((ok ? "PASS" : "FAIL"), "CSV:", name, extra); };
+  chk("첨부 11행·오류 0", r.rows.length === 11 && r.errors.length === 0, r.rows.length + "/" + r.errors.length);
+  chk("입금 3·지출 8", r.rows.filter(x => x.type === "income").length === 3 && r.rows.filter(x => x.type === "expense").length === 8);
+  chk("쉼표 없는 이름 그대로", r.rows[4].memo === "오꾸밥" && r.rows[4].amount === 14900);
+  chk("괄호 포함 내용", r.rows[2].memo === "네이버 쇼핑 (고기)");
+  const tricky = '\uFEFF"금액(원)","날짜","구분","내용","누가"\r\n"1,500","2026-09-05","지출","김치, 500g ""특가""","같이"\r\n"x","2026-09-06","지출","깨진 금액","나"\r\n"1000","20260907","입금","깨진 날짜","나"\r\n';
+  const t2 = parseCsv(tricky);
+  chk("BOM·CRLF·열 순서 무관", t2.rows.length === 1 && t2.rows[0].amount === 1500 && t2.rows[0].date === "2026-09-05");
+  chk("따옴표 안 쉼표·이스케이프", t2.rows[0].memo === '김치, 500g "특가"');
+  chk("깨진 금액·날짜는 errors", t2.errors.length === 2 && /금액/.test(t2.errors[0].reason) && /날짜/.test(t2.errors[1].reason));
+  chk("머리글 없음은 오류", parseCsv("a,b,c\n1,2,3").errors.length === 1 && parseCsv("a,b,c\n1,2,3").rows.length === 0);
+}
+
 // date sanity for the first case
 const d = parseSms(cases[0].text).date;
 console.log(/^\d{4}-08-31$/.test(d) ? "PASS" : "FAIL", "date parse ->", d);

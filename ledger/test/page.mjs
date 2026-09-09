@@ -229,6 +229,34 @@ async function newPage(scheme, width) {
   check("달력: 달 이동 시 필터 해제", await page.locator("#expRows .filter-chip").count() === 0);
   await page.click("#toThis"); await page.waitForTimeout(200);
 
+  // ===== CSV 가져오기 =====
+  const fixture = join(LEDGER, "test", "fixtures", "export-sample.csv");
+  await goTab("daily");
+  const expBefore = await page.locator("#expRows .row").count();
+  await page.locator("#csvFile").setInputFiles(fixture);
+  await page.waitForTimeout(400);
+  check("CSV: 미리보기 열림", await page.locator("#csvSheet.show").count() === 1);
+  check("CSV: 11행", await page.locator("#csvRows .crow-csv:not(.err)").count() === 11);
+  const dupBadges = await page.locator("#csvRows .cbadge").count();
+  check("CSV: 파일 안 중복 1건 표시", dupBadges === 1, dupBadges + "개");
+  check("CSV: 중복 행은 체크 해제", (await page.locator("#csvRows .crow-csv.dup input[type=checkbox]").isChecked()) === false);
+  check("CSV: 버튼에 10건", (await page.locator("#csvGo").textContent()).includes("10건"));
+  await page.click("#csvGo");
+  await page.waitForTimeout(600);
+  check("CSV: 시트 닫힘", await page.locator("#csvSheet.show").count() === 0);
+  check("CSV: 지출 8건 증가", await page.locator("#expRows .row").count() === expBefore + 8);
+  await goTab("income");
+  check("CSV: 입금 목록에 다니 100,000", (await page.locator("#incRows").textContent()).includes("100,000"));
+  await goTab("daily");
+  // 같은 파일 다시 → 전부 "이미 있음"
+  await page.locator("#csvFile").setInputFiles(fixture);
+  await page.waitForTimeout(400);
+  check("CSV: 재업로드는 전부 이미 있음", await page.locator("#csvRows .cbadge").count() === 11);
+  check("CSV: 재업로드 가져오기 비활성", await page.locator("#csvGo").isDisabled());
+  await page.click("#csvCancel");
+  await page.waitForTimeout(150);
+  check("CSV: 내보내기 버튼 항상 보임", await page.locator("#csvBtn").isVisible());
+
   // ===== 여러 품목 스크린샷/문자 =====
   await goTab("daily");
   const beforeMulti = await page.locator("#expRows .row").count();
@@ -318,7 +346,7 @@ async function newPage(scheme, width) {
   await page.reload(); await page.waitForTimeout(600);
   // 계산기 테스트가 지출 1건(13,500)을 더 저장했으므로 이번 달 3건
   const afterReload = await page.locator("#expRows .row").count();
-  check("새로고침 후 데이터 유지", afterReload === 8, afterReload + "건");
+  check("새로고침 후 데이터 유지", afterReload === 16, afterReload + "건");
   check("새로고침 후 수식 저장분 유지", (await page.locator("#expRows").textContent()).includes("13,500"));
   check("새로고침 후 이름 유지", (await page.locator("#expWho button").first().textContent()) === "채영");
 
