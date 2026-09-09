@@ -59,6 +59,26 @@
   .rules-hint{color:var(--muted); font-size:12px; margin-top:8px}
   #rulesEdit textarea{width:100%; min-height:110px; resize:vertical}
 
+  /* ---------- 상단 고정 영역: 월 이동 · 탭 · 요약 ---------- */
+  .topbar{position:sticky; top:0; z-index:30; background:var(--paper); margin:0 -16px; padding:6px 16px 0;
+    border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:6px}
+  .tabbar{display:flex; border-bottom:2px solid var(--line)}
+  .tabbar button{flex:1; background:none; border:none; padding:10px 4px; font-size:15px; color:var(--muted);
+    cursor:pointer; margin-bottom:-2px; border-bottom:2px solid transparent}
+  .tabbar button[aria-selected="true"]{color:var(--ink); font-weight:700; border-bottom-color:var(--ink)}
+  .strip{display:grid; grid-template-columns:repeat(3,1fr); text-align:center; padding:4px 0 8px}
+  .strip .sl{display:block; font-size:11px; color:var(--muted)}
+  .strip b{font-size:15px; font-weight:600}
+  .strip .pos{color:var(--income)} .strip .neg{color:var(--expense)}
+  [role="tabpanel"][hidden]{display:none}
+  /* 일일 탭의 날짜 그룹 머리 */
+  .dayhead{display:flex; align-items:baseline; gap:8px; padding:12px 2px 4px; margin-top:6px; border-bottom:2px solid var(--ink)}
+  .dayhead:first-child{margin-top:0}
+  .dayhead .dd{font-size:20px; font-weight:700; font-family:'IBM Plex Mono',ui-monospace,monospace}
+  .dayhead .dw{font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:1px 6px}
+  .dayhead .dsum{margin-left:auto; font-size:13px; color:var(--expense); font-weight:600}
+  .dayhead.sun .dd{color:var(--expense)} .dayhead.sat .dd{color:var(--income)}
+
   /* ---------- month nav & tiles ---------- */
   .monthnav{display:flex; align-items:center; justify-content:center; gap:4px}
   .monthnav .mlabel{font-family:'Do Hyeon',sans-serif; font-size:22px; min-width:8em; text-align:center}
@@ -76,6 +96,7 @@
   /* ---------- banner ---------- */
   .banner{display:none; align-items:center; gap:10px; background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:10px; padding:10px 12px; font-size:13px}
   .banner.show{display:flex}
+  .banner.warnbar{background:#FFF1F1; border-color:var(--expense); color:#7A1E1E}
   .banner .grow{flex:1}
 
   /* ---------- forms ---------- */
@@ -130,11 +151,32 @@
   .row .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .row .amt{flex:none; font-weight:600; font-size:14px}
   .row .amt.in{color:var(--income)} .row .amt.ex{color:var(--expense)}
-  .row .del{flex:none; background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; padding:2px 6px; border-radius:6px}
+  .row .del{flex:none; background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;
+    min-width:40px; min-height:40px; padding:2px 6px; border-radius:6px; margin-left:2px}
   .row .del.arm{background:var(--expense); color:#FFFFFF; font-size:11px; font-weight:600}
   .empty{color:var(--muted); font-size:13px; padding:10px 2px}
   .sumline{display:flex; justify-content:space-between; border-top:2px solid var(--ink); margin-top:6px; padding-top:9px; font-size:13px; color:var(--muted)}
   .sumline b{color:var(--ink); font-size:15px}
+
+  /* ---------- 달력 ---------- */
+  #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+  .cal-h{text-align:center; font-size:11px; color:var(--muted); padding:2px 0}
+  .cal-h.sun{color:var(--expense)} .cal-h.sat{color:var(--income)}
+  .cal-c{background:var(--paper); border:1px solid var(--line); border-radius:7px; min-height:48px;
+    padding:4px 2px; display:flex; flex-direction:column; align-items:center; gap:1px;
+    position:relative; cursor:pointer; font:inherit; color:var(--ink)}
+  .cal-c.pad{border:none; background:none; cursor:default; min-height:0}
+  .cal-c .cal-d{font-size:12px; line-height:1.2}
+  .cal-c .cal-a{font-size:10px; color:#8E1F1F; line-height:1.2; font-variant-numeric:tabular-nums}
+  /* 지출 많은 날일수록 진하게 — 한 색의 명도 단계 */
+  .cal-c.lv1{background:#FFF8DE} .cal-c.lv2{background:#FFEDB0} .cal-c.lv3{background:var(--yellow)}
+  .cal-c.today .cal-d{font-weight:700; text-decoration:underline}
+  .cal-c.sel{outline:2px solid var(--ink); outline-offset:1px}
+  .cal-c:hover:not(.pad){border-color:var(--ink)}
+  .cal-in{position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--income)}
+  .cal-key{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--income); vertical-align:middle}
+  .filter-chip{display:inline-flex; align-items:center; gap:6px; background:var(--ink); color:#FFFFFF;
+    border:none; border-radius:99px; padding:3px 10px; font-size:12px; cursor:pointer; margin-bottom:10px}
 
   /* ---------- charts ---------- */
   .crow{display:flex; align-items:center; gap:10px; padding:5px 0}
@@ -145,9 +187,25 @@
   .crow .cval{flex:none; width:6.4em; text-align:right; font-size:13px; color:var(--ink); font-variant-numeric:tabular-nums}
   .chart + h2{margin-top:16px}
 
-  /* ---------- settings panel ---------- */
-  #settingsPanel{display:none}
-  #settingsPanel.show{display:block}
+  /* ---------- 사이드바 서랍 ---------- */
+  #drawerWrap{position:fixed; inset:0; z-index:55; display:none}
+  #drawerWrap.open{display:block}
+  #drawerBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #drawer{position:absolute; top:0; right:0; bottom:0; width:min(400px,92vw); background:var(--card);
+    box-shadow:-6px 0 24px rgba(25,25,25,.16); overflow-y:auto; padding:14px 16px 32px;
+    display:flex; flex-direction:column; gap:18px; transform:translateX(100%); transition:transform .22s ease}
+  #drawerWrap.open #drawer{transform:none}
+  .dhead{display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:2px solid var(--ink)}
+  .dsec > h2{display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
+  .dsec > h2 .spacer{flex:1}
+  #rulesCard{border:none; padding:0}
+  #rulesCard > h2{border-bottom:1px solid var(--line)}
+  #settingsPanel{display:block}
+  .logrow{display:flex; gap:8px; align-items:baseline; padding:6px 2px; border-bottom:1px dashed var(--line-dash); font-size:13px}
+  .logrow .lwhen{color:var(--muted); flex:none; font-size:11px; width:5.2em}
+  .logrow .lwho{flex:none; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:0 6px; font-size:11px}
+  .logrow .lwhat{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .logrow .lamt{flex:none; font-size:12px}
   .reclist .row .memo{white-space:normal}
   .divider{border:none; border-top:1px solid var(--line); margin:14px 0}
 
@@ -155,16 +213,33 @@
   footer{color:var(--muted); font-size:12px; text-align:center; line-height:1.7}
   footer .warn{color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line);
     border-radius:8px; padding:8px 12px; display:block; text-align:left; margin-bottom:6px}
-  #toast{position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:#FFFFFF;
+  #quickAdd{position:fixed; z-index:40; right:16px; bottom:20px; background:var(--ink); color:#FFFFFF;
+    border:none; border-radius:99px; padding:14px 20px; font-size:15px; font-weight:600;
+    box-shadow:0 4px 14px rgba(25,25,25,.28); cursor:pointer}
+  #quickAdd:hover{filter:brightness(1.15)}
+  @media print{#quickAdd,#drawerWrap{display:none}}
+  #toast{position:fixed; z-index:60; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:#FFFFFF;
     padding:9px 16px; border-radius:99px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; max-width:85vw; text-align:center}
-  #toast.show{opacity:1; transform:translate(-50%,0)}
+  #toast.show{opacity:1; transform:translate(-50%,0); pointer-events:auto}
+  .toast-act{margin-left:12px; background:none; border:1px solid #FFFFFF; color:#FFFFFF;
+    border-radius:99px; padding:3px 12px; font-size:12px; cursor:pointer}
+  .row.entry{flex-direction:column; align-items:stretch; gap:2px}
+  .rmain{display:flex; align-items:baseline; gap:8px}
+  .rmain .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rmain .amt{margin-left:auto}
+  .rsub{display:flex; align-items:center; gap:6px}
+  .rsub .who{flex:1}
+  .row.editable{cursor:pointer; border-radius:6px}
+  .row.editable:hover{background:#FAFAFA}
+  .row.editable:focus-visible{outline:2px solid var(--ink); outline-offset:-2px}
 
   /* ---------- 금액 칸 계산기 ---------- */
-  label.f:has(input.amt){position:relative}
-  .calc-open{position:absolute; top:-2px; right:0; font-size:11px; padding:1px 8px;
-    background:var(--yellow-soft); color:var(--tag-ink); border:1px solid var(--yellow-line);
-    border-radius:5px; cursor:pointer; line-height:1.6}
-  .calc-open:hover{background:var(--yellow)}
+  .amt-row{display:flex; gap:8px; align-items:stretch}
+  .amt-row input.amt{flex:1; min-width:0}
+  .calc-open{flex:none; background:var(--yellow); color:var(--ink);
+    border:1px solid var(--yellow-line); border-radius:8px; padding:0 14px;
+    font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; min-height:44px}
+  .calc-open:hover{filter:brightness(.97)}
   .amt-preview{font-size:12px; color:var(--muted); text-align:right; padding:3px 2px 0;
     font-family:'IBM Plex Mono',ui-monospace,monospace}
   .amt-preview.bad{color:var(--expense)}
@@ -211,15 +286,184 @@
       </div>
       <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
         <span class="conn" id="conn"><span class="dot"></span><span id="connText">연결 확인 중…</span></span>
-        <button class="ghost mini" id="settingsBtn" aria-expanded="false">설정</button>
+        <button class="ghost mini" id="settingsBtn" aria-expanded="false" aria-controls="drawer">☰ 메뉴</button>
       </div>
     </div>
   </header>
 
   <div class="band" aria-hidden="true"></div>
 
-  <!-- 설정 -->
-  <section class="card" id="settingsPanel" aria-label="설정">
+
+
+  <!-- 공유가 꺼진 상태 알림 -->
+  <div class="banner warnbar" id="shareBanner" role="status">
+    <span class="grow" id="shareBannerText"></span>
+    <button class="ghost mini" id="shareWhy">자세히</button>
+  </div>
+
+  <!-- 고정지출 배너 -->
+  <div class="banner" id="recBanner" role="status">
+    <span class="grow" id="recBannerText"></span>
+    <button class="primary mini" id="recFill">한 번에 채우기</button>
+  </div>
+
+  <!-- 2. 월 내비게이션 + 요약 -->
+  <div class="topbar">
+  <nav class="monthnav" aria-label="월 이동">
+    <button class="ghost mini" id="prevM" aria-label="이전 달">◀</button>
+    <span class="mlabel num" id="monthLabel"></span>
+    <button class="ghost mini" id="nextM" aria-label="다음 달">▶</button>
+    <button class="ghost mini tothis" id="toThis" hidden>이번 달</button>
+  </nav>
+
+  <div class="tabbar" role="tablist" aria-label="화면">
+    <button role="tab" id="tb-daily" aria-selected="true" aria-controls="tab-daily">일일</button>
+    <button role="tab" id="tb-cal" aria-selected="false" aria-controls="tab-cal">달력</button>
+    <button role="tab" id="tb-income" aria-selected="false" aria-controls="tab-income">입금</button>
+    <button role="tab" id="tb-stats" aria-selected="false" aria-controls="tab-stats">분석</button>
+  </div>
+  <div class="strip" aria-label="이번 달 요약">
+    <div><span class="sl">입금</span><b class="num pos" id="tIn">0원</b></div>
+    <div><span class="sl">지출</span><b class="num neg" id="tOut">0원</b></div>
+    <div><span class="sl">남은 돈</span><b class="num" id="tNet">0원</b></div>
+  </div>
+  </div><!-- /topbar -->
+
+  <!-- 달력 -->
+
+  <!-- 이 기기 기록 → 공유 저장소 이사 제안 -->
+  <div class="banner" id="migBanner" role="status">
+    <span class="grow" id="migText"></span>
+    <button class="primary mini" id="migUpload">올리기</button>
+    <button class="ghost mini" id="migClose">닫기</button>
+  </div>
+
+  <div id="tab-daily" role="tabpanel" aria-labelledby="tb-daily">
+  <section class="card" aria-label="지출 내역">
+    <h2 class="serif">지출 내역</h2>
+
+    <div class="autorow">
+      <button class="ghost" id="photoBtn" hidden>스크린샷으로 등록</button>
+      <button class="ghost" id="pasteBtn">결제 문자 붙여넣기</button>
+    </div>
+    <input type="file" id="photoFile" accept="image/*" hidden>
+    <div id="pasteBox">
+      <textarea id="pasteText" placeholder="카드 결제 문자나 알림 내용을 그대로 붙여넣으세요"></textarea>
+      <div style="display:flex; gap:8px">
+        <button class="primary mini" id="pasteParse">인식하기</button>
+        <button class="ghost mini" id="pasteClose">닫기</button>
+      </div>
+    </div>
+    <div id="autoStatus"><span class="grow" id="autoStatusText"></span><button class="ghost mini" id="autoStop" hidden>중지</button></div>
+
+    <details class="adder" id="expAdder">
+      <summary>직접 적기</summary>
+      <div class="formbody" id="expForm">
+        <div class="frow">
+          <label class="f">금액 (원)<input id="expAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+        </div>
+        <div class="frow">
+          <label class="f">날짜<input id="expDate" type="date"></label>
+          <label class="f">카테고리<select id="expCat"></select></label>
+        </div>
+        <div class="frow">
+          <label class="f">내용 · 가맹점<input id="expMemo" placeholder="예: 이마트 장보기"></label>
+        </div>
+        <div class="frow">
+          <label class="f">누가 썼나<div class="seg" id="expWho"></div></label>
+        </div>
+        <div style="display:flex; gap:8px"><button class="primary" id="expSave">지출 저장</button><button class="ghost" id="expCancel" hidden>고치기 취소</button></div>
+      </div>
+    </details>
+
+    <div class="rows" id="expRows"></div>
+    <div class="sumline"><span id="expSumLabel">이번 달 지출 합계</span><b class="num" id="expSum">0원</b></div>
+  </section>
+  </div>
+  <div id="tab-cal" role="tabpanel" aria-labelledby="tb-cal" hidden>
+  <section class="card" aria-label="달력">
+    <h2 class="serif">달력</h2>
+    <div id="calGrid"></div>
+    <p class="rules-hint" id="calHint">날짜를 누르면 그날 내역이 보이고 바로 적을 수 있어요. <span class="cal-key"></span> 파란 점은 입금이 있던 날이에요.</p>
+  </section>
+  </div>
+  <div id="tab-income" role="tabpanel" aria-labelledby="tb-income" hidden>
+  <section class="card" aria-label="생활비 입금">
+    <h2 class="serif">생활비 입금</h2>
+    <details class="adder" id="incAdder">
+      <summary>입금 적기</summary>
+      <div class="formbody">
+        <div class="frow">
+          <label class="f">금액 (원)<input id="incAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+        </div>
+        <div class="frow">
+          <label class="f">날짜<input id="incDate" type="date"></label>
+          <label class="f">내용<input id="incMemo" placeholder="예: 9월 생활비"></label>
+        </div>
+        <div class="frow">
+          <label class="f">누가<div class="seg" id="incWho"></div></label>
+        </div>
+        <div style="display:flex; gap:8px"><button class="primary" id="incSave">입금 저장</button><button class="ghost" id="incCancel" hidden>고치기 취소</button></div>
+      </div>
+    </details>
+    <div class="rows" id="incRows"></div>
+    <div class="sumline"><span>이번 달 입금 합계</span><b class="num" id="incSum">0원</b></div>
+  </section>
+  </div>
+  <div id="tab-stats" role="tabpanel" aria-labelledby="tb-stats" hidden>
+  <section class="card" aria-label="이번 달 분석">
+    <div class="sumline" style="margin:0 0 14px; padding-top:0; border:none"><span>기록한 돈 합계 (전체 기간)</span><b class="num" id="tBal">0원</b></div>
+    <h2 class="serif">어디에 얼마나 썼나</h2>
+    <div class="chart" id="catChart"></div>
+    <h2 class="serif" style="border:none; padding:0; margin-top:18px; margin-bottom:8px">누가 얼마나 썼나</h2>
+    <div class="chart" id="whoChart"></div>
+  </section>
+  </div>
+
+  <!-- 3. 수입 -->
+
+  <!-- 4. 지출 -->
+
+  <!-- 5. 분석 -->
+
+  <div style="display:flex; justify-content:center; gap:8px">
+    <button class="ghost mini" id="csvBtn" hidden>전체 내역 CSV로 내보내기</button>
+  </div>
+
+  <footer>
+    <div id="footNote">이 페이지가 열려 있는 동안 기록할 수 있어요.</div>
+    <div>사진·문자 인식 결과는 저장 전에 꼭 한 번 확인해 주세요.</div>
+  </footer>
+
+</div>
+
+<!-- 사이드바 서랍: 매일 쓰지 않는 것들을 여기로 -->
+<div id="drawerWrap" aria-hidden="true">
+  <div id="drawerBackdrop"></div>
+  <aside id="drawer" role="dialog" aria-modal="true" aria-label="메뉴">
+    <div class="dhead">
+      <h2 class="serif">메뉴</h2>
+      <button class="ghost mini" id="drawerClose" aria-label="메뉴 닫기">닫기 ✕</button>
+    </div>
+  <section class="dsec" id="rulesCard" aria-label="통장 규칙">
+    <h2 class="serif">통장 규칙 <span class="spacer"></span><button class="ghost mini" id="rulesEditBtn">고치기</button></h2>
+    <ol id="rulesList"></ol>
+    <div id="rulesEdit" hidden>
+      <textarea id="rulesText" placeholder="한 줄에 규칙 하나씩 적어요"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <button class="primary mini" id="rulesSave">저장</button>
+        <button class="ghost mini" id="rulesCancel">취소</button>
+      </div>
+    </div>
+    <p class="rules-hint" id="rulesHint" hidden>아직 예시 규칙이에요 — "고치기"를 눌러 둘만의 규칙으로 바꿔 보세요.</p>
+  </section>
+
+    <section class="dsec" aria-label="최근 활동">
+      <h2 class="serif">최근 활동</h2>
+      <div class="rows" id="logRows"></div>
+      <p class="rules-hint">최근에 적힌 기록이에요. 누가 무엇을 언제 적었는지 볼 수 있어요.</p>
+    </section>
+  <section class="dsec" id="settingsPanel" aria-label="설정">
     <h2>설정</h2>
     <div class="frow">
       <label class="f">첫 번째 사람<input id="setM0" maxlength="10"></label>
@@ -232,8 +476,10 @@
     <p class="rules-hint" style="margin:0 0 10px">월세·통신비처럼 매달 나가는 지출을 등록해 두면, 그 달에 아직 기록이 없을 때 위쪽 배너에서 한 번에 채울 수 있어요.</p>
     <div class="rows reclist" id="recList"></div>
     <div class="frow" style="margin-top:10px">
-      <label class="f" style="flex:0 0 4.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
       <label class="f">금액<input id="recAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+    </div>
+    <div class="frow" style="margin-top:8px">
+      <label class="f" style="flex:0 0 5.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
       <label class="f">내용<input id="recMemo" placeholder="예: 월세"></label>
     </div>
     <div class="frow" style="margin-top:8px">
@@ -252,127 +498,7 @@
       </div>
     </div>
   </section>
-
-  <!-- 1. 통장 규칙 (최상단) -->
-  <section class="card" id="rulesCard" aria-label="통장 규칙">
-    <h2 class="serif">통장 규칙 <span class="spacer"></span><button class="ghost mini" id="rulesEditBtn">고치기</button></h2>
-    <ol id="rulesList"></ol>
-    <div id="rulesEdit" hidden>
-      <textarea id="rulesText" placeholder="한 줄에 규칙 하나씩 적어요"></textarea>
-      <div style="display:flex; gap:8px; margin-top:8px">
-        <button class="primary mini" id="rulesSave">저장</button>
-        <button class="ghost mini" id="rulesCancel">취소</button>
-      </div>
-    </div>
-    <p class="rules-hint" id="rulesHint" hidden>아직 예시 규칙이에요 — "고치기"를 눌러 둘만의 규칙으로 바꿔 보세요.</p>
-  </section>
-
-  <!-- 고정지출 배너 -->
-  <div class="banner" id="recBanner" role="status">
-    <span class="grow" id="recBannerText"></span>
-    <button class="primary mini" id="recFill">한 번에 채우기</button>
-  </div>
-
-  <!-- 2. 월 내비게이션 + 요약 -->
-  <nav class="monthnav" aria-label="월 이동">
-    <button class="ghost mini" id="prevM" aria-label="이전 달">◀</button>
-    <span class="mlabel num" id="monthLabel"></span>
-    <button class="ghost mini" id="nextM" aria-label="다음 달">▶</button>
-    <button class="ghost mini tothis" id="toThis" hidden>이번 달</button>
-  </nav>
-
-  <div class="tiles" aria-label="이번 달 요약">
-    <div class="tile"><div class="tl">이번 달 입금</div><div class="tv num pos" id="tIn">0원</div></div>
-    <div class="tile"><div class="tl">이번 달 지출</div><div class="tv num neg" id="tOut">0원</div></div>
-    <div class="tile"><div class="tl">이번 달 남은 돈</div><div class="tv num" id="tNet">0원</div></div>
-    <div class="tile hl"><div class="tl">통장 잔액 (누적)</div><div class="tv num bal" id="tBal">0원</div></div>
-  </div>
-
-  <!-- 이 기기 기록 → 공유 저장소 이사 제안 -->
-  <div class="banner" id="migBanner" role="status">
-    <span class="grow" id="migText"></span>
-    <button class="primary mini" id="migUpload">올리기</button>
-    <button class="ghost mini" id="migClose">닫기</button>
-  </div>
-
-  <!-- 3. 수입 -->
-  <section class="card" aria-label="생활비 입금">
-    <h2 class="serif">생활비 입금</h2>
-    <details class="adder" id="incAdder">
-      <summary>입금 적기</summary>
-      <div class="formbody">
-        <div class="frow">
-          <label class="f">금액 (원)<input id="incAmt" class="amt" inputmode="numeric" placeholder="0"></label>
-          <label class="f">날짜<input id="incDate" type="date"></label>
-        </div>
-        <div class="frow">
-          <label class="f">내용<input id="incMemo" placeholder="예: 9월 생활비"></label>
-          <label class="f">누가<div class="seg" id="incWho"></div></label>
-        </div>
-        <div><button class="primary" id="incSave">입금 저장</button></div>
-      </div>
-    </details>
-    <div class="rows" id="incRows"></div>
-    <div class="sumline"><span>이번 달 입금 합계</span><b class="num" id="incSum">0원</b></div>
-  </section>
-
-  <!-- 4. 지출 -->
-  <section class="card" aria-label="지출 내역">
-    <h2 class="serif">지출 내역</h2>
-
-    <div class="autorow">
-      <button class="ghost" id="photoBtn" hidden>사진으로 등록</button>
-      <button class="ghost" id="pasteBtn">결제 문자 붙여넣기</button>
-    </div>
-    <input type="file" id="photoFile" accept="image/*" hidden>
-    <div id="pasteBox">
-      <textarea id="pasteText" placeholder="카드 결제 문자나 알림 내용을 그대로 붙여넣으세요"></textarea>
-      <div style="display:flex; gap:8px">
-        <button class="primary mini" id="pasteParse">인식하기</button>
-        <button class="ghost mini" id="pasteClose">닫기</button>
-      </div>
-    </div>
-    <div id="autoStatus"><span class="grow" id="autoStatusText"></span><button class="ghost mini" id="autoStop" hidden>중지</button></div>
-
-    <details class="adder" id="expAdder">
-      <summary>직접 적기</summary>
-      <div class="formbody" id="expForm">
-        <div class="frow">
-          <label class="f">금액 (원)<input id="expAmt" class="amt" inputmode="numeric" placeholder="0"></label>
-          <label class="f">날짜<input id="expDate" type="date"></label>
-        </div>
-        <div class="frow">
-          <label class="f">내용 · 가맹점<input id="expMemo" placeholder="예: 이마트 장보기"></label>
-          <label class="f">카테고리<select id="expCat"></select></label>
-        </div>
-        <div class="frow">
-          <label class="f">누가 썼나<div class="seg" id="expWho"></div></label>
-        </div>
-        <div><button class="primary" id="expSave">지출 저장</button></div>
-      </div>
-    </details>
-
-    <div class="rows" id="expRows"></div>
-    <div class="sumline"><span>이번 달 지출 합계</span><b class="num" id="expSum">0원</b></div>
-  </section>
-
-  <!-- 5. 분석 -->
-  <section class="card" aria-label="이번 달 분석">
-    <h2 class="serif">어디에 얼마나 썼나</h2>
-    <div class="chart" id="catChart"></div>
-    <h2 class="serif" style="border:none; padding:0; margin-top:18px; margin-bottom:8px">누가 얼마나 썼나</h2>
-    <div class="chart" id="whoChart"></div>
-  </section>
-
-  <div style="display:flex; justify-content:center; gap:8px">
-    <button class="ghost mini" id="csvBtn" hidden>전체 내역 CSV로 내보내기</button>
-  </div>
-
-  <footer>
-    <div id="footNote">이 페이지가 열려 있는 동안 기록할 수 있어요.</div>
-    <div>사진·문자 인식 결과는 저장 전에 꼭 한 번 확인해 주세요.</div>
-  </footer>
-
+  </aside>
 </div>
 
 <!-- 계산기 패드 -->
@@ -391,12 +517,17 @@
   </div>
 </div>
 
+<button id="quickAdd" type="button" aria-label="지출 빠르게 적기">＋ 지출</button>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <!-- Firebase (외부 호스팅에서만 동작 — claude.ai 아티팩트에서는 내장 공유 저장소를 사용) -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+<!-- 스크린샷 글자 인식 (외부 호스팅 전용 — 아티팩트에서는 Claude가 이미지를 직접 본다) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 
 <script>
 "use strict";
@@ -477,7 +608,7 @@ function evalAmount(src){
   return won;
 }
 /** 수식 문자를 품고 있는지 — 순수 숫자면 미리보기를 띄우지 않는다. */
-const looksLikeFormula = v => /[+\-*/×÷()]/.test(String(v).replace(/^\s*[-−]/, ""));
+const looksLikeFormula = v => /[+\-*/×÷().]/.test(String(v).replace(/^\s*[-−]/, ""));
 /*CALC_END*/
 function todayStr(){
   const d = new Date();
@@ -501,12 +632,19 @@ function el(tag, cls, text){
   return n;
 }
 let toastTimer = null;
-function toast(msg){
+function toast(msg, actionLabel, onAction){
   const t = $("#toast");
-  t.textContent = msg;
+  t.textContent = "";
+  t.append(el("span", "", msg));
+  if (actionLabel && onAction) {
+    const b = el("button", "toast-act", actionLabel);
+    b.type = "button";
+    b.addEventListener("click", () => { t.classList.remove("show"); onAction(); });
+    t.append(b);
+  }
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+  toastTimer = setTimeout(() => t.classList.remove("show"), actionLabel ? 6000 : 2600);
 }
 
 /* ================= 상태 ================= */
@@ -534,9 +672,16 @@ function hashLid(){
   return m ? m[1] : "";
 }
 function newLid(){
-  let s = "";
-  while (s.length < 22) s += Math.random().toString(36).slice(2);
-  return s.slice(0, 22);
+  // 이 코드를 아는 것이 곧 접근 권한이므로 Math.random()으로는 부족하다
+  try {
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    return [...b].map(x => x.toString(36).padStart(2, "0")).join("").slice(0, 22);
+  } catch (e) {
+    let s = "";
+    while (s.length < 22) s += Math.random().toString(36).slice(2);
+    return s.slice(0, 22);
+  }
 }
 
 const state = {
@@ -545,6 +690,8 @@ const state = {
   members: ["나", "다니"],
   recurring: [],               // {id, day, amount, category, memo, who}
   month: thisMonth(),
+  dayFilter: "",              // 달력에서 고른 날짜 (YYYY-MM-DD), 빈 값이면 그 달 전체
+  tab: "daily",
   mode: "local",               // 'local' | 'db'
 };
 const whoName = w => w === "both" ? "같이" : (w === "m1" ? state.members[1] : state.members[0]);
@@ -575,6 +722,11 @@ async function addEntry(e){
   if (db) { await db.collection("entries").add(e); }
   else { state.entries.set(newId(), e); saveLocal(); renderAll(); }
 }
+/** 기존 기록을 고쳐 쓴다 — 오타 정정이 삭제를 거치지 않게 하려고 둔다. */
+async function updateEntry(id, e){
+  if (db) { await db.collection("entries").doc(id).set(e); }
+  else { state.entries.set(id, e); saveLocal(); renderAll(); }
+}
 async function deleteEntry(id){
   if (db) { await db.collection("entries").doc(id).delete(); }
   else { state.entries.delete(id); saveLocal(); renderAll(); }
@@ -604,10 +756,82 @@ function dbWriteFailed(err){
   else toast("저장하지 못했어요. 잠시 후 다시 시도해 주세요");
 }
 
+/* ================= 탭 ================= */
+const TABS = ["daily", "cal", "income", "stats"];
+function showTab(name){
+  if (!TABS.includes(name)) name = "daily";
+  TABS.forEach(t => {
+    $("#tab-" + t).hidden = t !== name;
+    $("#tb-" + t).setAttribute("aria-selected", String(t === name));
+  });
+  state.tab = name;
+  try { localStorage.setItem("dani-ledger-tab", name); } catch(e){}
+}
+
 /* ================= 렌더 ================= */
 function renderAll(){
-  renderRules(); renderMonth(); renderTiles(); renderIncome(); renderExpense();
-  renderCharts(); renderSettings(); renderRecBanner();
+  renderRules(); renderMonth(); renderTiles(); renderCalendar(); renderIncome(); renderExpense();
+  renderCharts(); renderSettings(); renderLog(); renderRecBanner();
+}
+
+/* 달력 칸에 들어갈 짧은 금액 — 45,900 → "4.6만" */
+function compactWon(n){
+  if (n >= 10000) { const m = n / 10000; return (m >= 10 ? Math.round(m) : Math.round(m * 10) / 10) + "만"; }
+  if (n >= 1000) {
+    const k = Math.round(n / 1000);
+    return k >= 10 ? "1만" : k + "천";      // 9,800 이 "10천"으로 나오던 것
+  }
+  return String(Math.round(n));
+}
+
+function renderCalendar(){
+  const grid = $("#calGrid");
+  grid.textContent = "";
+  const y = Number(state.month.slice(0, 4)), mo = Number(state.month.slice(5));
+  const lead = new Date(y, mo - 1, 1).getDay();          // 그 달 1일의 요일
+  const lastDate = new Date(y, mo, 0).getDate();
+
+  const spent = new Map(), gotPaid = new Set();
+  state.entries.forEach(e => {
+    if (e.month !== state.month || !e.date) return;
+    const d = Number(e.date.slice(8));
+    if (e.type === "expense") spent.set(d, (spent.get(d) || 0) + (Number(e.amount) || 0));
+    else gotPaid.add(d);
+  });
+  const max = spent.size ? Math.max(...spent.values()) : 0;
+
+  ["일","월","화","수","목","금","토"].forEach((w, i) =>
+    grid.append(el("div", "cal-h" + (i === 0 ? " sun" : i === 6 ? " sat" : ""), w)));
+  for (let i = 0; i < lead; i++) grid.append(el("div", "cal-c pad"));
+
+  for (let d = 1; d <= lastDate; d++) {
+    const iso = state.month + "-" + pad2(d);
+    const amt = spent.get(d) || 0;
+    const cell = el("button", "cal-c");
+    cell.type = "button";
+    if (amt > 0 && max > 0) cell.classList.add("lv" + Math.min(3, Math.ceil(amt / max * 3)));
+    if (iso === todayStr()) cell.classList.add("today");
+    if (state.dayFilter === iso) cell.classList.add("sel");
+    cell.append(el("span", "cal-d", String(d)));
+    if (amt > 0) cell.append(el("span", "cal-a num", compactWon(amt)));
+    if (gotPaid.has(d)) cell.append(el("span", "cal-in"));
+    cell.setAttribute("aria-label",
+      mo + "월 " + d + "일" + (amt > 0 ? ", 지출 " + fmtWon(amt) : ", 지출 없음") + (gotPaid.has(d) ? ", 입금 있음" : ""));
+    cell.setAttribute("aria-pressed", String(state.dayFilter === iso));
+    cell.addEventListener("click", () => {
+      state.dayFilter = state.dayFilter === iso ? "" : iso;   // 같은 날 다시 누르면 해제
+      renderAll();
+      if (!state.dayFilter) return;
+      // 그날 내역을 보여 주면서, 바로 그날 지출을 적을 수 있게 폼을 연다
+      cancelEdit("expense");
+      showTab("daily");
+      $("#expAdder").open = true;
+      $("#expDate").value = iso;
+      $("#expAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+      setTimeout(() => $("#expAmt").focus(), 350);
+    });
+    grid.append(cell);
+  }
 }
 
 function renderRules(){
@@ -651,35 +875,155 @@ function renderTiles(){
 
 function entryRow(e){
   const row = el("div", "row");
-  row.append(el("span", "d num", e.date.slice(5).replace("-", ".")));
-  if (e.type === "expense") row.append(el("span", "chip", e.category || "기타"));
-  row.append(el("span", "memo", e.memo || "—"));
-  row.append(el("span", "who", whoName(e.who)));
-  row.append(el("span", "amt num " + (e.type === "income" ? "in" : "ex"),
+  const label = e.date.slice(5).replace("-", ".") + " " + (e.memo || "내용 없음") + " " +
+    fmtWon(Number(e.amount) || 0) + " " + whoName(e.who);
+  row.classList.add("entry");
+  // 윗줄: 날짜 · 내용 · 금액 / 아랫줄: 카테고리 · 누가 · 삭제 — 내용이 폭을 갖도록
+  const main = el("div", "rmain"), sub = el("div", "rsub");
+  main.append(el("span", "d num", e.date.slice(5).replace("-", ".")));
+  main.append(el("span", "memo", e.memo || "—"));
+  main.append(el("span", "amt num " + (e.type === "income" ? "in" : "ex"),
     (e.type === "income" ? "+" : "−") + fmtWon(Number(e.amount)||0)));
-  const del = el("button", "del", "×");
-  del.setAttribute("aria-label", "삭제");
-  del.addEventListener("click", () => {
-    if (del.classList.contains("arm")) {
-      deleteEntry(e.id).catch(dbWriteFailed);
-      toast("지웠어요");
-    } else {
-      del.classList.add("arm"); del.textContent = "지우기";
-      setTimeout(() => { del.classList.remove("arm"); del.textContent = "×"; }, 2600);
-    }
+  if (e.type === "expense") sub.append(el("span", "chip", e.category || "기타"));
+  sub.append(el("span", "who", whoName(e.who)));
+  row.append(main, sub);
+
+  // 행을 누르면 고치기 — 오타를 지웠다 다시 넣지 않아도 되게
+  row.classList.add("editable");
+  row.setAttribute("role", "button");
+  row.tabIndex = 0;
+  row.setAttribute("aria-label", label + " — 누르면 고칠 수 있어요");
+  const openEdit = ev => { if (ev.target.closest(".del")) return; startEdit(e); };
+  row.addEventListener("click", openEdit);
+  row.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); startEdit(e); }
   });
-  row.append(del);
+
+  const del = el("button", "del", "×");
+  del.setAttribute("aria-label", label + " 삭제");
+  del.addEventListener("click", async () => {
+    if (!del.classList.contains("arm")) {
+      del.classList.add("arm"); del.textContent = "지우기";
+      del.setAttribute("aria-label", label + " — 한 번 더 누르면 지워집니다");
+      setTimeout(() => {
+        del.classList.remove("arm"); del.textContent = "×";
+        del.setAttribute("aria-label", label + " 삭제");
+      }, 2600);
+      return;
+    }
+    const backup = { ...e };            // 되돌리기용 사본
+    delete backup.id;
+    try { await deleteEntry(e.id); }
+    catch (err) { dbWriteFailed(err); return; }
+    toast("지웠어요", "되돌리기", async () => {
+      try { await addEntry(backup); toast("되돌렸어요"); }
+      catch (err) { dbWriteFailed(err); }
+    });
+  });
+  sub.append(del);
   return row;
+}
+
+/* ================= 최근 활동 로그 ================= */
+function renderLog(){
+  const box = $("#logRows");
+  if (!box) return;
+  box.textContent = "";
+  const list = [...state.entries.values()]
+    .filter(e => e && e.date)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 20);
+  if (!list.length) { box.append(el("div", "empty", "아직 적힌 기록이 없어요.")); return; }
+  list.forEach(e => {
+    const r = el("div", "logrow");
+    const t = e.createdAt ? new Date(e.createdAt) : null;
+    const when = t ? (t.getMonth()+1) + "/" + t.getDate() + " " + pad2(t.getHours()) + ":" + pad2(t.getMinutes()) : "";
+    r.append(el("span", "lwhen num", when));
+    r.append(el("span", "lwho", whoName(e.who)));
+    r.append(el("span", "lwhat", (e.type === "income" ? "입금 · " : "") + (e.memo || (e.category || "기록"))));
+    r.append(el("span", "lamt num " + (e.type === "income" ? "in" : "ex"),
+      (e.type === "income" ? "+" : "−") + fmtWon(Number(e.amount) || 0)));
+    box.append(r);
+  });
+}
+
+/* ================= 고치기 ================= */
+const editing = { income: null, expense: null };   // 고치는 중인 기록 id
+let expCatTouched = false;                         // 카테고리를 사용자가 직접 골랐는지
+
+function setSeg(container, val){
+  const btns = [...container.querySelectorAll("button")];
+  btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.val === val)));
+  if (!btns.some(b => b.dataset.val === val) && btns[0]) btns[0].setAttribute("aria-pressed", "true");
+}
+
+function startEdit(e){
+  const inc = e.type === "income";
+  const k = inc ? "income" : "expense";
+  editing[k] = e.id;
+  const adder = $(inc ? "#incAdder" : "#expAdder");
+  adder.open = true;
+  const amt = $(inc ? "#incAmt" : "#expAmt");
+  amt.value = (Number(e.amount) || 0).toLocaleString("ko-KR");
+  updateAmtPreview(amt);
+  $(inc ? "#incMemo" : "#expMemo").value = e.memo || "";
+  $(inc ? "#incDate" : "#expDate").value = e.date || todayStr();
+  if (!inc) $("#expCat").value = CATEGORIES.includes(e.category) ? e.category : CATEGORIES[0];
+  setSeg($(inc ? "#incWho" : "#expWho"), e.who);
+  $(inc ? "#incSave" : "#expSave").textContent = "고친 내용 저장";
+  $(inc ? "#incCancel" : "#expCancel").hidden = false;
+  adder.scrollIntoView({ block: "center", behavior: "smooth" });
+  toast("고치는 중이에요");
+}
+
+function cancelEdit(kind){
+  if (!editing[kind]) return;
+  editing[kind] = null;
+  const inc = kind === "income";
+  $(inc ? "#incSave" : "#expSave").textContent = inc ? "입금 저장" : "지출 저장";
+  $(inc ? "#incCancel" : "#expCancel").hidden = true;
 }
 
 function renderList(sel, type, sumSel, emptyMsg){
   const box = $(sel);
   box.textContent = "";
-  const list = monthEntries(type);
+  let list = monthEntries(type);
+  const filtered = !!state.dayFilter;
+  if (filtered) {
+    const day = Number(state.dayFilter.slice(8));
+    list = list.filter(e => e.date === state.dayFilter);
+    const chip = el("button", "filter-chip", Number(state.month.slice(5)) + "월 " + day + "일만 보는 중  ✕");
+    chip.type = "button";
+    chip.addEventListener("click", () => { state.dayFilter = ""; renderAll(); });
+    box.append(chip);
+    emptyMsg = type === "income" ? "이 날은 입금이 없어요." : "이 날은 쓴 기록이 없어요.";
+  }
   if (!list.length) box.append(el("div", "empty", emptyMsg));
+  else if (type === "expense" && !filtered) {
+    // 날짜별로 묶어 하루 단위로 읽히게 — 참고한 가계부 앱의 일일 화면처럼
+    const W = ["일","월","화","수","목","금","토"];
+    let cur = null, group = [];
+    const flush = () => {
+      if (!cur) return;
+      const d = new Date(cur + "T00:00:00");
+      const head = el("div", "dayhead" + (d.getDay() === 0 ? " sun" : d.getDay() === 6 ? " sat" : ""));
+      head.append(el("span", "dd", String(d.getDate()).padStart(2, "0")));
+      head.append(el("span", "dw", W[d.getDay()] + "요일"));
+      head.append(el("span", "dsum num", "−" + fmtWon(sum(group))));
+      box.append(head);
+      group.forEach(e => box.append(entryRow(e)));
+      group = [];
+    };
+    list.forEach(e => { if (e.date !== cur) { flush(); cur = e.date; } group.push(e); });
+    flush();
+  }
   else list.forEach(e => box.append(entryRow(e)));
   const total = sum(list);
   $(sumSel).textContent = (total > 0 ? (type === "income" ? "+" : "−") : "") + fmtWon(total);
+  if (type === "expense")
+    $("#expSumLabel").textContent = filtered
+      ? Number(state.month.slice(5)) + "월 " + Number(state.dayFilter.slice(8)) + "일 지출 합계"
+      : "이번 달 지출 합계";
 }
 const renderIncome  = () => renderList("#incRows", "income", "#incSum", "아직 입금 기록이 없어요.");
 const renderExpense = () => renderList("#expRows", "expense", "#expSum", "이번 달 지출이 아직 없어요.");
@@ -695,7 +1039,7 @@ function chartRows(box, pairs){
     const bar = el("div", "cbar");
     bar.style.width = Math.max(2, Math.round(val / max * 100)) + "%";
     track.append(bar);
-    row.append(el("span", "clabel", label), track, el("span", "cval num", Math.round(val).toLocaleString("ko-KR")));
+    row.append(el("span", "clabel", label), track, el("span", "cval num", Math.round(val).toLocaleString("ko-KR") + "원"));
     box.append(row);
   });
 }
@@ -745,6 +1089,7 @@ function bindAmtField(input){
   preview.className = "amt-preview";
   preview.hidden = true;
   input.insertAdjacentElement("afterend", preview);
+  input._amtPreview = preview;   // 계산기 버튼이 입력칸을 감싸도 참조가 끊기지 않게
 
   input.addEventListener("input", () => {
     const raw = input.value;
@@ -768,8 +1113,8 @@ function bindAmtField(input){
   });
 }
 function updateAmtPreview(input){
-  const preview = input.nextElementSibling;
-  if (!preview || !preview.classList.contains("amt-preview")) return;
+  const preview = input._amtPreview;
+  if (!preview) return;
   if (!looksLikeFormula(input.value)) { preview.hidden = true; return; }
   const won = evalAmount(input.value);
   preview.hidden = false;
@@ -798,7 +1143,7 @@ function calcRender(){
   const won = evalAmount(calcExpr);
   const out = $("#calcResult");
   out.textContent = calcExpr === "" ? "0원"
-    : won === null ? "계산 중…" : won.toLocaleString("ko-KR") + "원";
+    : won === null ? "아직 계산할 수 없어요" : won.toLocaleString("ko-KR") + "원";
   out.classList.toggle("bad", calcExpr !== "" && won === null);
   $("#calcApply").disabled = won === null;
 }
@@ -849,17 +1194,18 @@ function buildCalcPad(){
     box.append(b);
   });
 }
-/** 금액 칸 라벨 우측 위에 계산기 열기 버튼을 단다 (CSS로 위치 고정). */
+/** 금액 칸 왼쪽에 계산기 버튼을 붙인다 — 입력칸과 한 줄로 묶어 누르기 쉽게. */
 function attachCalcButton(input){
-  const label = input.closest("label.f");
-  if (!label) return;
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "calc-open";
-  btn.textContent = "계산기";
+  btn.textContent = "🖩 계산기";
   btn.setAttribute("aria-label", "계산기 열기");
   btn.addEventListener("click", () => calcOpen(input));
-  label.append(btn);
+  const row = document.createElement("div");
+  row.className = "amt-row";
+  input.replaceWith(row);          // 미리보기는 라벨에 남아 줄 아래로 온다
+  row.append(btn, input);
 }
 
 /* ================= 카테고리 자동 추천 ================= */
@@ -895,8 +1241,11 @@ function suggestCategory(memo){
 /* ================= 결제 문자 파싱 ================= */
 /*SMS_PARSE_START*/
 function parseSms(text){
-  const out = { amount: 0, merchant: "", date: "" };
+  const out = { amount: 0, merchant: "", date: "", kind: "expense" };
   if (!text) return out;
+  // 입금인지 지출인지 — 통장 입금 알림과 카드 승인 알림을 가른다.
+  // 카드 쪽 낱말(승인·결제·출금)이 하나라도 있으면 지출로 본다.
+  if (/입금|이체|송금|받으심|급여/.test(text) && !/승인|결제|출금|사용/.test(text)) out.kind = "income";
   // 금액: "12,300원" | "12,300 원" | "KRW 12,300" — 취소 문자는 음수 취급 없이 그대로
   const amt = text.match(/([\d,]{2,})\s*원/) || text.match(/KRW\s*([\d,]{2,})/i);
   if (amt) out.amount = Number(amt[1].replace(/,/g, "")) || 0;
@@ -926,6 +1275,21 @@ function parseSms(text){
 /*SMS_PARSE_END*/
 
 /* ================= 자동화: 폼 채우기 ================= */
+/** 입금 알림에서 읽은 값을 입금 폼에 채운다 (저장은 사용자가 확인 후). */
+function fillIncomeForm({amount, merchant, date}, sourceLabel){
+  $("#incAdder").open = true;
+  if (amount) { $("#incAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#incAmt")); }
+  if (merchant) $("#incMemo").value = merchant;
+  $("#incDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
+  $("#incAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+  toast(sourceLabel + " — 입금으로 읽었어요. 확인하고 저장을 눌러 주세요");
+}
+/** 읽은 결과를 종류에 맞는 폼으로 보낸다. */
+function fillFromParsed(parsed, sourceLabel){
+  if (parsed.kind === "income") fillIncomeForm(parsed, sourceLabel);
+  else fillExpenseForm({ ...parsed, category: parsed.category || "" }, sourceLabel);
+}
+
 function fillExpenseForm({amount, merchant, date, category}, sourceLabel){
   $("#expAdder").open = true;
   if (amount) { $("#expAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#expAmt")); }
@@ -936,7 +1300,7 @@ function fillExpenseForm({amount, merchant, date, category}, sourceLabel){
   const form = $("#expForm");
   form.classList.remove("formflash"); void form.offsetWidth; form.classList.add("formflash");
   $("#expForm").scrollIntoView({ block: "center", behavior: "smooth" });
-  toast(sourceLabel + " — 내용 확인하고 저장을 눌러 주세요");
+  toast(sourceLabel + " — 누가 썼는지 고르고 저장을 눌러 주세요");
 }
 
 /* ================= 캐퍼빌리티 ================= */
@@ -950,6 +1314,12 @@ function setConn(mode){
   $("#connText").textContent =
     mode === "db" ? "실시간 공유 연결됨" :
     mode === "fs" ? "실시간 공유 연결됨 (Firebase)" : "이 기기에만 저장 중";
+  // 공유가 아니면 상단에 크게 알린다 — 그 사실이 푸터에 묻히면 혼자 한 달을 적게 된다
+  const bar = $("#shareBanner");
+  bar.classList.toggle("show", !shared);
+  if (!shared) $("#shareBannerText").textContent =
+    "지금 적는 기록은 이 기기에만 저장돼요 — 상대방 화면에는 안 보입니다";
+
   const note = $("#footNote");
   note.textContent =
     mode === "db" ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요." :
@@ -980,13 +1350,49 @@ const SAMPLE_HIDE_CODES = ["not_granted","sampling_disabled","not_declared","cap
 
 function extractPrompt(){
   return "이미지는 한국의 카드 결제 알림 스크린샷, 간편결제 알림, 또는 영수증 사진입니다. 결제 한 건의 정보를 추출하세요.\n" +
-    'JSON 객체 하나로만 답하세요: {"amount": 결제금액(원 단위 정수), "merchant": "가맹점명", "date": "YYYY-MM-DD" 또는 알 수 없으면 null, "category": 다음 중 하나 — ' +
-    CATEGORIES.join(", ") + "}\n" +
-    '결제 정보를 찾을 수 없으면 {"error": "짧은 이유"}로만 답하세요. 결제 취소·입금 알림도 {"error": ...}로 답하세요.';
+    'JSON 객체 하나로만 답하세요: {"kind": "expense" 또는 "income", "amount": 금액(원 단위 정수), "merchant": "가맹점명 또는 보낸 사람", "date": "YYYY-MM-DD" 또는 알 수 없으면 null, "category": 다음 중 하나 — ' +
+    CATEGORIES.join(", ") + '}\n' +
+    '카드 승인·결제·출금이면 kind는 "expense", 통장 입금·이체 받음이면 "income"입니다.\n' +
+    '금액을 찾을 수 없거나 결제 취소 알림이면 {"error": "짧은 이유"}로만 답하세요.';
+}
+
+/* ---------- 스크린샷에서 글자 읽기 (외부 호스팅) ----------
+   아티팩트에서는 Claude가 이미지를 직접 보지만, 그 밖에서는 그 경로가 없다.
+   브라우저 안에서 도는 OCR로 글자만 뽑아내 기존 문자 파서에 그대로 먹인다. */
+const ocrAvailable = () => typeof Tesseract !== "undefined";
+let ocrBusy = false;
+
+async function extractByOcr(file){
+  if (ocrBusy) return;
+  ocrBusy = true;
+  $("#photoBtn").disabled = true;
+  autoStatus("사진에서 글자를 읽는 중… 처음 한 번은 인식기를 받느라 오래 걸려요", false);
+  try {
+    const { data } = await Tesseract.recognize(file, "kor+eng", {
+      logger: m => {
+        if (m.status === "recognizing text") autoStatus("글자 읽는 중… " + Math.round((m.progress || 0) * 100) + "%", false);
+        else if (m.status) autoStatus("인식기 준비 중… (" + m.status + ")", false);
+      },
+    });
+    const text = String((data && data.text) || "");
+    const parsed = parseSms(text);
+    if (parsed.amount > 0) {
+      fillFromParsed(parsed, "스크린샷에서 읽었어요");
+      autoStatus("");
+    } else {
+      autoStatus("금액을 찾지 못했어요. 사진이 흐리면 '결제 문자 붙여넣기'로 글자를 넣어 주세요.");
+    }
+  } catch (e) {
+    autoStatus("사진을 읽지 못했어요 — 다시 시도하거나 문자 붙여넣기를 써 주세요");
+  } finally {
+    ocrBusy = false;
+    $("#photoBtn").disabled = false;
+    $("#photoFile").value = "";
+  }
 }
 
 async function extractFromImage(file){
-  if (!sampleFn) return;
+  if (!sampleFn) return ocrAvailable() ? extractByOcr(file) : undefined;
   currentAbort = new AbortController();
   autoStatus("사진을 읽는 중… (몇 초 걸려요)", true);
   $("#photoBtn").disabled = true;
@@ -995,12 +1401,13 @@ async function extractFromImage(file){
       images: file, modelTier: "quick", signal: currentAbort.signal,
     });
     if (data && typeof data === "object" && !data.error && Number(data.amount) > 0) {
-      fillExpenseForm({
+      fillFromParsed({
+        kind: data.kind === "income" ? "income" : "expense",
         amount: Math.round(Number(data.amount)),
         merchant: typeof data.merchant === "string" ? data.merchant.slice(0, 40) : "",
         date: typeof data.date === "string" ? data.date : "",
         category: typeof data.category === "string" ? data.category : "",
-      }, "사진에서 읽었어요");
+      }, "스크린샷에서 읽었어요");
       autoStatus("");
     } else {
       autoStatus((data && typeof data.error === "string" ? data.error + " — " : "") + "결제 정보를 찾지 못했어요. 직접 적어 주세요.");
@@ -1022,7 +1429,7 @@ async function parsePastedText(){
   if (!text) { toast("문자 내용을 먼저 붙여넣어 주세요"); return; }
   const parsed = parseSms(text);
   if (parsed.amount > 0) {
-    fillExpenseForm({ amount: parsed.amount, merchant: parsed.merchant, date: parsed.date, category: "" }, "문자에서 읽었어요");
+    fillFromParsed(parsed, "문자에서 읽었어요");
     $("#pasteBox").classList.remove("show");
     $("#pasteText").value = "";
     return;
@@ -1036,7 +1443,8 @@ async function parsePastedText(){
       "다음은 결제 알림 문자입니다. " + extractPrompt().split("\n").slice(1).join("\n") + "\n\n문자:\n" + text.slice(0, 3000),
       { modelTier: "quick", signal: currentAbort.signal });
     if (data && !data.error && Number(data.amount) > 0) {
-      fillExpenseForm({
+      fillFromParsed({
+        kind: data.kind === "income" ? "income" : "expense",
         amount: Math.round(Number(data.amount)),
         merchant: typeof data.merchant === "string" ? data.merchant.slice(0, 40) : "",
         date: typeof data.date === "string" ? data.date : "",
@@ -1057,7 +1465,9 @@ function missingRecurring(){
   if (state.month !== thisMonth()) return [];
   const have = new Set();
   state.entries.forEach(e => { if (e.month === state.month && e.rec) have.add(e.rec); });
-  return state.recurring.filter(r => !have.has(r.id));
+  const today = Number(todayStr().slice(8));
+  // 아직 나갈 날이 안 된 고정지출로 미리 재촉하지 않는다 — 그러면 남은 돈이 그 달 내내 틀린다
+  return state.recurring.filter(r => !have.has(r.id) && Number(r.day || 1) <= today);
 }
 function renderRecBanner(){
   const miss = missingRecurring();
@@ -1141,38 +1551,74 @@ function bindEvents(){
   });
 
   // 월 이동
-  $("#prevM").addEventListener("click", () => { state.month = shiftMonth(state.month, -1); renderAll(); });
-  $("#nextM").addEventListener("click", () => { state.month = shiftMonth(state.month, +1); renderAll(); });
-  $("#toThis").addEventListener("click", () => { state.month = thisMonth(); renderAll(); });
+  const goMonth = m => { state.month = m; state.dayFilter = ""; renderAll(); };
+  $("#prevM").addEventListener("click", () => goMonth(shiftMonth(state.month, -1)));
+  $("#nextM").addEventListener("click", () => goMonth(shiftMonth(state.month, +1)));
+  $("#toThis").addEventListener("click", () => goMonth(thisMonth()));
 
   // 입금 저장
   bindAmtField($("#incAmt")); attachCalcButton($("#incAmt"));
-  $("#incSave").addEventListener("click", () => {
+  $("#incSave").addEventListener("click", async () => {
+    const btn = $("#incSave"), was = btn.textContent;
     const amount = evalAmount($("#incAmt").value);
     const date = $("#incDate").value || todayStr();
     if (!amount) { toast(amtError($("#incAmt").value)); $("#incAmt").focus(); return; }
-    addEntry({ type: "income", date, month: date.slice(0,7), who: segValue($("#incWho")),
-      category: "", memo: $("#incMemo").value.trim(), amount, createdAt: Date.now() }).catch(dbWriteFailed);
+    const id = editing.income;
+    const prev = id ? state.entries.get(id) : null;
+    const entry = { type: "income", date, month: date.slice(0,7), who: segValue($("#incWho")),
+      category: "", memo: $("#incMemo").value.trim(), amount,
+      createdAt: (prev && prev.createdAt) || Date.now() };
+    btn.disabled = true; btn.textContent = "저장 중…";
+    try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
+    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }  // 폼은 그대로 둔다
+    btn.disabled = false;
+    cancelEdit("income");
+    if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
     clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
     state.month = date.slice(0,7); renderAll();
-    toast("입금을 저장했어요");
+    toast(id ? "입금을 고쳤어요" : "입금을 저장했어요");
+  });
+  $("#incCancel").addEventListener("click", () => {
+    cancelEdit("income");
+    clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
   });
 
   // 지출 저장
   bindAmtField($("#expAmt")); attachCalcButton($("#expAmt"));
+  $("#expCat").addEventListener("change", () => { expCatTouched = true; });
   $("#expMemo").addEventListener("change", () => {
+    if (expCatTouched) return;                        // 사용자가 고른 것을 덮지 않는다
     const cat = suggestCategory($("#expMemo").value);
     if (cat) { $("#expCat").value = cat; }
   });
-  $("#expSave").addEventListener("click", () => {
+  $("#expSave").addEventListener("click", async () => {
+    const btn = $("#expSave"), was = btn.textContent;
     const amount = evalAmount($("#expAmt").value);
     const date = $("#expDate").value || todayStr();
     if (!amount) { toast(amtError($("#expAmt").value)); $("#expAmt").focus(); return; }
-    addEntry({ type: "expense", date, month: date.slice(0,7), who: segValue($("#expWho")),
-      category: $("#expCat").value, memo: $("#expMemo").value.trim(), amount, createdAt: Date.now() }).catch(dbWriteFailed);
-    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = todayStr(); $("#expCat").value = CATEGORIES[0];
+    const id = editing.expense;
+    const prev = id ? state.entries.get(id) : null;
+    const entry = { type: "expense", date, month: date.slice(0,7), who: segValue($("#expWho")),
+      category: $("#expCat").value, memo: $("#expMemo").value.trim(), amount,
+      createdAt: (prev && prev.createdAt) || Date.now() };
+    if (prev && prev.rec) entry.rec = prev.rec;        // 고정지출 표식은 유지
+    btn.disabled = true; btn.textContent = "저장 중…";
+    try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
+    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
+    btn.disabled = false;
+    cancelEdit("expense");
+    // 달력에서 고른 날에 적었으면 그 날에 머문다 (연속 입력) — 다른 날이면 필터를 풀어 방금 것이 보이게
+    const stay = state.dayFilter && state.dayFilter === date;
+    if (!stay) state.dayFilter = "";
+    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = stay ? date : todayStr();
+    $("#expCat").value = CATEGORIES[0]; expCatTouched = false;
     state.month = date.slice(0,7); renderAll();
-    toast("지출을 저장했어요");
+    toast(id ? "지출을 고쳤어요" : "지출을 저장했어요");
+  });
+  $("#expCancel").addEventListener("click", () => {
+    cancelEdit("expense");
+    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = todayStr();
+    $("#expCat").value = CATEGORIES[0]; expCatTouched = false;
   });
 
   // 자동화: 사진
@@ -1207,12 +1653,34 @@ function bindEvents(){
   });
 
   // 설정
-  $("#settingsBtn").addEventListener("click", () => {
-    const p = $("#settingsPanel");
-    const show = !p.classList.contains("show");
-    p.classList.toggle("show", show);
-    $("#settingsBtn").setAttribute("aria-expanded", String(show));
-    if (show) p.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  const drawerOpen = () => {
+    $("#drawerWrap").classList.add("open");
+    $("#drawerWrap").setAttribute("aria-hidden", "false");
+    $("#settingsBtn").setAttribute("aria-expanded", "true");
+    $("#drawerClose").focus();
+  };
+  const drawerClose = () => {
+    $("#drawerWrap").classList.remove("open");
+    $("#drawerWrap").setAttribute("aria-hidden", "true");
+    $("#settingsBtn").setAttribute("aria-expanded", "false");
+    $("#settingsBtn").focus();
+  };
+  $("#settingsBtn").addEventListener("click", drawerOpen);
+  $("#drawerClose").addEventListener("click", drawerClose);
+  $("#drawerBackdrop").addEventListener("click", drawerClose);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && $("#drawerWrap").classList.contains("open")) drawerClose();
+  });
+
+  TABS.forEach(t => $("#tb-" + t).addEventListener("click", () => showTab(t)));
+
+  // 하단 빠른 추가 — 목록 맨 아래까지 스크롤하지 않고 바로 적게
+  $("#quickAdd").addEventListener("click", () => {
+    cancelEdit("expense");
+    showTab("daily");
+    $("#expAdder").open = true;
+    $("#expAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(() => $("#expAmt").focus(), 350);
   });
   $("#saveSettings").addEventListener("click", () => {
     const a = $("#setM0").value.trim(), b = $("#setM1").value.trim();
@@ -1244,6 +1712,13 @@ function bindEvents(){
   // 기기 기록 → 공유 저장소 이사
   $("#migUpload").addEventListener("click", migrateLocal);
   $("#migClose").addEventListener("click", () => { migDismissed = true; renderMigBanner(); });
+
+  // 공유 꺼짐 배너의 "자세히" — 기술적 원인은 접어 둔다
+  $("#shareWhy").addEventListener("click", () => {
+    const note = $("#footNote");
+    note.scrollIntoView({ block: "center", behavior: "smooth" });
+    toast(fbFailReason || "공유 저장소에 연결되지 않았어요");
+  });
 
   // 계산기 패드
   buildCalcPad();
@@ -1322,7 +1797,10 @@ function rtdbAdapter(root){
       return () => ref.off("value", handler);
     },
     add: data => root.child(p).push(data),
-    doc: id => ({ delete: () => root.child(p).child(id).remove() }),
+    doc: id => ({
+      set: data => root.child(p).child(id).set(data),
+      delete: () => root.child(p).child(id).remove(),
+    }),
   });
   const doc = p => ({
     onSnapshot(next, error){
@@ -1362,7 +1840,10 @@ function fbReasonFor(e){
 async function initFirebase(){
   if (!firebaseConfigured()) {
     if (typeof firebase === "undefined")
-      fbFailReason = "Firebase 스크립트를 불러오지 못했어요 — 새로고침하거나 네트워크를 확인해 주세요";
+      // 아티팩트에서는 Firebase 스크립트를 일부러 뺀다 — 거기서 "못 불러왔다"고 하면 거짓말이 된다
+      fbFailReason = (window.claude && window.claude.use)
+        ? "이 화면에서는 공유 저장소를 쓸 수 없어요 — 기록은 이 기기에만 남습니다"
+        : "Firebase 스크립트를 불러오지 못했어요 — 새로고침하거나 네트워크를 확인해 주세요";
     else if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("PASTE"))
       fbFailReason = "Firebase 설정값이 아직 비어 있어요 (오래된 화면일 수 있어요 — 새로고침해 주세요)";
     return false;
@@ -1379,7 +1860,7 @@ async function initFirebase(){
     connectSharedStore(rtdbAdapter(firebase.database().ref("ledgers/" + lid)), "fs");
     $("#inviteRow").hidden = false;
     $("#inviteUrl").value = location.href.split("#")[0] + "#l=" + lid;
-    if (created) toast("공유 가계부를 새로 만들었어요 — 설정에서 초대 링크를 보내세요");
+    if (created) toast("공유 가계부를 새로 만들었어요 — 메뉴에서 초대 링크를 보내세요");
     window.addEventListener("hashchange", () => {
       const h = hashLid();
       if (h && h !== lid) { try { localStorage.setItem(LID_KEY, h); } catch(e){} location.reload(); }
@@ -1417,6 +1898,9 @@ async function initCapabilities(){
     }
   } catch(e){ sampleFn = null; }
 
+  // Claude 이미지 인식이 없으면 브라우저 OCR로 스크린샷 등록을 켠다
+  if (!sampleImagesOk && ocrAvailable()) $("#photoBtn").hidden = false;
+
   // downloads: CSV
   try { downloadsNs = await use("downloads"); } catch(e){ downloadsNs = null; }
   if (downloadsNs) $("#csvBtn").hidden = false;
@@ -1428,6 +1912,9 @@ function init(){
   buildCatSelect("#expCat"); buildCatSelect("#recCat");
   $("#incDate").value = todayStr(); $("#expDate").value = todayStr();
   bindEvents();
+  let lastTab = "daily";
+  try { lastTab = localStorage.getItem("dani-ledger-tab") || "daily"; } catch(e){}
+  showTab(lastTab);
   renderAll();
   setConn("local");
   $("#connText").textContent = "연결 확인 중…";
