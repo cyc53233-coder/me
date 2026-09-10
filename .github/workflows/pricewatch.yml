@@ -1,0 +1,104 @@
+name: 가격 추적
+
+on:
+  schedule:
+    # 6시간마다 (정각을 피해 :17 분에)
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  # ── 정해진 시각마다 가격을 훑고, 많이 떨어진 것만 이슈로 알립니다 ──
+  check:
+    if: github.event_name != 'issues'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: pricewatch
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 가격 확인
+        id: check
+        run: node pricewatch/scripts/check.mjs
+
+      - name: 기록 저장
+        if: steps.check.outputs.changed == 'true'
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pricewatch/data/history.json
+          git commit -m "가격 기록 갱신"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+
+      - name: 떨어진 상품 알리기
+        if: steps.check.outputs.alerted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "📉 가격이 떨어진 상품" --body-file .pricewatch-issue.md
+
+  # ── 이슈 폼으로 감시 상품을 추가합니다 ──
+  add:
+    if: >-
+      github.event_name == 'issues' &&
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.issue.state == 'open' &&
+      contains(github.event.issue.body, '### 상품 주소')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: pricewatch
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 감시 목록에 넣기
+        id: add
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node pricewatch/scripts/add.mjs
+
+      - name: 목록 저장
+        if: success()
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pricewatch/config.json pricewatch/data/history.json
+          git commit -m "감시 상품 추가"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+
+      - name: 이슈에 답글
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          test -f .pricewatch-comment.md || exit 0
+          gh issue comment "$ISSUE_NUMBER" --body-file .pricewatch-comment.md
+
+      - name: 이슈 닫기
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: gh issue close "$ISSUE_NUMBER"
