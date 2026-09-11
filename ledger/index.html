@@ -1,0 +1,2267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>다니랑 생활비 통장</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  /* 심플 화이트 · 마트 컨셉 — 단일 라이트 테마 (배경·색 전부 명시) */
+  :root{
+    --paper:#FFFFFF; --card:#FFFFFF; --ink:#191919; --muted:#767676;
+    --line:#E4E4E4; --line-dash:#D8D8D8; --input-line:#CFCFCF;
+    --yellow:#FFD23F; --yellow-soft:#FFF6D6; --yellow-line:#F2D34B; --tag-ink:#5F4B00;
+    --income:#1B66C9; --expense:#C92A2A;
+    --bar:#343A40; --track:#F1F3F5; --good:#2F9E44;
+    color-scheme: light;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    font-size:15px; line-height:1.55; margin:0;
+  }
+  .wrap{max-width:680px; margin:0 auto; padding:20px 16px 56px; display:flex; flex-direction:column; gap:16px}
+
+  h1,h2,.serif{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-weight:400; letter-spacing:.01em}
+  h1{font-size:30px; margin:0; text-wrap:balance; word-break:keep-all}
+  h2{font-size:19px; margin:0; word-break:keep-all}
+  .num{font-family:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace}
+
+  /* ---------- header ---------- */
+  header .top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px}
+  .subtitle{color:var(--muted); font-size:13px; margin-top:2px}
+  .conn{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); white-space:nowrap; padding-top:6px}
+  .conn .dot{width:8px; height:8px; border-radius:50%; background:#C4C4C4; flex:none}
+  .conn.on .dot{background:var(--good)}
+
+  /* barcode motif under the header */
+  .band{height:24px; margin:0 2px;
+    background:
+      repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px),
+      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 7px),
+      repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 13px)}
+
+  /* ---------- cards ---------- */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px}
+  .card > h2{display:flex; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:12px}
+  .card > h2 .spacer{flex:1}
+
+  /* ---------- rules ---------- */
+  #rulesCard{border:2px solid var(--ink)}
+  #rulesCard > h2{border-bottom:2px solid var(--ink)}
+  #rulesList{margin:0; padding:0; list-style:none; display:flex; flex-direction:column}
+  #rulesList li{display:flex; gap:10px; align-items:baseline; padding:8px 2px; border-bottom:1px dashed var(--line-dash)}
+  #rulesList li:last-child{border-bottom:none}
+  #rulesList .no{background:var(--yellow); color:var(--ink); font-weight:600; font-size:12px; flex:none;
+    min-width:1.7em; text-align:center; border-radius:5px; padding:1px 4px}
+  .rules-hint{color:var(--muted); font-size:12px; margin-top:8px}
+  #rulesEdit textarea{width:100%; min-height:110px; resize:vertical}
+
+  /* ---------- 상단 고정 영역: 월 이동 · 탭 · 요약 ---------- */
+  .topbar{position:sticky; top:0; z-index:30; background:var(--paper); margin:0 -16px; padding:6px 16px 0;
+    border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:6px}
+  .tabbar{display:flex; border-bottom:2px solid var(--line)}
+  .tabbar button{flex:1; background:none; border:none; padding:10px 4px; font-size:15px; color:var(--muted);
+    cursor:pointer; margin-bottom:-2px; border-bottom:2px solid transparent}
+  .tabbar button[aria-selected="true"]{color:var(--ink); font-weight:700; border-bottom-color:var(--ink)}
+  .strip{display:grid; grid-template-columns:repeat(3,1fr); text-align:center; padding:4px 0 8px}
+  .strip .sl{display:block; font-size:11px; color:var(--muted)}
+  .strip b{font-size:15px; font-weight:600}
+  .strip .pos{color:var(--income)} .strip .neg{color:var(--expense)}
+  [role="tabpanel"][hidden]{display:none}
+  /* 일일 탭의 날짜 그룹 머리 */
+  .dayhead{display:flex; align-items:baseline; gap:8px; padding:12px 2px 4px; margin-top:6px; border-bottom:2px solid var(--ink)}
+  .dayhead:first-child{margin-top:0}
+  .dayhead .dd{font-size:20px; font-weight:700; font-family:'IBM Plex Mono',ui-monospace,monospace}
+  .dayhead .dw{font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:1px 6px}
+  .dayhead .dsum{margin-left:auto; font-size:13px; color:var(--expense); font-weight:600}
+  .dayhead.sun .dd{color:var(--expense)} .dayhead.sat .dd{color:var(--income)}
+
+  /* ---------- month nav & tiles ---------- */
+  .monthnav{display:flex; align-items:center; justify-content:center; gap:4px}
+  .monthnav .mlabel{font-family:'Do Hyeon',sans-serif; font-size:22px; min-width:8em; text-align:center}
+  .monthnav .tothis{font-size:12px}
+
+  .tiles{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
+  @media(min-width:560px){.tiles{grid-template-columns:repeat(4,1fr)}}
+  .tile{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+  .tile.hl{background:var(--yellow); border-color:var(--yellow)}
+  .tile .tl{font-size:12px; color:var(--muted)}
+  .tile.hl .tl{color:var(--ink)}
+  .tile .tv{font-size:17px; font-weight:600; margin-top:2px; word-break:keep-all}
+  .tile .tv.pos{color:var(--income)} .tile .tv.neg{color:var(--expense)} .tile .tv.bal{color:var(--ink)}
+
+  /* ---------- banner ---------- */
+  .banner{display:none; align-items:center; gap:10px; background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:10px; padding:10px 12px; font-size:13px}
+  .banner.show{display:flex}
+  .banner.warnbar{background:#FFF1F1; border-color:var(--expense); color:#7A1E1E}
+  .banner .grow{flex:1}
+
+  /* ---------- forms ---------- */
+  details.adder{border:1px dashed var(--input-line); border-radius:10px; padding:0 10px; margin-bottom:12px}
+  details.adder summary{cursor:pointer; padding:9px 2px; color:var(--ink); font-weight:500; list-style:none; user-select:none}
+  details.adder summary::before{content:"+ "; font-weight:700}
+  details.adder[open] summary::before{content:"− "}
+  details.adder .formbody{display:flex; flex-direction:column; gap:8px; padding:2px 2px 12px}
+
+  .frow{display:flex; gap:8px; flex-wrap:wrap}
+  .frow > *{flex:1; min-width:0}
+  label.f{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted)}
+  input,select,textarea,button{font:inherit; color:var(--ink)}
+  input,select,textarea{
+    background:var(--paper); border:1px solid var(--input-line); border-radius:8px; padding:8px 10px; width:100%;
+  }
+  input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{
+    outline:2px solid var(--ink); outline-offset:1px;
+  }
+  input.amt{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:17px; text-align:right}
+
+  .seg{display:flex; gap:0; border:1px solid var(--input-line); border-radius:8px; overflow:hidden}
+  .seg button{flex:1; background:var(--paper); border:none; padding:8px 4px; cursor:pointer; color:var(--muted); border-right:1px solid var(--input-line); white-space:nowrap}
+  .seg button:last-child{border-right:none}
+  .seg button[aria-pressed="true"]{background:var(--yellow); color:var(--ink); font-weight:600}
+
+  button.primary{background:var(--yellow); color:var(--ink); border:1px solid var(--yellow-line); border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer}
+  button.primary:hover{filter:brightness(.97)}
+  button.ghost{background:var(--paper); border:1px solid var(--input-line); border-radius:8px; padding:8px 12px; cursor:pointer; color:var(--ink)}
+  button.mini{font-size:12px; padding:4px 9px}
+  button.primary:disabled,button.ghost:disabled{opacity:.5; cursor:default}
+
+  /* automation row */
+  .autorow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+  .autorow button{flex:1; min-width:9em}
+  #autoStatus{display:none; font-size:13px; color:var(--muted); background:#FAFAFA; border:1px solid var(--line); border-radius:8px; padding:9px 11px; margin-bottom:12px}
+  #autoStatus.show{display:flex; align-items:center; gap:8px}
+  #autoStatus .grow{flex:1}
+  #pasteBox{display:none; flex-direction:column; gap:8px; margin-bottom:12px}
+  #pasteBox.show{display:flex}
+  #pasteBox textarea{min-height:72px; font-size:13px}
+  .formflash{animation:flash 1.2s ease-out}
+  @keyframes flash{0%{background:var(--yellow-soft)} 100%{background:transparent}}
+
+  /* ---------- entry rows (영수증) ---------- */
+  .rows{display:flex; flex-direction:column}
+  .row{display:flex; align-items:center; gap:8px; padding:8px 2px; border-bottom:1px dashed var(--line-dash)}
+  .row:last-child{border-bottom:none}
+  .row .d{color:var(--muted); font-size:12px; flex:none; width:3.3em}
+  .row .chip{flex:none; font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:5px; padding:1px 7px; white-space:nowrap}
+  .row .who{flex:none; font-size:11px; color:var(--muted); white-space:nowrap}
+  .row .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .row .amt{flex:none; font-weight:600; font-size:14px}
+  .row .amt.in{color:var(--income)} .row .amt.ex{color:var(--expense)}
+  .row .del{flex:none; background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;
+    min-width:40px; min-height:40px; padding:2px 6px; border-radius:6px; margin-left:2px}
+  .row .del.arm{background:var(--expense); color:#FFFFFF; font-size:11px; font-weight:600}
+  .empty{color:var(--muted); font-size:13px; padding:10px 2px}
+  .sumline{display:flex; justify-content:space-between; border-top:2px solid var(--ink); margin-top:6px; padding-top:9px; font-size:13px; color:var(--muted)}
+  .sumline b{color:var(--ink); font-size:15px}
+
+  /* ---------- 달력 ---------- */
+  #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+  .cal-h{text-align:center; font-size:11px; color:var(--muted); padding:2px 0}
+  .cal-h.sun{color:var(--expense)} .cal-h.sat{color:var(--income)}
+  .cal-c{background:var(--paper); border:1px solid var(--line); border-radius:7px; min-height:48px;
+    padding:4px 2px; display:flex; flex-direction:column; align-items:center; gap:1px;
+    position:relative; cursor:pointer; font:inherit; color:var(--ink)}
+  .cal-c.pad{border:none; background:none; cursor:default; min-height:0}
+  .cal-c .cal-d{font-size:12px; line-height:1.2}
+  .cal-c .cal-a{font-size:10px; color:#8E1F1F; line-height:1.2; font-variant-numeric:tabular-nums}
+  /* 지출 많은 날일수록 진하게 — 한 색의 명도 단계 */
+  .cal-c.lv1{background:#FFF8DE} .cal-c.lv2{background:#FFEDB0} .cal-c.lv3{background:var(--yellow)}
+  .cal-c.today .cal-d{font-weight:700; text-decoration:underline}
+  .cal-c.sel{outline:2px solid var(--ink); outline-offset:1px}
+  .cal-c:hover:not(.pad){border-color:var(--ink)}
+  .cal-in{position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--income)}
+  .cal-key{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--income); vertical-align:middle}
+  .filter-chip{display:inline-flex; align-items:center; gap:6px; background:var(--ink); color:#FFFFFF;
+    border:none; border-radius:99px; padding:3px 10px; font-size:12px; cursor:pointer; margin-bottom:10px}
+
+  /* ---------- charts ---------- */
+  .crow{display:flex; align-items:center; gap:10px; padding:5px 0}
+  .crow .clabel{flex:none; width:6em; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .crow .ctrack{flex:1; background:var(--track); border-radius:0 4px 4px 0; height:16px; overflow:hidden}
+  .crow .cbar{height:100%; background:var(--bar); border-radius:0 4px 4px 0; min-width:2px; transition:width .25s ease}
+  .crow:hover .cbar{background:#4A5158}
+  .crow .cval{flex:none; width:6.4em; text-align:right; font-size:13px; color:var(--ink); font-variant-numeric:tabular-nums}
+  .chart + h2{margin-top:16px}
+
+  /* ---------- 사이드바 서랍 ---------- */
+  #drawerWrap{position:fixed; inset:0; z-index:55; display:none}
+  #drawerWrap.open{display:block}
+  #drawerBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #drawer{position:absolute; top:0; right:0; bottom:0; width:min(400px,92vw); background:var(--card);
+    box-shadow:-6px 0 24px rgba(25,25,25,.16); overflow-y:auto; padding:14px 16px 32px;
+    display:flex; flex-direction:column; gap:18px; transform:translateX(100%); transition:transform .22s ease}
+  #drawerWrap.open #drawer{transform:none}
+  .dhead{display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:2px solid var(--ink)}
+  .dsec > h2{display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
+  .dsec > h2 .spacer{flex:1}
+  #rulesCard{border:none; padding:0}
+  #rulesCard > h2{border-bottom:1px solid var(--line)}
+  #settingsPanel{display:block}
+  .logrow{display:flex; gap:8px; align-items:baseline; padding:6px 2px; border-bottom:1px dashed var(--line-dash); font-size:13px}
+  .logrow .lwhen{color:var(--muted); flex:none; font-size:11px; width:5.2em}
+  .logrow .lwho{flex:none; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:0 6px; font-size:11px}
+  .logrow .lwhat{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .logrow .lamt{flex:none; font-size:12px}
+  .reclist .row .memo{white-space:normal}
+  .divider{border:none; border-top:1px solid var(--line); margin:14px 0}
+
+  /* ---------- footer / toast ---------- */
+  footer{color:var(--muted); font-size:12px; text-align:center; line-height:1.7}
+  footer .warn{color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line);
+    border-radius:8px; padding:8px 12px; display:block; text-align:left; margin-bottom:6px}
+  #quickAdd{position:fixed; z-index:40; right:16px; bottom:20px; background:var(--ink); color:#FFFFFF;
+    border:none; border-radius:99px; padding:14px 20px; font-size:15px; font-weight:600;
+    box-shadow:0 4px 14px rgba(25,25,25,.28); cursor:pointer}
+  #quickAdd:hover{filter:brightness(1.15)}
+  @media print{#quickAdd,#drawerWrap{display:none}}
+  #toast{position:fixed; z-index:60; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:#FFFFFF;
+    padding:9px 16px; border-radius:99px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; max-width:85vw; text-align:center}
+  #toast.show{opacity:1; transform:translate(-50%,0); pointer-events:auto}
+  .toast-act{margin-left:12px; background:none; border:1px solid #FFFFFF; color:#FFFFFF;
+    border-radius:99px; padding:3px 12px; font-size:12px; cursor:pointer}
+  .row.entry{flex-direction:column; align-items:stretch; gap:2px}
+  .rmain{display:flex; align-items:baseline; gap:8px}
+  .rmain .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rmain .amt{margin-left:auto}
+  .rsub{display:flex; align-items:center; gap:6px}
+  .rsub .who{flex:1}
+  .row.editable{cursor:pointer; border-radius:6px}
+  .row.editable:hover{background:#FAFAFA}
+  .row.editable:focus-visible{outline:2px solid var(--ink); outline-offset:-2px}
+
+  /* ---------- 금액 칸 계산기 ---------- */
+  .amt-row{display:flex; gap:8px; align-items:stretch}
+  .amt-row input.amt{flex:1; min-width:0}
+  .calc-open{flex:none; background:var(--yellow); color:var(--ink);
+    border:1px solid var(--yellow-line); border-radius:8px; padding:0 14px;
+    font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; min-height:44px}
+  .calc-open:hover{filter:brightness(.97)}
+  .amt-preview{font-size:12px; color:var(--muted); text-align:right; padding:3px 2px 0;
+    font-family:'IBM Plex Mono',ui-monospace,monospace}
+  .amt-preview.bad{color:var(--expense)}
+
+  /* ---------- CSV 가져오기 시트 ---------- */
+  #csvSheet{display:none; position:fixed; inset:0; z-index:52}
+  #csvSheet.show{display:block}
+  #csvBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #csvPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:min(520px,100%);
+    max-height:88vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
+    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:8px}
+  @media(min-width:560px){#csvPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}}
+  .crow-csv{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line-dash); font-size:13px}
+  .crow-csv input[type="checkbox"]{width:20px; height:20px}
+  .crow-csv .cmemo{color:var(--muted); font-size:12px}
+  .crow-csv .camt.in{color:var(--income)} .crow-csv .camt.ex{color:var(--expense)}
+  .crow-csv.dup .ctext{opacity:.6}
+  .crow-csv.err{grid-template-columns:1fr; color:var(--muted); background:#FAFAFA}
+  .cbadge{grid-column:2 / span 2; font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:5px; padding:1px 7px; justify-self:start}
+  #csvActions{display:flex; gap:8px; margin-top:6px}
+  #csvActions button{flex:1}
+
+  /* ---------- 여러 품목 시트 ---------- */
+  #multiSheet{display:none; position:fixed; inset:0; z-index:52}
+  #multiSheet.show{display:block}
+  #multiBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #multiPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:min(460px,100%);
+    max-height:88vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
+    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:8px}
+  @media(min-width:520px){#multiPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}}
+  .mrow{display:grid; grid-template-columns:auto 1fr 7.5em; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line-dash)}
+  .mrow input[type="checkbox"]{width:20px; height:20px}
+  .mrow input.mname{font-size:13px; padding:6px 8px}
+  .mrow input.mamt{font-family:'IBM Plex Mono',ui-monospace,monospace; text-align:right; padding:6px 8px}
+  #multiActions{display:flex; gap:8px; margin-top:6px}
+  #multiActions button{flex:1}
+
+  /* ---------- 계산기 패드 ---------- */
+  #calcSheet{display:none; position:fixed; inset:0; z-index:50}
+  #calcSheet.show{display:block}
+  #calcBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #calcPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,100%); background:var(--card); border:1px solid var(--line);
+    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:10px;
+    box-shadow:0 -6px 24px rgba(25,25,25,.14)}
+  @media(min-width:520px){
+    #calcPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}
+  }
+  #calcScreen{background:var(--track); border-radius:10px; padding:10px 12px; text-align:right}
+  #calcExpr{font-size:14px; color:var(--muted); min-height:1.5em; word-break:break-all}
+  #calcResult{font-size:26px; font-weight:600; color:var(--ink); margin-top:2px}
+  #calcResult.bad{color:var(--muted); font-size:18px}
+  #calcKeys{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+  #calcKeys button{background:var(--paper); border:1px solid var(--input-line); border-radius:8px;
+    padding:13px 4px; font-size:17px; cursor:pointer; font-family:'IBM Plex Mono',ui-monospace,monospace}
+  #calcKeys button:hover{background:var(--track)}
+  #calcKeys button.op{background:var(--yellow-soft); border-color:var(--yellow-line); color:var(--tag-ink)}
+  #calcKeys button.fn{background:var(--track); color:var(--muted)}
+  #calcKeys button.eq{grid-column:span 4; background:var(--yellow); border-color:var(--yellow-line); font-weight:700}
+  #calcActions{display:flex; gap:8px}
+  #calcActions button{flex:1}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="top">
+      <div>
+        <h1>다니랑 생활비 통장</h1>
+        <div class="subtitle">우리 둘의 한 달 살림 기록</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
+        <span class="conn" id="conn"><span class="dot"></span><span id="connText">연결 확인 중…</span></span>
+        <button class="ghost mini" id="settingsBtn" aria-expanded="false" aria-controls="drawer">☰ 메뉴</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="band" aria-hidden="true"></div>
+
+
+
+  <!-- 공유가 꺼진 상태 알림 -->
+  <div class="banner warnbar" id="shareBanner" role="status">
+    <span class="grow" id="shareBannerText"></span>
+    <button class="ghost mini" id="shareWhy">자세히</button>
+  </div>
+
+  <!-- 고정지출 배너 -->
+  <div class="banner" id="recBanner" role="status">
+    <span class="grow" id="recBannerText"></span>
+    <button class="primary mini" id="recFill">한 번에 채우기</button>
+  </div>
+
+  <!-- 2. 월 내비게이션 + 요약 -->
+  <div class="topbar">
+  <nav class="monthnav" aria-label="월 이동">
+    <button class="ghost mini" id="prevM" aria-label="이전 달">◀</button>
+    <span class="mlabel num" id="monthLabel"></span>
+    <button class="ghost mini" id="nextM" aria-label="다음 달">▶</button>
+    <button class="ghost mini tothis" id="toThis" hidden>이번 달</button>
+  </nav>
+
+  <div class="tabbar" role="tablist" aria-label="화면">
+    <button role="tab" id="tb-daily" aria-selected="true" aria-controls="tab-daily">일일</button>
+    <button role="tab" id="tb-cal" aria-selected="false" aria-controls="tab-cal">달력</button>
+    <button role="tab" id="tb-income" aria-selected="false" aria-controls="tab-income">입금</button>
+    <button role="tab" id="tb-stats" aria-selected="false" aria-controls="tab-stats">분석</button>
+  </div>
+  <div class="strip" aria-label="이번 달 요약">
+    <div><span class="sl">입금</span><b class="num pos" id="tIn">0원</b></div>
+    <div><span class="sl">지출</span><b class="num neg" id="tOut">0원</b></div>
+    <div><span class="sl">남은 돈</span><b class="num" id="tNet">0원</b></div>
+  </div>
+  </div><!-- /topbar -->
+
+  <!-- 달력 -->
+
+  <!-- 이 기기 기록 → 공유 저장소 이사 제안 -->
+  <div class="banner" id="migBanner" role="status">
+    <span class="grow" id="migText"></span>
+    <button class="primary mini" id="migUpload">올리기</button>
+    <button class="ghost mini" id="migClose">닫기</button>
+  </div>
+
+  <div id="tab-daily" role="tabpanel" aria-labelledby="tb-daily">
+  <section class="card" aria-label="지출 내역">
+    <h2 class="serif">지출 내역</h2>
+
+    <div class="autorow">
+      <button class="ghost" id="photoBtn" hidden>스크린샷으로 등록</button>
+      <button class="ghost" id="pasteBtn">결제 문자 붙여넣기</button>
+    </div>
+    <input type="file" id="photoFile" accept="image/*" hidden>
+    <div id="pasteBox">
+      <textarea id="pasteText" placeholder="카드 결제 문자나 알림 내용을 그대로 붙여넣으세요"></textarea>
+      <div style="display:flex; gap:8px">
+        <button class="primary mini" id="pasteParse">인식하기</button>
+        <button class="ghost mini" id="pasteClose">닫기</button>
+      </div>
+    </div>
+    <div id="autoStatus"><span class="grow" id="autoStatusText"></span><button class="ghost mini" id="autoStop" hidden>중지</button></div>
+
+    <details class="adder" id="expAdder">
+      <summary>직접 적기</summary>
+      <div class="formbody" id="expForm">
+        <div class="frow">
+          <label class="f">금액 (원)<input id="expAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+        </div>
+        <div class="frow">
+          <label class="f">날짜<input id="expDate" type="date"></label>
+          <label class="f">카테고리<select id="expCat"></select></label>
+        </div>
+        <div class="frow">
+          <label class="f">내용 · 가맹점<input id="expMemo" placeholder="예: 이마트 장보기"></label>
+        </div>
+        <div class="frow">
+          <label class="f">누가 썼나<div class="seg" id="expWho"></div></label>
+        </div>
+        <div style="display:flex; gap:8px"><button class="primary" id="expSave">지출 저장</button><button class="ghost" id="expCancel" hidden>고치기 취소</button></div>
+      </div>
+    </details>
+
+    <div class="rows" id="expRows"></div>
+    <div class="sumline"><span id="expSumLabel">이번 달 지출 합계</span><b class="num" id="expSum">0원</b></div>
+  </section>
+  </div>
+  <div id="tab-cal" role="tabpanel" aria-labelledby="tb-cal" hidden>
+  <section class="card" aria-label="달력">
+    <h2 class="serif">달력</h2>
+    <div id="calGrid"></div>
+    <p class="rules-hint" id="calHint">날짜를 누르면 그날 내역이 보이고 바로 적을 수 있어요. <span class="cal-key"></span> 파란 점은 입금이 있던 날이에요.</p>
+  </section>
+  </div>
+  <div id="tab-income" role="tabpanel" aria-labelledby="tb-income" hidden>
+  <section class="card" aria-label="생활비 입금">
+    <h2 class="serif">생활비 입금</h2>
+    <details class="adder" id="incAdder">
+      <summary>입금 적기</summary>
+      <div class="formbody">
+        <div class="frow">
+          <label class="f">금액 (원)<input id="incAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+        </div>
+        <div class="frow">
+          <label class="f">날짜<input id="incDate" type="date"></label>
+          <label class="f">내용<input id="incMemo" placeholder="예: 9월 생활비"></label>
+        </div>
+        <div class="frow">
+          <label class="f">누가<div class="seg" id="incWho"></div></label>
+        </div>
+        <div style="display:flex; gap:8px"><button class="primary" id="incSave">입금 저장</button><button class="ghost" id="incCancel" hidden>고치기 취소</button></div>
+      </div>
+    </details>
+    <div class="rows" id="incRows"></div>
+    <div class="sumline"><span>이번 달 입금 합계</span><b class="num" id="incSum">0원</b></div>
+  </section>
+  </div>
+  <div id="tab-stats" role="tabpanel" aria-labelledby="tb-stats" hidden>
+  <section class="card" aria-label="이번 달 분석">
+    <div class="sumline" style="margin:0 0 14px; padding-top:0; border:none"><span>기록한 돈 합계 (전체 기간)</span><b class="num" id="tBal">0원</b></div>
+    <h2 class="serif">어디에 얼마나 썼나</h2>
+    <div class="chart" id="catChart"></div>
+    <h2 class="serif" style="border:none; padding:0; margin-top:18px; margin-bottom:8px">누가 얼마나 썼나</h2>
+    <div class="chart" id="whoChart"></div>
+  </section>
+  </div>
+
+  <!-- 3. 수입 -->
+
+  <!-- 4. 지출 -->
+
+  <!-- 5. 분석 -->
+
+  <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap">
+    <button class="ghost mini" id="csvBtn">전체 내역 CSV로 내보내기</button>
+    <button class="ghost mini" id="csvImportBtn">CSV 가져오기</button>
+    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+  </div>
+
+  <footer>
+    <div id="footNote">이 페이지가 열려 있는 동안 기록할 수 있어요.</div>
+    <div>사진·문자 인식 결과는 저장 전에 꼭 한 번 확인해 주세요.</div>
+  </footer>
+
+</div>
+
+<!-- 사이드바 서랍: 매일 쓰지 않는 것들을 여기로 -->
+<div id="drawerWrap" aria-hidden="true">
+  <div id="drawerBackdrop"></div>
+  <aside id="drawer" role="dialog" aria-modal="true" aria-label="메뉴">
+    <div class="dhead">
+      <h2 class="serif">메뉴</h2>
+      <button class="ghost mini" id="drawerClose" aria-label="메뉴 닫기">닫기 ✕</button>
+    </div>
+  <section class="dsec" id="rulesCard" aria-label="통장 규칙">
+    <h2 class="serif">통장 규칙 <span class="spacer"></span><button class="ghost mini" id="rulesEditBtn">고치기</button></h2>
+    <ol id="rulesList"></ol>
+    <div id="rulesEdit" hidden>
+      <textarea id="rulesText" placeholder="한 줄에 규칙 하나씩 적어요"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <button class="primary mini" id="rulesSave">저장</button>
+        <button class="ghost mini" id="rulesCancel">취소</button>
+      </div>
+    </div>
+    <p class="rules-hint" id="rulesHint" hidden>아직 예시 규칙이에요 — "고치기"를 눌러 둘만의 규칙으로 바꿔 보세요.</p>
+  </section>
+
+    <section class="dsec" aria-label="최근 활동">
+      <h2 class="serif">최근 활동</h2>
+      <div class="rows" id="logRows"></div>
+      <p class="rules-hint">최근에 적힌 기록이에요. 누가 무엇을 언제 적었는지 볼 수 있어요.</p>
+    </section>
+  <section class="dsec" id="settingsPanel" aria-label="설정">
+    <h2>설정</h2>
+    <div class="frow">
+      <label class="f">첫 번째 사람<input id="setM0" maxlength="10"></label>
+      <label class="f">두 번째 사람<input id="setM1" maxlength="10"></label>
+    </div>
+    <div style="margin-top:10px"><button class="primary mini" id="saveSettings">이름 저장</button></div>
+
+    <hr class="divider">
+    <h2 style="border:none; margin:0 0 4px; padding:0">고정지출 (매달 자동 채움)</h2>
+    <p class="rules-hint" style="margin:0 0 10px">월세·통신비처럼 매달 나가는 지출을 등록해 두면, 그 달에 아직 기록이 없을 때 위쪽 배너에서 한 번에 채울 수 있어요.</p>
+    <div class="rows reclist" id="recList"></div>
+    <div class="frow" style="margin-top:10px">
+      <label class="f">금액<input id="recAmt" class="amt" inputmode="numeric" placeholder="0"></label>
+    </div>
+    <div class="frow" style="margin-top:8px">
+      <label class="f" style="flex:0 0 5.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
+      <label class="f">내용<input id="recMemo" placeholder="예: 월세"></label>
+    </div>
+    <div class="frow" style="margin-top:8px">
+      <label class="f">카테고리<select id="recCat"></select></label>
+      <label class="f">누가<select id="recWho"></select></label>
+      <label class="f" style="flex:0 0 auto; justify-content:flex-end"><span>&nbsp;</span><button class="ghost" id="recAdd">추가</button></label>
+    </div>
+
+    <div id="inviteRow" hidden>
+      <hr class="divider">
+      <h2 style="border:none; margin:0 0 4px; padding:0">다니 초대하기</h2>
+      <p class="rules-hint" style="margin:0 0 10px">아래 링크를 보내면 같은 가계부에 바로 연결돼요. 링크를 아는 사람은 누구나 열 수 있으니 둘만 알게 보관하세요.</p>
+      <div class="frow">
+        <input id="inviteUrl" readonly>
+        <button class="ghost" id="copyInvite" style="flex:0 0 auto">초대 링크 복사</button>
+      </div>
+    </div>
+  </section>
+  </aside>
+</div>
+
+<!-- CSV 가져오기 미리보기 -->
+<div id="csvSheet" role="dialog" aria-modal="true" aria-label="CSV 가져오기" aria-hidden="true">
+  <div id="csvBackdrop"></div>
+  <div id="csvPanel">
+    <h2 class="serif">CSV 가져오기 <span class="spacer"></span><span class="rules-hint" id="csvFileName"></span></h2>
+    <p class="rules-hint" id="csvHint"></p>
+    <div id="csvRows"></div>
+    <div id="csvActions">
+      <button class="primary" id="csvGo">가져오기</button>
+      <button class="ghost" id="csvCancel">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 여러 품목 확인 시트 -->
+<div id="multiSheet" role="dialog" aria-modal="true" aria-label="여러 품목 등록" aria-hidden="true">
+  <div id="multiBackdrop"></div>
+  <div id="multiPanel">
+    <h2 class="serif">여러 품목이 보여요</h2>
+    <p class="rules-hint" id="multiHint">체크된 것만 등록돼요. 이름이나 금액이 틀리면 고쳐 주세요.</p>
+    <div id="multiRows"></div>
+    <div class="frow" style="margin-top:8px">
+      <label class="f">날짜<input id="multiDate" type="date"></label>
+      <label class="f">가게·출처<input id="multiStore" placeholder="예: 쿠팡"></label>
+    </div>
+    <div id="multiActions">
+      <button class="primary" id="multiEach">각각 등록</button>
+      <button class="primary" id="multiMerge">합쳐서 1건</button>
+      <button class="ghost" id="multiCancel">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 계산기 패드 -->
+<div id="calcSheet" role="dialog" aria-modal="true" aria-label="계산기" aria-hidden="true">
+  <div id="calcBackdrop"></div>
+  <div id="calcPanel">
+    <div id="calcScreen">
+      <div id="calcExpr" class="num">0</div>
+      <div id="calcResult" class="num">0원</div>
+    </div>
+    <div id="calcKeys"></div>
+    <div id="calcActions">
+      <button class="ghost" id="calcCancel">닫기</button>
+      <button class="primary" id="calcApply">이 금액 넣기</button>
+    </div>
+  </div>
+</div>
+
+<button id="quickAdd" type="button" aria-label="지출 빠르게 적기">＋ 지출</button>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- Firebase (외부 호스팅에서만 동작 — claude.ai 아티팩트에서는 내장 공유 저장소를 사용) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+<!-- 스크린샷 글자 인식 (외부 호스팅 전용 — 아티팩트에서는 Claude가 이미지를 직접 본다) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+
+<script>
+"use strict";
+
+/* ================= 기본 도구 ================= */
+const $ = s => document.querySelector(s);
+const fmtWon = n => (n < 0 ? "−" : "") + Math.abs(Math.round(n)).toLocaleString("ko-KR") + "원";
+const parseAmt = v => Number(String(v).replace(/[^\d]/g, "")) || 0;
+const pad2 = n => String(n).padStart(2, "0");
+
+/* ================= 금액 수식 계산기 =================
+   금액 칸과 계산기 패드가 함께 쓰는 계산 엔진.
+   eval()·new Function()은 쓰지 않는다 — 계산 결과가 공유 저장소를 거쳐
+   상대방 화면에도 렌더되므로 문자열 실행 경로를 아예 만들지 않는다.
+   계산할 수 없으면 예외 대신 null을 돌려주고, 호출부가 조용히 처리한다. */
+/*CALC_START*/
+function evalAmount(src){
+  const text = String(src == null ? "" : src)
+    .replace(/[,\s]/g, "")
+    .replace(/[×xX]/g, "*")
+    .replace(/[÷]/g, "/")
+    .replace(/[−–—]/g, "-");
+  if (!text) return null;
+  if (/[^0-9+\-*/().]/.test(text)) return null;
+
+  let i = 0;
+  const peek = () => text[i];
+  const eat = ch => (text[i] === ch ? (i++, true) : false);
+
+  // 식 = 항 (('+'|'-') 항)*
+  function parseExpr(){
+    let left = parseTerm();
+    if (left === null) return null;
+    for (;;) {
+      const op = peek();
+      if (op !== "+" && op !== "-") return left;
+      i++;
+      const right = parseTerm();
+      if (right === null) return null;
+      left = op === "+" ? left + right : left - right;
+    }
+  }
+  // 항 = 인수 (('*'|'/') 인수)*
+  function parseTerm(){
+    let left = parseFactor();
+    if (left === null) return null;
+    for (;;) {
+      const op = peek();
+      if (op !== "*" && op !== "/") return left;
+      i++;
+      const right = parseFactor();
+      if (right === null) return null;
+      if (op === "/" && right === 0) return null;   // 0으로 나누기
+      left = op === "*" ? left * right : left / right;
+    }
+  }
+  // 인수 = ('+'|'-')? ( '(' 식 ')' | 숫자 )
+  function parseFactor(){
+    if (eat("+")) return parseFactor();
+    if (eat("-")) { const v = parseFactor(); return v === null ? null : -v; }
+    if (eat("(")) {
+      const v = parseExpr();
+      if (v === null || !eat(")")) return null;
+      return v;
+    }
+    const start = i;
+    while (i < text.length && /[0-9.]/.test(text[i])) i++;
+    if (i === start) return null;
+    const num = Number(text.slice(start, i));
+    return Number.isFinite(num) ? num : null;
+  }
+
+  const value = parseExpr();
+  if (value === null || i !== text.length) return null;   // 남은 문자가 있으면 실패
+  if (!Number.isFinite(value)) return null;
+  const won = Math.round(value);
+  if (won <= 0) return null;                              // 금액이므로 0·음수는 거부
+  return won;
+}
+/** 수식 문자를 품고 있는지 — 순수 숫자면 미리보기를 띄우지 않는다. */
+const looksLikeFormula = v => /[+\-*/×÷().]/.test(String(v).replace(/^\s*[-−]/, ""));
+/*CALC_END*/
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+}
+const thisMonth = () => todayStr().slice(0, 7);
+const monthLabelOf = m => m.slice(0,4) + "년 " + Number(m.slice(5)) + "월";
+function shiftMonth(m, delta){
+  const y = Number(m.slice(0,4)), mo = Number(m.slice(5)) - 1 + delta;
+  const d = new Date(y, mo, 1);
+  return d.getFullYear() + "-" + pad2(d.getMonth()+1);
+}
+function newId(){
+  try { return crypto.randomUUID().replace(/-/g, "").slice(0, 20); } catch(e){}
+  return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function el(tag, cls, text){
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+let toastTimer = null;
+function toast(msg, actionLabel, onAction){
+  const t = $("#toast");
+  t.textContent = "";
+  t.append(el("span", "", msg));
+  if (actionLabel && onAction) {
+    const b = el("button", "toast-act", actionLabel);
+    b.type = "button";
+    b.addEventListener("click", () => { t.classList.remove("show"); onAction(); });
+    t.append(b);
+  }
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), actionLabel ? 6000 : 2600);
+}
+
+/* ================= 상태 ================= */
+const CATEGORIES = ["식비","마트·장보기","외식·배달","카페·간식","생활용품","주거·공과금","통신·구독","교통","건강","데이트","기타"];
+const DEFAULT_RULES = "매달 25일까지 각자 생활비를 입금해요\n쓴 날 바로 기록해요 (미루면 잊어버려요)\n큰 지출은 미리 서로 이야기해요";
+const LS_KEY = "dani-ledger-v1";
+const LID_KEY = "dani-ledger-lid";
+
+/* ---------- Firebase 설정 (외부 호스팅용) ----------
+   Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱(웹 앱)의 구성 값을 그대로 붙여넣으세요.
+   웹 구성 값은 전부 공개값이라 코드에 들어가도 됩니다 — 접근 보호는
+   Realtime Database 보안 규칙(ledger/README.md 참고)이 담당합니다. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC9u1mk6iCxmjQWnompbQ2ZwxMFCX3izPk",
+  authDomain: "dani-yongcheol.firebaseapp.com",
+  databaseURL: "https://dani-yongcheol-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dani-yongcheol",
+  appId: "1:349704239676:web:a25d36a89dbd1aa99ba139",
+};
+const firebaseConfigured = () =>
+  typeof firebase !== "undefined" && FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("PASTE");
+
+function hashLid(){
+  const m = location.hash.match(/l=([A-Za-z0-9]{8,})/);
+  return m ? m[1] : "";
+}
+function newLid(){
+  // 이 코드를 아는 것이 곧 접근 권한이므로 Math.random()으로는 부족하다
+  try {
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    return [...b].map(x => x.toString(36).padStart(2, "0")).join("").slice(0, 22);
+  } catch (e) {
+    let s = "";
+    while (s.length < 22) s += Math.random().toString(36).slice(2);
+    return s.slice(0, 22);
+  }
+}
+
+const state = {
+  entries: new Map(),          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
+  rules: "",                   // 비어 있으면 예시 규칙 표시
+  members: ["나", "다니"],
+  recurring: [],               // {id, day, amount, category, memo, who}
+  month: thisMonth(),
+  dayFilter: "",              // 달력에서 고른 날짜 (YYYY-MM-DD), 빈 값이면 그 달 전체
+  tab: "daily",
+  mode: "local",               // 'local' | 'db'
+};
+const whoName = w => w === "both" ? "같이" : (w === "m1" ? state.members[1] : state.members[0]);
+
+/* ================= 저장소 (db ↔ localStorage) ================= */
+let db = null;
+function loadLocal(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (Array.isArray(d.entries)) state.entries = new Map(d.entries.map(e => [e.id, e]));
+    if (typeof d.rules === "string") state.rules = d.rules;
+    if (Array.isArray(d.members) && d.members.length === 2) state.members = d.members.map(String);
+    if (Array.isArray(d.recurring)) state.recurring = d.recurring;
+  } catch(e){}
+}
+function saveLocal(){
+  if (state.mode !== "local") return;
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      entries: [...state.entries.entries()].map(([id, e]) => ({...e, id})),
+      rules: state.rules, members: state.members, recurring: state.recurring,
+    }));
+  } catch(e){}
+}
+async function addEntry(e){
+  if (db) { await db.collection("entries").add(e); }
+  else { state.entries.set(newId(), e); saveLocal(); renderAll(); }
+}
+/** 기존 기록을 고쳐 쓴다 — 오타 정정이 삭제를 거치지 않게 하려고 둔다. */
+async function updateEntry(id, e){
+  if (db) { await db.collection("entries").doc(id).set(e); }
+  else { state.entries.set(id, e); saveLocal(); renderAll(); }
+}
+async function deleteEntry(id){
+  if (db) { await db.collection("entries").doc(id).delete(); }
+  else { state.entries.delete(id); saveLocal(); renderAll(); }
+}
+async function saveRules(text){
+  state.rules = text;
+  if (db) { await db.doc("meta/rules").set({ text, updatedAt: Date.now() }); }
+  else { saveLocal(); }
+  renderRules();
+}
+async function saveSettingsDoc(){
+  if (db) { await db.doc("meta/settings").set({ members: state.members, updatedAt: Date.now() }); }
+  else { saveLocal(); }
+  renderAll();
+}
+async function saveRecurringDoc(){
+  if (db) { await db.doc("meta/recurring").set({ items: state.recurring, updatedAt: Date.now() }); }
+  else { saveLocal(); }
+  renderSettings(); renderRecBanner();
+}
+function dbWriteFailed(err){
+  const code = err && err.code;
+  if (code === "quota_exceeded") toast("저장 공간이 가득 찼어요 — 오래된 기록을 지워 주세요");
+  // 권한 거부: 아티팩트 db는 'permission-denied', Realtime Database는 'PERMISSION_DENIED'
+  else if (/permission[_-]denied/i.test(String(code) + " " + String(err && err.message)))
+    toast("저장 권한이 없어요 — 보안 규칙과 익명 로그인 설정을 확인해 주세요");
+  else toast("저장하지 못했어요. 잠시 후 다시 시도해 주세요");
+}
+
+/* ================= 탭 ================= */
+const TABS = ["daily", "cal", "income", "stats"];
+function showTab(name){
+  if (!TABS.includes(name)) name = "daily";
+  TABS.forEach(t => {
+    $("#tab-" + t).hidden = t !== name;
+    $("#tb-" + t).setAttribute("aria-selected", String(t === name));
+  });
+  state.tab = name;
+  try { localStorage.setItem("dani-ledger-tab", name); } catch(e){}
+}
+
+/* ================= 렌더 ================= */
+function renderAll(){
+  renderRules(); renderMonth(); renderTiles(); renderCalendar(); renderIncome(); renderExpense();
+  renderCharts(); renderSettings(); renderLog(); renderRecBanner();
+}
+
+/* 달력 칸에 들어갈 짧은 금액 — 45,900 → "4.6만" */
+function compactWon(n){
+  if (n >= 10000) { const m = n / 10000; return (m >= 10 ? Math.round(m) : Math.round(m * 10) / 10) + "만"; }
+  if (n >= 1000) {
+    const k = Math.round(n / 1000);
+    return k >= 10 ? "1만" : k + "천";      // 9,800 이 "10천"으로 나오던 것
+  }
+  return String(Math.round(n));
+}
+
+function renderCalendar(){
+  const grid = $("#calGrid");
+  grid.textContent = "";
+  const y = Number(state.month.slice(0, 4)), mo = Number(state.month.slice(5));
+  const lead = new Date(y, mo - 1, 1).getDay();          // 그 달 1일의 요일
+  const lastDate = new Date(y, mo, 0).getDate();
+
+  const spent = new Map(), gotPaid = new Set();
+  state.entries.forEach(e => {
+    if (e.month !== state.month || !e.date) return;
+    const d = Number(e.date.slice(8));
+    if (e.type === "expense") spent.set(d, (spent.get(d) || 0) + (Number(e.amount) || 0));
+    else gotPaid.add(d);
+  });
+  const max = spent.size ? Math.max(...spent.values()) : 0;
+
+  ["일","월","화","수","목","금","토"].forEach((w, i) =>
+    grid.append(el("div", "cal-h" + (i === 0 ? " sun" : i === 6 ? " sat" : ""), w)));
+  for (let i = 0; i < lead; i++) grid.append(el("div", "cal-c pad"));
+
+  for (let d = 1; d <= lastDate; d++) {
+    const iso = state.month + "-" + pad2(d);
+    const amt = spent.get(d) || 0;
+    const cell = el("button", "cal-c");
+    cell.type = "button";
+    if (amt > 0 && max > 0) cell.classList.add("lv" + Math.min(3, Math.ceil(amt / max * 3)));
+    if (iso === todayStr()) cell.classList.add("today");
+    if (state.dayFilter === iso) cell.classList.add("sel");
+    cell.append(el("span", "cal-d", String(d)));
+    if (amt > 0) cell.append(el("span", "cal-a num", compactWon(amt)));
+    if (gotPaid.has(d)) cell.append(el("span", "cal-in"));
+    cell.setAttribute("aria-label",
+      mo + "월 " + d + "일" + (amt > 0 ? ", 지출 " + fmtWon(amt) : ", 지출 없음") + (gotPaid.has(d) ? ", 입금 있음" : ""));
+    cell.setAttribute("aria-pressed", String(state.dayFilter === iso));
+    cell.addEventListener("click", () => {
+      state.dayFilter = state.dayFilter === iso ? "" : iso;   // 같은 날 다시 누르면 해제
+      renderAll();
+      if (!state.dayFilter) return;
+      // 그날 내역을 보여 주면서, 바로 그날 지출을 적을 수 있게 폼을 연다
+      cancelEdit("expense");
+      showTab("daily");
+      $("#expAdder").open = true;
+      $("#expDate").value = iso;
+      $("#expAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+      setTimeout(() => $("#expAmt").focus(), 350);
+    });
+    grid.append(cell);
+  }
+}
+
+function renderRules(){
+  const list = $("#rulesList");
+  list.textContent = "";
+  const text = state.rules || DEFAULT_RULES;
+  const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
+  lines.forEach((line, i) => {
+    const li = el("li");
+    li.append(el("span", "no num", String(i+1) + "."), el("span", "", line));
+    list.append(li);
+  });
+  $("#rulesHint").hidden = !!state.rules;
+}
+
+function renderMonth(){
+  $("#monthLabel").textContent = monthLabelOf(state.month);
+  $("#toThis").hidden = state.month === thisMonth();
+}
+
+function monthEntries(type){
+  return [...state.entries.entries()]
+    .map(([id, e]) => ({...e, id}))
+    .filter(e => e.month === state.month && e.type === type)
+    .sort((a, b) => (b.date + String(b.createdAt||0).padStart(15,"0")).localeCompare(a.date + String(a.createdAt||0).padStart(15,"0")));
+}
+const sum = arr => arr.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+function renderTiles(){
+  const inc = sum(monthEntries("income")), out = sum(monthEntries("expense"));
+  let allIn = 0, allOut = 0;
+  state.entries.forEach(e => { if (e.type === "income") allIn += Number(e.amount)||0; else allOut += Number(e.amount)||0; });
+  $("#tIn").textContent = (inc > 0 ? "+" : "") + fmtWon(inc);
+  $("#tOut").textContent = (out > 0 ? "−" : "") + fmtWon(out);
+  const net = inc - out;
+  const tn = $("#tNet");
+  tn.textContent = fmtWon(net);
+  tn.classList.toggle("neg", net < 0);
+  $("#tBal").textContent = fmtWon(allIn - allOut);
+}
+
+function entryRow(e){
+  const row = el("div", "row");
+  const label = e.date.slice(5).replace("-", ".") + " " + (e.memo || "내용 없음") + " " +
+    fmtWon(Number(e.amount) || 0) + " " + whoName(e.who);
+  row.classList.add("entry");
+  // 윗줄: 날짜 · 내용 · 금액 / 아랫줄: 카테고리 · 누가 · 삭제 — 내용이 폭을 갖도록
+  const main = el("div", "rmain"), sub = el("div", "rsub");
+  main.append(el("span", "d num", e.date.slice(5).replace("-", ".")));
+  main.append(el("span", "memo", e.memo || "—"));
+  main.append(el("span", "amt num " + (e.type === "income" ? "in" : "ex"),
+    (e.type === "income" ? "+" : "−") + fmtWon(Number(e.amount)||0)));
+  if (e.type === "expense") sub.append(el("span", "chip", e.category || "기타"));
+  sub.append(el("span", "who", whoName(e.who)));
+  row.append(main, sub);
+
+  // 행을 누르면 고치기 — 오타를 지웠다 다시 넣지 않아도 되게
+  row.classList.add("editable");
+  row.setAttribute("role", "button");
+  row.tabIndex = 0;
+  row.setAttribute("aria-label", label + " — 누르면 고칠 수 있어요");
+  const openEdit = ev => { if (ev.target.closest(".del")) return; startEdit(e); };
+  row.addEventListener("click", openEdit);
+  row.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); startEdit(e); }
+  });
+
+  const del = el("button", "del", "×");
+  del.setAttribute("aria-label", label + " 삭제");
+  del.addEventListener("click", async () => {
+    if (!del.classList.contains("arm")) {
+      del.classList.add("arm"); del.textContent = "지우기";
+      del.setAttribute("aria-label", label + " — 한 번 더 누르면 지워집니다");
+      setTimeout(() => {
+        del.classList.remove("arm"); del.textContent = "×";
+        del.setAttribute("aria-label", label + " 삭제");
+      }, 2600);
+      return;
+    }
+    const backup = { ...e };            // 되돌리기용 사본
+    delete backup.id;
+    try { await deleteEntry(e.id); }
+    catch (err) { dbWriteFailed(err); return; }
+    toast("지웠어요", "되돌리기", async () => {
+      try { await addEntry(backup); toast("되돌렸어요"); }
+      catch (err) { dbWriteFailed(err); }
+    });
+  });
+  sub.append(del);
+  return row;
+}
+
+/* ================= 최근 활동 로그 ================= */
+function renderLog(){
+  const box = $("#logRows");
+  if (!box) return;
+  box.textContent = "";
+  const list = [...state.entries.values()]
+    .filter(e => e && e.date)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 20);
+  if (!list.length) { box.append(el("div", "empty", "아직 적힌 기록이 없어요.")); return; }
+  list.forEach(e => {
+    const r = el("div", "logrow");
+    const t = e.createdAt ? new Date(e.createdAt) : null;
+    const when = t ? (t.getMonth()+1) + "/" + t.getDate() + " " + pad2(t.getHours()) + ":" + pad2(t.getMinutes()) : "";
+    r.append(el("span", "lwhen num", when));
+    r.append(el("span", "lwho", whoName(e.who)));
+    r.append(el("span", "lwhat", (e.type === "income" ? "입금 · " : "") + (e.memo || (e.category || "기록"))));
+    r.append(el("span", "lamt num " + (e.type === "income" ? "in" : "ex"),
+      (e.type === "income" ? "+" : "−") + fmtWon(Number(e.amount) || 0)));
+    box.append(r);
+  });
+}
+
+/* ================= 고치기 ================= */
+const editing = { income: null, expense: null };   // 고치는 중인 기록 id
+let expCatTouched = false;                         // 카테고리를 사용자가 직접 골랐는지
+
+function setSeg(container, val){
+  const btns = [...container.querySelectorAll("button")];
+  btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.val === val)));
+  if (!btns.some(b => b.dataset.val === val) && btns[0]) btns[0].setAttribute("aria-pressed", "true");
+}
+
+function startEdit(e){
+  const inc = e.type === "income";
+  const k = inc ? "income" : "expense";
+  editing[k] = e.id;
+  const adder = $(inc ? "#incAdder" : "#expAdder");
+  adder.open = true;
+  const amt = $(inc ? "#incAmt" : "#expAmt");
+  amt.value = (Number(e.amount) || 0).toLocaleString("ko-KR");
+  updateAmtPreview(amt);
+  $(inc ? "#incMemo" : "#expMemo").value = e.memo || "";
+  $(inc ? "#incDate" : "#expDate").value = e.date || todayStr();
+  if (!inc) $("#expCat").value = CATEGORIES.includes(e.category) ? e.category : CATEGORIES[0];
+  setSeg($(inc ? "#incWho" : "#expWho"), e.who);
+  $(inc ? "#incSave" : "#expSave").textContent = "고친 내용 저장";
+  $(inc ? "#incCancel" : "#expCancel").hidden = false;
+  adder.scrollIntoView({ block: "center", behavior: "smooth" });
+  toast("고치는 중이에요");
+}
+
+function cancelEdit(kind){
+  if (!editing[kind]) return;
+  editing[kind] = null;
+  const inc = kind === "income";
+  $(inc ? "#incSave" : "#expSave").textContent = inc ? "입금 저장" : "지출 저장";
+  $(inc ? "#incCancel" : "#expCancel").hidden = true;
+}
+
+function renderList(sel, type, sumSel, emptyMsg){
+  const box = $(sel);
+  box.textContent = "";
+  let list = monthEntries(type);
+  const filtered = !!state.dayFilter;
+  if (filtered) {
+    const day = Number(state.dayFilter.slice(8));
+    list = list.filter(e => e.date === state.dayFilter);
+    const chip = el("button", "filter-chip", Number(state.month.slice(5)) + "월 " + day + "일만 보는 중  ✕");
+    chip.type = "button";
+    chip.addEventListener("click", () => { state.dayFilter = ""; renderAll(); });
+    box.append(chip);
+    emptyMsg = type === "income" ? "이 날은 입금이 없어요." : "이 날은 쓴 기록이 없어요.";
+  }
+  if (!list.length) box.append(el("div", "empty", emptyMsg));
+  else if (type === "expense" && !filtered) {
+    // 날짜별로 묶어 하루 단위로 읽히게 — 참고한 가계부 앱의 일일 화면처럼
+    const W = ["일","월","화","수","목","금","토"];
+    let cur = null, group = [];
+    const flush = () => {
+      if (!cur) return;
+      const d = new Date(cur + "T00:00:00");
+      const head = el("div", "dayhead" + (d.getDay() === 0 ? " sun" : d.getDay() === 6 ? " sat" : ""));
+      head.append(el("span", "dd", String(d.getDate()).padStart(2, "0")));
+      head.append(el("span", "dw", W[d.getDay()] + "요일"));
+      head.append(el("span", "dsum num", "−" + fmtWon(sum(group))));
+      box.append(head);
+      group.forEach(e => box.append(entryRow(e)));
+      group = [];
+    };
+    list.forEach(e => { if (e.date !== cur) { flush(); cur = e.date; } group.push(e); });
+    flush();
+  }
+  else list.forEach(e => box.append(entryRow(e)));
+  const total = sum(list);
+  $(sumSel).textContent = (total > 0 ? (type === "income" ? "+" : "−") : "") + fmtWon(total);
+  if (type === "expense")
+    $("#expSumLabel").textContent = filtered
+      ? Number(state.month.slice(5)) + "월 " + Number(state.dayFilter.slice(8)) + "일 지출 합계"
+      : "이번 달 지출 합계";
+}
+const renderIncome  = () => renderList("#incRows", "income", "#incSum", "아직 입금 기록이 없어요.");
+const renderExpense = () => renderList("#expRows", "expense", "#expSum", "이번 달 지출이 아직 없어요.");
+
+function chartRows(box, pairs){
+  box.textContent = "";
+  if (!pairs.length) { box.append(el("div", "empty", "기록이 쌓이면 여기서 한눈에 볼 수 있어요.")); return; }
+  const max = Math.max(...pairs.map(p => p[1]));
+  pairs.forEach(([label, val]) => {
+    const row = el("div", "crow");
+    row.title = label + " " + fmtWon(val);
+    const track = el("div", "ctrack");
+    const bar = el("div", "cbar");
+    bar.style.width = Math.max(2, Math.round(val / max * 100)) + "%";
+    track.append(bar);
+    row.append(el("span", "clabel", label), track, el("span", "cval num", Math.round(val).toLocaleString("ko-KR") + "원"));
+    box.append(row);
+  });
+}
+function renderCharts(){
+  const exp = monthEntries("expense");
+  const byCat = new Map(), byWho = new Map();
+  exp.forEach(e => {
+    byCat.set(e.category || "기타", (byCat.get(e.category || "기타") || 0) + (Number(e.amount)||0));
+    const w = whoName(e.who);
+    byWho.set(w, (byWho.get(w) || 0) + (Number(e.amount)||0));
+  });
+  chartRows($("#catChart"), [...byCat.entries()].sort((a,b) => b[1]-a[1]));
+  chartRows($("#whoChart"), [...byWho.entries()].sort((a,b) => b[1]-a[1]));
+}
+
+/* ---------- 폼 부속: 누가 세그먼트, 카테고리 셀렉트 ---------- */
+function buildWhoSeg(container, includeBoth){
+  const prev = container.querySelector('button[aria-pressed="true"]')?.dataset.val;
+  container.textContent = "";
+  const opts = [["m0", state.members[0]], ["m1", state.members[1]]];
+  if (includeBoth) opts.push(["both", "같이"]);
+  opts.forEach(([val, name], i) => {
+    const b = el("button", "", name);
+    b.type = "button";
+    b.dataset.val = val;
+    b.setAttribute("aria-pressed", String(prev ? val === prev : i === 0));
+    b.addEventListener("click", () => {
+      container.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+    });
+    container.append(b);
+  });
+}
+const segValue = container => container.querySelector('button[aria-pressed="true"]')?.dataset.val || "m0";
+function buildCatSelect(sel){
+  const s = $(sel); s.textContent = "";
+  CATEGORIES.forEach(c => s.append(new Option(c, c)));
+}
+function buildWhoSelect(sel){
+  const s = $(sel); s.textContent = "";
+  [["m0", state.members[0]], ["m1", state.members[1]], ["both", "같이"]].forEach(([v, n]) => s.append(new Option(n, v)));
+}
+/* 금액 칸: 순수 숫자면 예전처럼 콤마만 붙이고, 수식이 섞이면 그대로 두되
+   바로 아래에 계산 결과를 미리 보여 준다. */
+function bindAmtField(input){
+  const preview = document.createElement("div");
+  preview.className = "amt-preview";
+  preview.hidden = true;
+  input.insertAdjacentElement("afterend", preview);
+  input._amtPreview = preview;   // 계산기 버튼이 입력칸을 감싸도 참조가 끊기지 않게
+
+  input.addEventListener("input", () => {
+    const raw = input.value;
+    const cleaned = raw.replace(/[^0-9+\-*/×÷().,]/g, "");
+    if (looksLikeFormula(cleaned)) {
+      // 수식은 사용자가 친 그대로 둔다 (커서가 튀지 않게)
+      if (cleaned !== raw) input.value = cleaned;
+    } else {
+      const n = parseAmt(cleaned);
+      input.value = n ? n.toLocaleString("ko-KR") : "";
+    }
+    updateAmtPreview(input);
+  });
+  input.addEventListener("blur", () => {
+    // 칸을 벗어나면 계산된 금액으로 확정
+    const won = evalAmount(input.value);
+    if (won !== null && looksLikeFormula(input.value)) {
+      input.value = won.toLocaleString("ko-KR");
+      updateAmtPreview(input);
+    }
+  });
+}
+function updateAmtPreview(input){
+  const preview = input._amtPreview;
+  if (!preview) return;
+  if (!looksLikeFormula(input.value)) { preview.hidden = true; return; }
+  const won = evalAmount(input.value);
+  preview.hidden = false;
+  preview.classList.toggle("bad", won === null);
+  preview.textContent = won === null ? "계산할 수 없는 식이에요" : "= " + won.toLocaleString("ko-KR") + "원";
+}
+/** 금액 칸을 비우고 미리보기도 함께 지운다. */
+function clearAmtField(input){
+  input.value = "";
+  updateAmtPreview(input);
+}
+/** 저장이 막힌 이유를 구분해 안내한다 — 빈 칸인지, 계산이 안 되는 식인지. */
+function amtError(value){
+  const v = String(value || "").trim();
+  if (!v) return "금액을 입력해 주세요";
+  if (looksLikeFormula(v)) return "계산할 수 없는 식이에요 — 다시 확인해 주세요";
+  return "금액을 입력해 주세요";
+}
+
+/* ================= 계산기 패드 ================= */
+let calcTarget = null;      // 어느 금액 칸에서 열었는지
+let calcExpr = "";
+
+function calcRender(){
+  $("#calcExpr").textContent = calcExpr || "0";
+  const won = evalAmount(calcExpr);
+  const out = $("#calcResult");
+  out.textContent = calcExpr === "" ? "0원"
+    : won === null ? "아직 계산할 수 없어요" : won.toLocaleString("ko-KR") + "원";
+  out.classList.toggle("bad", calcExpr !== "" && won === null);
+  $("#calcApply").disabled = won === null;
+}
+function calcOpen(input){
+  calcTarget = input;
+  calcExpr = looksLikeFormula(input.value) ? input.value.replace(/,/g, "")
+    : String(parseAmt(input.value) || "");
+  calcRender();
+  $("#calcSheet").classList.add("show");
+  $("#calcSheet").setAttribute("aria-hidden", "false");
+  $("#calcKeys").querySelector("button").focus();
+}
+function calcClose(){
+  $("#calcSheet").classList.remove("show");
+  $("#calcSheet").setAttribute("aria-hidden", "true");
+  if (calcTarget) calcTarget.focus();
+  calcTarget = null;
+}
+function calcPress(key){
+  if (key === "C") calcExpr = "";
+  else if (key === "←") calcExpr = calcExpr.slice(0, -1);
+  else if (key === "=") {
+    const won = evalAmount(calcExpr);
+    if (won !== null) calcExpr = String(won);
+  } else calcExpr += key;
+  calcRender();
+}
+function calcApply(){
+  const won = evalAmount(calcExpr);
+  if (won === null || !calcTarget) return;
+  const input = calcTarget;
+  input.value = won.toLocaleString("ko-KR");
+  updateAmtPreview(input);
+  calcClose();
+}
+function buildCalcPad(){
+  const keys = ["7","8","9","÷", "4","5","6","×", "1","2","3","−", "0","00",".","+", "(",")","←","C", "="];
+  const box = $("#calcKeys");
+  box.textContent = "";
+  keys.forEach(k => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = k;
+    if (/[÷×−+()]/.test(k)) b.className = "op";
+    if (k === "C" || k === "←") b.className = "fn";
+    if (k === "=") b.className = "eq";
+    b.addEventListener("click", () => calcPress(k));
+    box.append(b);
+  });
+}
+/** 금액 칸 왼쪽에 계산기 버튼을 붙인다 — 입력칸과 한 줄로 묶어 누르기 쉽게. */
+function attachCalcButton(input){
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "calc-open";
+  btn.textContent = "🖩 계산기";
+  btn.setAttribute("aria-label", "계산기 열기");
+  btn.addEventListener("click", () => calcOpen(input));
+  const row = document.createElement("div");
+  row.className = "amt-row";
+  input.replaceWith(row);          // 미리보기는 라벨에 남아 줄 아래로 온다
+  row.append(btn, input);
+}
+
+/* ================= 카테고리 자동 추천 ================= */
+const CAT_KEYWORDS = [
+  ["외식·배달", ["배달의민족","배민","요기요","쿠팡이츠","맥도날드","버거킹","롯데리아","맘스터치","kfc","bhc","bbq","교촌","굽네","피자","치킨","족발","보쌈"]],
+  ["카페·간식", ["스타벅스","투썸","이디야","메가커피","메가엠지씨","컴포즈","빽다방","폴바셋","커피","베스킨","배스킨","파리바게뜨","뚜레쥬르","던킨","디저트"]],
+  ["마트·장보기", ["이마트","홈플러스","롯데마트","코스트코","트레이더스","하나로마트","gs25","cu","세븐일레븐","이마트24","마켓컬리","컬리","쿠팡","다이소"]],
+  ["통신·구독", ["skt","kt ","lg u+","lgu+","알뜰폰","넷플릭스","유튜브","멜론","스포티파이","디즈니","티빙","웨이브","왓챠","쿠팡와우","통신"]],
+  ["교통", ["카카오 t","카카오t","택시","지하철","버스","코레일","ktx","srt","주유","gs칼텍스","sk에너지","s-oil","현대오일","하이패스","주차"]],
+  ["주거·공과금", ["한국전력","한전","전기요금","도시가스","가스요금","수도요금","관리비","월세","임대료"]],
+  ["건강", ["약국","병원","의원","치과","한의원","올리브영","헬스","필라테스","요가"]],
+];
+function merchantHistoryCat(memo){
+  const key = memo.trim().toLowerCase();
+  if (!key) return null;
+  let best = null, bestTime = 0;
+  state.entries.forEach(e => {
+    if (e.type === "expense" && e.memo && e.memo.trim().toLowerCase() === key && (e.createdAt||0) >= bestTime) {
+      best = e.category; bestTime = e.createdAt || 0;
+    }
+  });
+  return best;
+}
+function suggestCategory(memo){
+  const hist = merchantHistoryCat(memo);
+  if (hist) return hist;
+  const low = memo.toLowerCase();
+  for (const [cat, words] of CAT_KEYWORDS)
+    if (words.some(w => low.includes(w))) return cat;
+  return null;
+}
+
+/* ================= 결제 문자 파싱 ================= */
+/*SMS_PARSE_START*/
+function parseSms(text){
+  const out = { amount: 0, merchant: "", date: "", kind: "expense" };
+  if (!text) return out;
+  // 입금인지 지출인지 — 통장 입금 알림과 카드 승인 알림을 가른다.
+  // 카드 쪽 낱말(승인·결제·출금)이 하나라도 있으면 지출로 본다.
+  if (/입금|이체|송금|받으심|급여/.test(text) && !/승인|결제|출금|사용/.test(text)) out.kind = "income";
+  // 금액: "12,300원" | "12,300 원" | "KRW 12,300" — 취소 문자는 음수 취급 없이 그대로
+  const amt = text.match(/([\d,]{2,})\s*원/) || text.match(/KRW\s*([\d,]{2,})/i);
+  if (amt) out.amount = Number(amt[1].replace(/,/g, "")) || 0;
+  // 날짜: MM/DD | MM.DD (연도는 오늘 기준으로 보정)
+  const dm = text.match(/(\d{1,2})[\/.](\d{1,2})\b/);
+  if (dm) {
+    const now = new Date();
+    let y = now.getFullYear();
+    const mo = Number(dm[1]), da = Number(dm[2]);
+    if (mo >= 1 && mo <= 12 && da >= 1 && da <= 31) {
+      if (mo - (now.getMonth()+1) > 1) y -= 1;             // 연말에 온 지난해 문자
+      out.date = y + "-" + pad2(mo) + "-" + pad2(da);
+    }
+  }
+  // 가맹점: "시:분" 뒤의 문구 → 실패하면 "원(일시불)" 뒤 문구 → 마지막 줄
+  let m = text.match(/\d{1,2}:\d{2}\s+([^\n]+)/);
+  if (!m) m = text.match(/원\s*(?:\([^)]*\))?\s+([^\n]+)/);
+  let merchant = m ? m[1] : (text.trim().split("\n").pop() || "");
+  merchant = merchant
+    .replace(/(누적|잔액|총누적|사용가능).*$/, "")
+    .replace(/[\d,]{2,}\s*원(\([^)]*\))?/g, "")
+    .replace(/^[\s|:\-–·]+/, "")
+    .trim();
+  out.merchant = merchant.slice(0, 40);
+  return out;
+}
+/** 주문 완료 화면처럼 금액이 여러 개인 텍스트에서 품목을 전부 뽑는다.
+    "총 결제금액" 같은 합계 줄은 items 에서 빼고 total 로 따로 준다. */
+function parseItems(text){
+  const lines = String(text || "").split("\n").map(l => l.trim()).filter(Boolean);
+  const items = [];
+  let total = 0;
+  const isMeta = l => /수량|개입|^\d+개$|배송|도착|판매자|주문|완료|로켓|내일|건 중/.test(l);
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/([\d,]{2,})\s*원/);
+    if (!m) continue;
+    const amount = Number(m[1].replace(/,/g, "")) || 0;
+    if (amount <= 0) continue;
+    if (/총|합계|결제금액|누적|잔액|할인/.test(lines[i])) { if (/총|합계|결제금액/.test(lines[i])) total = amount; continue; }
+    // 이름: 같은 줄에서 금액 앞 글자 → 없으면 바로 위 줄들 중 메타가 아닌 것
+    let name = lines[i].replace(/[\d,]{2,}\s*원.*$/, "").replace(/^[\s|:\-–·]+/, "").trim();
+    for (let k = i - 1; !name && k >= Math.max(0, i - 3); k--) {
+      if (!/[\d,]{2,}\s*원/.test(lines[k]) && !isMeta(lines[k])) name = lines[k];
+    }
+    items.push({ name: name.slice(0, 40), amount });
+  }
+  return { items, total };
+}
+/*SMS_PARSE_END*/
+
+/* ================= CSV 가져오기 ================= */
+/*CSV_START*/
+/** 앱 내보내기 형식(날짜,구분,카테고리,내용,누가,금액)을 읽는다.
+    RFC4180 따옴표·쉼표 포함 필드·BOM·CRLF 처리, 열 순서는 헤더로 찾는다. */
+function parseCsv(text){
+  const src = String(text || "").replace(/^\uFEFF/, "");
+  const table = [];
+  let row = [], cell = "", q = false;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (q) {
+      if (c === '"') { if (src[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && src[i + 1] === "\n") i++;
+      row.push(cell); table.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); table.push(row); }
+  const rows = [], errors = [];
+  if (!table.length) return { rows, errors: [{ line: 1, reason: "비어 있는 파일" }] };
+  const head = table[0].map(h => h.trim());
+  const col = name => head.findIndex(h => h.startsWith(name));
+  const ci = { date: col("날짜"), type: col("구분"), category: col("카테고리"), memo: col("내용"), who: col("누가"), amount: col("금액") };
+  if (ci.date < 0 || ci.type < 0 || ci.amount < 0)
+    return { rows, errors: [{ line: 1, reason: "머리글에 날짜·구분·금액이 있어야 해요" }] };
+  for (let r = 1; r < table.length; r++) {
+    const t = table[r];
+    if (t.every(x => !x.trim())) continue;
+    const line = r + 1;
+    const get = k => (ci[k] >= 0 ? String(t[ci[k]] ?? "").trim() : "");
+    const date = get("date"), typeK = get("type"), amount = Number(get("amount").replace(/[^\d.-]/g, ""));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { errors.push({ line, reason: "날짜 형식(YYYY-MM-DD)이 아니에요: " + date }); continue; }
+    const type = /입금|income/i.test(typeK) ? "income" : /지출|expense/i.test(typeK) ? "expense" : "";
+    if (!type) { errors.push({ line, reason: "구분은 입금/지출이어야 해요: " + typeK }); continue; }
+    if (!(amount > 0)) { errors.push({ line, reason: "금액이 0보다 커야 해요: " + get("amount") }); continue; }
+    rows.push({ line, date, type, category: get("category"), memo: get("memo"), who: get("who"), amount: Math.round(amount) });
+  }
+  return { rows, errors };
+}
+/*CSV_END*/
+
+/* 이름 → 사람 키. 현재 설정 이름과 맞추고, 못 맞추면 첫 번째 사람. */
+function whoKeyFromName(name){
+  const n = String(name || "").trim();
+  if (!n || n === "같이" || n === "both") return n === "" ? "m0" : "both";
+  if (n === state.members[0] || n === "나" || n === "m0") return "m0";
+  if (n === state.members[1] || n === "m1") return "m1";
+  return "";     // 모르는 이름
+}
+const entryKey = e => [e.date, e.type, Math.round(Number(e.amount) || 0), (e.memo || "").trim(), e.who].join("|");
+
+let csvPending = null;   // 미리보기 중인 행들
+function openCsvSheet(parsed, filename){
+  const existing = new Set([...state.entries.values()].map(entryKey));
+  const seen = new Set();
+  const box = $("#csvRows");
+  box.textContent = "";
+  csvPending = [];
+  parsed.rows.forEach(r => {
+    let who = whoKeyFromName(r.who), warn = "";
+    if (!who) { who = "m0"; warn = "'" + r.who + "'는 모르는 이름이라 " + state.members[0] + "(으)로"; }
+    const entry = { type: r.type, date: r.date, month: r.date.slice(0, 7), who, category: r.type === "expense" ? (CATEGORIES.includes(r.category) ? r.category : (r.category || "기타")) : "", memo: r.memo, amount: r.amount };
+    const key = entryKey(entry);
+    let badge = "";
+    if (existing.has(key)) badge = "이미 있음";
+    else if (seen.has(key)) badge = "파일 안 중복";
+    seen.add(key);
+    const item = { entry, badge, warn, line: r.line, checked: !badge };
+    csvPending.push(item);
+    const div = el("div", "crow-csv" + (badge ? " dup" : ""));
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = item.checked;
+    cb.setAttribute("aria-label", r.line + "행 포함");
+    cb.addEventListener("change", () => { item.checked = cb.checked; updateCsvCount(); });
+    const txt = el("div", "ctext");
+    txt.append(el("div", "", r.date.slice(5).replace("-", ".") + " · " + (r.type === "income" ? "입금" : "지출") + (entry.category ? " · " + entry.category : "") + " · " + whoName(who)));
+    txt.append(el("div", "cmemo", (r.memo || "—") + (warn ? "  ⚠ " + warn : "")));
+    const amt = el("div", "camt num " + (r.type === "income" ? "in" : "ex"), (r.type === "income" ? "+" : "−") + fmtWon(r.amount));
+    div.append(cb, txt, amt);
+    if (badge) div.append(el("span", "cbadge", badge));
+    box.append(div);
+  });
+  parsed.errors.forEach(e => {
+    const div = el("div", "crow-csv err");
+    div.append(el("div", "ctext", e.line + "행 건너뜀 — " + e.reason));
+    box.append(div);
+  });
+  $("#csvFileName").textContent = filename || "";
+  updateCsvCount();
+  $("#csvSheet").classList.add("show");
+  $("#csvSheet").setAttribute("aria-hidden", "false");
+  $("#csvGo").focus();
+}
+function updateCsvCount(){
+  const n = (csvPending || []).filter(x => x.checked).length;
+  const dup = (csvPending || []).filter(x => x.badge).length;
+  $("#csvGo").textContent = n + "건 가져오기";
+  $("#csvGo").disabled = n === 0;
+  $("#csvHint").textContent = (csvPending || []).length + "건 읽었어요." + (dup ? " " + dup + "건은 이미 있거나 중복이라 체크를 풀어 뒀어요 — 진짜 두 번 넣은 거면 다시 체크하세요." : "");
+}
+function closeCsvSheet(){
+  $("#csvSheet").classList.remove("show");
+  $("#csvSheet").setAttribute("aria-hidden", "true");
+  csvPending = null;
+  $("#csvFile").value = "";
+}
+async function importCsvRows(){
+  const picked = (csvPending || []).filter(x => x.checked);
+  if (!picked.length) return;
+  const go = $("#csvGo"); go.disabled = true;
+  let done = 0;
+  try {
+    for (const x of picked) {
+      go.textContent = "가져오는 중… " + (done + 1) + "/" + picked.length;
+      await addEntry({ ...x.entry, createdAt: Date.now() + done });
+      done++;
+    }
+    const last = picked[picked.length - 1].entry;
+    closeCsvSheet();
+    state.month = last.month; state.dayFilter = "";
+    showTab(last.type === "income" ? "income" : "daily");
+    renderAll();
+    toast(done + "건을 가져왔어요");
+  } catch (err) {
+    dbWriteFailed(err);
+    toast(done + "건까지 들어갔고 " + (picked.length - done) + "건은 실패했어요 — 다시 올리면 들어간 것은 '이미 있음'으로 걸러져요");
+    go.disabled = false; updateCsvCount();
+  }
+}
+function handleCsvFile(file){
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const parsed = parseCsv(String(rd.result || ""));
+    if (!parsed.rows.length) { toast(parsed.errors[0] ? parsed.errors[0].reason : "읽을 수 있는 행이 없어요"); $("#csvFile").value = ""; return; }
+    openCsvSheet(parsed, file.name);
+  };
+  rd.onerror = () => { toast("파일을 읽지 못했어요"); $("#csvFile").value = ""; };
+  rd.readAsText(file, "utf-8");
+}
+/** downloads 캐퍼빌리티가 없을 때의 내려받기 폴백 (호스팅·로컬). */
+function downloadTextFallback(filename, text){
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + text.replace(/^\uFEFF/, "")], { type: "text/csv;charset=utf-8" }));
+  a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ================= 여러 품목 등록 ================= */
+let multiCtx = null;   // { kind, date, who }
+const STORE_WORDS = [["쿠팡", /쿠팡|로켓/], ["배달의민족", /배민|배달의민족/], ["네이버", /네이버/], ["컬리", /컬리/], ["SSG", /ssg|이마트몰/i], ["11번가", /11번가/], ["G마켓", /g마켓|지마켓/i]];
+function guessStore(text){
+  for (const [name, re] of STORE_WORDS) if (re.test(text)) return name;
+  return "";
+}
+function openMultiSheet(items, ctx, text){
+  multiCtx = ctx;
+  const box = $("#multiRows");
+  box.textContent = "";
+  items.forEach((it, i) => {
+    const r = el("div", "mrow");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = true; cb.setAttribute("aria-label", (it.name || "품목") + " 포함");
+    const nm = document.createElement("input"); nm.className = "mname"; nm.value = it.name || ""; nm.placeholder = "품목 " + (i + 1);
+    const am = document.createElement("input"); am.className = "mamt"; am.inputMode = "numeric"; am.value = it.amount.toLocaleString("ko-KR");
+    bindAmtField(am);
+    r.append(cb, nm, am);
+    box.append(r);
+  });
+  $("#multiDate").value = ctx.date || todayStr();
+  $("#multiStore").value = guessStore(text || "");
+  $("#multiHint").textContent = items.length + "개 품목이 보여요. 체크된 것만 등록돼요. 이름이나 금액이 틀리면 고쳐 주세요.";
+  $("#multiSheet").classList.add("show");
+  $("#multiSheet").setAttribute("aria-hidden", "false");
+  $("#multiRows input.mname").focus();
+}
+function closeMultiSheet(){
+  $("#multiSheet").classList.remove("show");
+  $("#multiSheet").setAttribute("aria-hidden", "true");
+  multiCtx = null;
+}
+function multiPicked(){
+  return [...$("#multiRows").querySelectorAll(".mrow")]
+    .filter(r => r.querySelector("input[type=checkbox]").checked)
+    .map(r => ({ name: r.querySelector(".mname").value.trim(), amount: evalAmount(r.querySelector(".mamt").value) || 0 }))
+    .filter(x => x.amount > 0);
+}
+async function multiSubmit(mode){
+  if (!multiCtx) return;
+  const picked = multiPicked();
+  if (!picked.length) { toast("등록할 품목을 하나 이상 체크해 주세요"); return; }
+  const date = $("#multiDate").value || todayStr();
+  const store = $("#multiStore").value.trim();
+  const who = segValue($("#expWho"));
+  const base = { type: multiCtx.kind === "income" ? "income" : "expense", date, month: date.slice(0, 7), who };
+  const btns = [$("#multiEach"), $("#multiMerge")];
+  btns.forEach(b => b.disabled = true);
+  try {
+    if (mode === "merge") {
+      const total = picked.reduce((a, x) => a + x.amount, 0);
+      const memo = (store ? store + " " : "") + (picked.length === 1 ? picked[0].name : picked[0].name + " 외 " + (picked.length - 1) + "건");
+      await addEntry({ ...base, memo: memo.slice(0, 60), category: suggestCategory(memo) || (store ? "마트·장보기" : CATEGORIES[0]), amount: total, createdAt: Date.now() });
+      toast(picked.length + "개 품목을 합쳐 " + fmtWon(total) + "으로 등록했어요");
+    } else {
+      let n = 0;
+      for (const x of picked) {
+        const memo = (store ? store + " · " : "") + (x.name || "품목");
+        await addEntry({ ...base, memo: memo.slice(0, 60), category: suggestCategory(x.name || store) || (store ? "마트·장보기" : CATEGORIES[0]), amount: x.amount, createdAt: Date.now() + n });
+        n++;
+      }
+      toast(n + "건을 각각 등록했어요");
+    }
+    closeMultiSheet();
+    state.month = date.slice(0, 7); if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
+    showTab(base.type === "income" ? "income" : "daily");
+    renderAll();
+  } catch (err) { dbWriteFailed(err); }
+  finally { btns.forEach(b => b.disabled = false); }
+}
+
+/* ================= 자동화: 폼 채우기 ================= */
+/** 입금 알림에서 읽은 값을 입금 폼에 채운다 (저장은 사용자가 확인 후). */
+function fillIncomeForm({amount, merchant, date}, sourceLabel){
+  $("#incAdder").open = true;
+  if (amount) { $("#incAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#incAmt")); }
+  if (merchant) $("#incMemo").value = merchant;
+  $("#incDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
+  $("#incAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+  toast(sourceLabel + " — 입금으로 읽었어요. 확인하고 저장을 눌러 주세요");
+}
+/** 읽은 결과를 종류에 맞는 폼으로 보낸다. */
+function fillFromParsed(parsed, sourceLabel){
+  if (parsed.kind === "income") fillIncomeForm(parsed, sourceLabel);
+  else fillExpenseForm({ ...parsed, category: parsed.category || "" }, sourceLabel);
+}
+
+function fillExpenseForm({amount, merchant, date, category}, sourceLabel){
+  $("#expAdder").open = true;
+  if (amount) { $("#expAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#expAmt")); }
+  if (merchant) $("#expMemo").value = merchant;
+  $("#expDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
+  const cat = (category && CATEGORIES.includes(category)) ? category : suggestCategory(merchant || "");
+  if (cat) $("#expCat").value = cat;
+  const form = $("#expForm");
+  form.classList.remove("formflash"); void form.offsetWidth; form.classList.add("formflash");
+  $("#expForm").scrollIntoView({ block: "center", behavior: "smooth" });
+  toast(sourceLabel + " — 누가 썼는지 고르고 저장을 눌러 주세요");
+}
+
+/* ================= 캐퍼빌리티 ================= */
+let sampleFn = null, downloadsNs = null, sampleImagesOk = false;
+let currentAbort = null;
+
+function setConn(mode){
+  const conn = $("#conn");
+  const shared = mode === "db" || mode === "fs";
+  conn.classList.toggle("on", shared);
+  $("#connText").textContent =
+    mode === "db" ? "실시간 공유 연결됨" :
+    mode === "fs" ? "실시간 공유 연결됨 (Firebase)" : "이 기기에만 저장 중";
+  // 공유가 아니면 상단에 크게 알린다 — 그 사실이 푸터에 묻히면 혼자 한 달을 적게 된다
+  const bar = $("#shareBanner");
+  bar.classList.toggle("show", !shared);
+  if (!shared) $("#shareBannerText").textContent =
+    "지금 적는 기록은 이 기기에만 저장돼요 — 상대방 화면에는 안 보입니다";
+
+  const note = $("#footNote");
+  note.textContent =
+    mode === "db" ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요." :
+    mode === "fs" ? "초대 링크를 아는 사람끼리 같은 기록을 실시간으로 봐요." :
+    fbFailReason ? "공유가 안 켜졌어요 — " + fbFailReason :
+    "지금은 이 기기에만 저장돼요. 공유하려면 claude.ai 아티팩트로 열거나 Firebase 설정을 넣어 주세요.";
+  note.classList.toggle("warn", mode !== "db" && mode !== "fs" && !!fbFailReason);
+}
+
+function autoStatus(msg, withStop){
+  const box = $("#autoStatus");
+  if (!msg) { box.classList.remove("show"); return; }
+  box.classList.add("show");
+  $("#autoStatusText").textContent = msg;
+  $("#autoStop").hidden = !withStop;
+}
+
+const SAMPLE_ERR_MSG = {
+  rate_limited: "요청이 잠시 몰렸어요 — 조금 뒤에 다시 시도해 주세요",
+  image_rejected: "이 사진은 읽을 수 없었어요 — 다른 사진으로 시도해 주세요",
+  refused: "이 내용은 인식할 수 없었어요",
+  invalid_json: "인식에 실패했어요 — 한 번 더 시도해 주세요",
+  empty_completion: "인식에 실패했어요 — 다른 사진으로 시도해 주세요",
+  upstream_error: "연결이 잠시 불안정했어요 — 다시 시도해 주세요",
+  session_expired: "claude.ai에 다시 로그인한 뒤 시도해 주세요",
+};
+const SAMPLE_HIDE_CODES = ["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed","images_unavailable"];
+
+function extractPrompt(){
+  return "이미지는 한국의 카드 결제 알림 스크린샷, 간편결제 알림, 또는 영수증 사진입니다. 결제 한 건의 정보를 추출하세요.\n" +
+    'JSON 객체 하나로만 답하세요: {"kind": "expense" 또는 "income", "amount": 금액(원 단위 정수), "merchant": "가맹점명 또는 보낸 사람", "date": "YYYY-MM-DD" 또는 알 수 없으면 null, "category": 다음 중 하나 — ' +
+    CATEGORIES.join(", ") + '}\n' +
+    '카드 승인·결제·출금이면 kind는 "expense", 통장 입금·이체 받음이면 "income"입니다.\n' +
+    '주문 완료 화면처럼 품목이 여러 개면 "items": [{"name": "품목명", "amount": 금액}, ...] 도 함께 주세요 (총액·배송비 줄은 제외).\n' +
+    '금액을 찾을 수 없거나 결제 취소 알림이면 {"error": "짧은 이유"}로만 답하세요.';
+}
+
+/* ---------- 스크린샷에서 글자 읽기 (외부 호스팅) ----------
+   아티팩트에서는 Claude가 이미지를 직접 보지만, 그 밖에서는 그 경로가 없다.
+   브라우저 안에서 도는 OCR로 글자만 뽑아내 기존 문자 파서에 그대로 먹인다. */
+const ocrAvailable = () => typeof Tesseract !== "undefined";
+let ocrBusy = false;
+
+async function extractByOcr(file){
+  if (ocrBusy) return;
+  ocrBusy = true;
+  $("#photoBtn").disabled = true;
+  autoStatus("사진에서 글자를 읽는 중… 처음 한 번은 인식기를 받느라 오래 걸려요", false);
+  try {
+    const { data } = await Tesseract.recognize(file, "kor+eng", {
+      logger: m => {
+        if (m.status === "recognizing text") autoStatus("글자 읽는 중… " + Math.round((m.progress || 0) * 100) + "%", false);
+        else if (m.status) autoStatus("인식기 준비 중… (" + m.status + ")", false);
+      },
+    });
+    const text = String((data && data.text) || "");
+    const parsed = parseSms(text);
+    const multi = parseItems(text);
+    if (multi.items.length >= 2) {
+      autoStatus("");
+      openMultiSheet(multi.items, { kind: parsed.kind, date: parsed.date }, text);
+    } else if (parsed.amount > 0) {
+      fillFromParsed(parsed, "스크린샷에서 읽었어요");
+      autoStatus("");
+    } else {
+      autoStatus("금액을 찾지 못했어요. 사진이 흐리면 '결제 문자 붙여넣기'로 글자를 넣어 주세요.");
+    }
+  } catch (e) {
+    autoStatus("사진을 읽지 못했어요 — 다시 시도하거나 문자 붙여넣기를 써 주세요");
+  } finally {
+    ocrBusy = false;
+    $("#photoBtn").disabled = false;
+    $("#photoFile").value = "";
+  }
+}
+
+async function extractFromImage(file){
+  if (!sampleFn) return ocrAvailable() ? extractByOcr(file) : undefined;
+  currentAbort = new AbortController();
+  autoStatus("사진을 읽는 중… (몇 초 걸려요)", true);
+  $("#photoBtn").disabled = true;
+  try {
+    const data = await sampleFn.json(extractPrompt(), {
+      images: file, modelTier: "quick", signal: currentAbort.signal,
+    });
+    if (data && typeof data === "object" && !data.error && Array.isArray(data.items) && data.items.length >= 2) {
+      autoStatus("");
+      openMultiSheet(data.items.map(x => ({ name: String(x.name || "").slice(0, 40), amount: Math.round(Number(x.amount) || 0) })).filter(x => x.amount > 0),
+        { kind: data.kind === "income" ? "income" : "expense", date: typeof data.date === "string" ? data.date : "" }, "");
+    } else if (data && typeof data === "object" && !data.error && Number(data.amount) > 0) {
+      fillFromParsed({
+        kind: data.kind === "income" ? "income" : "expense",
+        amount: Math.round(Number(data.amount)),
+        merchant: typeof data.merchant === "string" ? data.merchant.slice(0, 40) : "",
+        date: typeof data.date === "string" ? data.date : "",
+        category: typeof data.category === "string" ? data.category : "",
+      }, "스크린샷에서 읽었어요");
+      autoStatus("");
+    } else {
+      autoStatus((data && typeof data.error === "string" ? data.error + " — " : "") + "결제 정보를 찾지 못했어요. 직접 적어 주세요.");
+    }
+  } catch (e) {
+    const code = e && e.code;
+    if (code === "cancelled") autoStatus("");
+    else if (SAMPLE_HIDE_CODES.includes(code)) { $("#photoBtn").hidden = true; autoStatus("이 화면에서는 사진 인식을 쓸 수 없어요."); }
+    else autoStatus(SAMPLE_ERR_MSG[code] || "인식에 실패했어요 — 다시 시도해 주세요");
+  } finally {
+    $("#photoBtn").disabled = false;
+    $("#photoFile").value = "";
+    currentAbort = null;
+  }
+}
+
+async function parsePastedText(){
+  const text = $("#pasteText").value.trim();
+  if (!text) { toast("문자 내용을 먼저 붙여넣어 주세요"); return; }
+  const parsed = parseSms(text);
+  const multi = parseItems(text);
+  if (multi.items.length >= 2) {
+    openMultiSheet(multi.items, { kind: parsed.kind, date: parsed.date }, text);
+    $("#pasteBox").classList.remove("show");
+    $("#pasteText").value = "";
+    return;
+  }
+  if (parsed.amount > 0) {
+    fillFromParsed(parsed, "문자에서 읽었어요");
+    $("#pasteBox").classList.remove("show");
+    $("#pasteText").value = "";
+    return;
+  }
+  if (!sampleFn) { autoStatus("금액을 찾지 못했어요 — 직접 적어 주세요."); return; }
+  // 정규식 실패 → AI 폴백
+  currentAbort = new AbortController();
+  autoStatus("내용을 읽는 중…", true);
+  try {
+    const data = await sampleFn.json(
+      "다음은 결제 알림 문자입니다. " + extractPrompt().split("\n").slice(1).join("\n") + "\n\n문자:\n" + text.slice(0, 3000),
+      { modelTier: "quick", signal: currentAbort.signal });
+    if (data && !data.error && Number(data.amount) > 0) {
+      fillFromParsed({
+        kind: data.kind === "income" ? "income" : "expense",
+        amount: Math.round(Number(data.amount)),
+        merchant: typeof data.merchant === "string" ? data.merchant.slice(0, 40) : "",
+        date: typeof data.date === "string" ? data.date : "",
+        category: typeof data.category === "string" ? data.category : "",
+      }, "내용에서 읽었어요");
+      autoStatus("");
+      $("#pasteBox").classList.remove("show");
+      $("#pasteText").value = "";
+    } else autoStatus("결제 정보를 찾지 못했어요 — 직접 적어 주세요.");
+  } catch (e) {
+    if (e && e.code === "cancelled") autoStatus("");
+    else autoStatus(SAMPLE_ERR_MSG[e && e.code] || "인식에 실패했어요 — 직접 적어 주세요.");
+  } finally { currentAbort = null; }
+}
+
+/* ================= 고정지출 ================= */
+function missingRecurring(){
+  if (state.month !== thisMonth()) return [];
+  const have = new Set();
+  state.entries.forEach(e => { if (e.month === state.month && e.rec) have.add(e.rec); });
+  const today = Number(todayStr().slice(8));
+  // 아직 나갈 날이 안 된 고정지출로 미리 재촉하지 않는다 — 그러면 남은 돈이 그 달 내내 틀린다
+  return state.recurring.filter(r => !have.has(r.id) && Number(r.day || 1) <= today);
+}
+function renderRecBanner(){
+  const miss = missingRecurring();
+  const b = $("#recBanner");
+  b.classList.toggle("show", miss.length > 0);
+  if (miss.length) $("#recBannerText").textContent =
+    "이번 달 고정지출 " + miss.length + "건이 아직 기록되지 않았어요 (" + miss.map(r => r.memo).join(", ") + ")";
+}
+async function fillRecurring(){
+  const miss = missingRecurring();
+  const lastDay = new Date(Number(state.month.slice(0,4)), Number(state.month.slice(5)), 0).getDate();
+  for (const r of miss) {
+    await addEntry({
+      type: "expense", month: state.month,
+      date: state.month + "-" + pad2(Math.min(Math.max(1, r.day || 1), lastDay)),
+      who: r.who || "both", category: r.category || "주거·공과금",
+      memo: r.memo, amount: r.amount, createdAt: Date.now(), rec: r.id,
+    }).catch(dbWriteFailed);
+  }
+  toast("고정지출 " + miss.length + "건을 기록했어요");
+  if (state.mode === "local") renderAll();
+}
+
+/* ================= 설정 렌더/저장 ================= */
+function renderSettings(){
+  const focused = document.activeElement;
+  if (focused !== $("#setM0")) $("#setM0").value = state.members[0];
+  if (focused !== $("#setM1")) $("#setM1").value = state.members[1];
+  buildWhoSeg($("#incWho"), true);
+  buildWhoSeg($("#expWho"), true);
+  const prevWho = $("#recWho").value;
+  buildWhoSelect("#recWho");
+  if (prevWho) $("#recWho").value = prevWho;
+  const list = $("#recList");
+  list.textContent = "";
+  if (!state.recurring.length) list.append(el("div", "empty", "등록된 고정지출이 없어요."));
+  state.recurring.forEach(r => {
+    const row = el("div", "row");
+    row.append(el("span", "d num", "매달 " + r.day + "일"));
+    row.append(el("span", "chip", r.category));
+    row.append(el("span", "memo", r.memo));
+    row.append(el("span", "who", whoName(r.who)));
+    row.append(el("span", "amt num ex", "−" + fmtWon(r.amount)));
+    const del = el("button", "del", "×");
+    del.setAttribute("aria-label", "고정지출 삭제");
+    del.addEventListener("click", () => {
+      state.recurring = state.recurring.filter(x => x.id !== r.id);
+      saveRecurringDoc().catch(dbWriteFailed);
+    });
+    row.append(del);
+    list.append(row);
+  });
+}
+
+/* ================= CSV ================= */
+function buildCsv(){
+  const rows = [["날짜","구분","카테고리","내용","누가","금액(원)"]];
+  [...state.entries.values()]
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.createdAt||0) - (b.createdAt||0))
+    .forEach(e => rows.push([
+      e.date, e.type === "income" ? "입금" : "지출", e.type === "income" ? "" : (e.category || ""),
+      e.memo || "", whoName(e.who), String(Math.round(Number(e.amount)||0)),
+    ]));
+  return "\uFEFF" + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+}
+
+/* ================= 이벤트 연결 ================= */
+function bindEvents(){
+  // 규칙
+  $("#rulesEditBtn").addEventListener("click", () => {
+    $("#rulesText").value = state.rules || DEFAULT_RULES;
+    $("#rulesEdit").hidden = false;
+    $("#rulesList").hidden = true;
+    $("#rulesText").focus();
+  });
+  $("#rulesCancel").addEventListener("click", () => { $("#rulesEdit").hidden = true; $("#rulesList").hidden = false; });
+  $("#rulesSave").addEventListener("click", () => {
+    saveRules($("#rulesText").value.trim()).catch(dbWriteFailed);
+    $("#rulesEdit").hidden = true; $("#rulesList").hidden = false;
+    toast("규칙을 저장했어요");
+  });
+
+  // 월 이동
+  const goMonth = m => { state.month = m; state.dayFilter = ""; renderAll(); };
+  $("#prevM").addEventListener("click", () => goMonth(shiftMonth(state.month, -1)));
+  $("#nextM").addEventListener("click", () => goMonth(shiftMonth(state.month, +1)));
+  $("#toThis").addEventListener("click", () => goMonth(thisMonth()));
+
+  // 입금 저장
+  bindAmtField($("#incAmt")); attachCalcButton($("#incAmt"));
+  $("#incSave").addEventListener("click", async () => {
+    const btn = $("#incSave"), was = btn.textContent;
+    const amount = evalAmount($("#incAmt").value);
+    const date = $("#incDate").value || todayStr();
+    if (!amount) { toast(amtError($("#incAmt").value)); $("#incAmt").focus(); return; }
+    const id = editing.income;
+    const prev = id ? state.entries.get(id) : null;
+    const entry = { type: "income", date, month: date.slice(0,7), who: segValue($("#incWho")),
+      category: "", memo: $("#incMemo").value.trim(), amount,
+      createdAt: (prev && prev.createdAt) || Date.now() };
+    btn.disabled = true; btn.textContent = "저장 중…";
+    try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
+    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }  // 폼은 그대로 둔다
+    btn.disabled = false;
+    cancelEdit("income");
+    if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
+    clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
+    state.month = date.slice(0,7); renderAll();
+    toast(id ? "입금을 고쳤어요" : "입금을 저장했어요");
+  });
+  $("#incCancel").addEventListener("click", () => {
+    cancelEdit("income");
+    clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
+  });
+
+  // 지출 저장
+  bindAmtField($("#expAmt")); attachCalcButton($("#expAmt"));
+  $("#expCat").addEventListener("change", () => { expCatTouched = true; });
+  $("#expMemo").addEventListener("change", () => {
+    if (expCatTouched) return;                        // 사용자가 고른 것을 덮지 않는다
+    const cat = suggestCategory($("#expMemo").value);
+    if (cat) { $("#expCat").value = cat; }
+  });
+  $("#expSave").addEventListener("click", async () => {
+    const btn = $("#expSave"), was = btn.textContent;
+    const amount = evalAmount($("#expAmt").value);
+    const date = $("#expDate").value || todayStr();
+    if (!amount) { toast(amtError($("#expAmt").value)); $("#expAmt").focus(); return; }
+    const id = editing.expense;
+    const prev = id ? state.entries.get(id) : null;
+    const entry = { type: "expense", date, month: date.slice(0,7), who: segValue($("#expWho")),
+      category: $("#expCat").value, memo: $("#expMemo").value.trim(), amount,
+      createdAt: (prev && prev.createdAt) || Date.now() };
+    if (prev && prev.rec) entry.rec = prev.rec;        // 고정지출 표식은 유지
+    btn.disabled = true; btn.textContent = "저장 중…";
+    try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
+    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
+    btn.disabled = false;
+    cancelEdit("expense");
+    // 달력에서 고른 날에 적었으면 그 날에 머문다 (연속 입력) — 다른 날이면 필터를 풀어 방금 것이 보이게
+    const stay = state.dayFilter && state.dayFilter === date;
+    if (!stay) state.dayFilter = "";
+    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = stay ? date : todayStr();
+    $("#expCat").value = CATEGORIES[0]; expCatTouched = false;
+    state.month = date.slice(0,7); renderAll();
+    toast(id ? "지출을 고쳤어요" : "지출을 저장했어요");
+  });
+  $("#expCancel").addEventListener("click", () => {
+    cancelEdit("expense");
+    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = todayStr();
+    $("#expCat").value = CATEGORIES[0]; expCatTouched = false;
+  });
+
+  // 자동화: 사진
+  $("#photoBtn").addEventListener("click", () => $("#photoFile").click());
+  $("#photoFile").addEventListener("change", () => {
+    const f = $("#photoFile").files && $("#photoFile").files[0];
+    if (f) extractFromImage(f);
+  });
+  $("#autoStop").addEventListener("click", () => { if (currentAbort) currentAbort.abort(); });
+
+  // 자동화: 문자 붙여넣기
+  $("#pasteBtn").addEventListener("click", () => {
+    $("#pasteBox").classList.toggle("show");
+    if ($("#pasteBox").classList.contains("show")) $("#pasteText").focus();
+  });
+  $("#pasteClose").addEventListener("click", () => $("#pasteBox").classList.remove("show"));
+  $("#pasteParse").addEventListener("click", parsePastedText);
+
+  // 고정지출
+  $("#recFill").addEventListener("click", fillRecurring);
+  bindAmtField($("#recAmt")); attachCalcButton($("#recAmt"));
+  $("#recAdd").addEventListener("click", () => {
+    const day = Number($("#recDay").value) || 0;
+    const amount = evalAmount($("#recAmt").value);
+    const memo = $("#recMemo").value.trim();
+    if (!day || day < 1 || day > 31) { toast("며칠에 나가는지 입력해 주세요 (1–31)"); return; }
+    if (!amount || !memo) { toast("금액과 내용을 입력해 주세요"); return; }
+    state.recurring.push({ id: newId(), day, amount, memo, category: $("#recCat").value, who: $("#recWho").value });
+    $("#recDay").value = ""; clearAmtField($("#recAmt")); $("#recMemo").value = "";
+    saveRecurringDoc().catch(dbWriteFailed);
+    toast("고정지출을 등록했어요");
+  });
+
+  // 설정
+  const drawerOpen = () => {
+    $("#drawerWrap").classList.add("open");
+    $("#drawerWrap").setAttribute("aria-hidden", "false");
+    $("#settingsBtn").setAttribute("aria-expanded", "true");
+    $("#drawerClose").focus();
+  };
+  const drawerClose = () => {
+    $("#drawerWrap").classList.remove("open");
+    $("#drawerWrap").setAttribute("aria-hidden", "true");
+    $("#settingsBtn").setAttribute("aria-expanded", "false");
+    $("#settingsBtn").focus();
+  };
+  $("#settingsBtn").addEventListener("click", drawerOpen);
+  $("#drawerClose").addEventListener("click", drawerClose);
+  $("#drawerBackdrop").addEventListener("click", drawerClose);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && $("#drawerWrap").classList.contains("open")) drawerClose();
+  });
+
+  TABS.forEach(t => $("#tb-" + t).addEventListener("click", () => showTab(t)));
+
+  // 하단 빠른 추가 — 목록 맨 아래까지 스크롤하지 않고 바로 적게
+  $("#quickAdd").addEventListener("click", () => {
+    cancelEdit("expense");
+    showTab("daily");
+    $("#expAdder").open = true;
+    $("#expAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(() => $("#expAmt").focus(), 350);
+  });
+  $("#saveSettings").addEventListener("click", () => {
+    const a = $("#setM0").value.trim(), b = $("#setM1").value.trim();
+    if (!a || !b) { toast("이름을 비울 수 없어요"); return; }
+    state.members = [a, b];
+    saveSettingsDoc().catch(dbWriteFailed);
+    toast("이름을 저장했어요");
+  });
+
+  // CSV
+  $("#csvBtn").addEventListener("click", async () => {
+    if (!downloadsNs) { downloadTextFallback("생활비통장.csv", buildCsv()); toast("CSV를 내려받아요"); return; }
+    try {
+      await downloadsNs.save({ filename: "생활비통장.csv", data: buildCsv() });
+      toast("CSV를 내보냈어요");
+    } catch (e) {
+      if (e && (e.code === "declined" || e.code === "cancelled")) return;
+      toast("내보내기에 실패했어요 — 다시 시도해 주세요");
+    }
+  });
+
+  // CSV 가져오기
+  $("#csvImportBtn").addEventListener("click", () => $("#csvFile").click());
+  $("#csvFile").addEventListener("change", () => handleCsvFile($("#csvFile").files && $("#csvFile").files[0]));
+  $("#csvGo").addEventListener("click", importCsvRows);
+  $("#csvCancel").addEventListener("click", closeCsvSheet);
+  $("#csvBackdrop").addEventListener("click", closeCsvSheet);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#csvSheet").classList.contains("show")) closeCsvSheet(); });
+
+  // 초대 링크 (Firebase 모드)
+  $("#copyInvite").addEventListener("click", async () => {
+    const url = $("#inviteUrl").value;
+    try { await navigator.clipboard.writeText(url); toast("초대 링크를 복사했어요 — 다니에게 보내세요"); }
+    catch (e) { $("#inviteUrl").focus(); $("#inviteUrl").select(); toast("길게 눌러 직접 복사해 주세요"); }
+  });
+
+  // 기기 기록 → 공유 저장소 이사
+  $("#migUpload").addEventListener("click", migrateLocal);
+  $("#migClose").addEventListener("click", () => { migDismissed = true; renderMigBanner(); });
+
+  // 공유 꺼짐 배너의 "자세히" — 기술적 원인은 접어 둔다
+  $("#shareWhy").addEventListener("click", () => {
+    const note = $("#footNote");
+    note.scrollIntoView({ block: "center", behavior: "smooth" });
+    toast(fbFailReason || "공유 저장소에 연결되지 않았어요");
+  });
+
+  // 여러 품목 시트
+  $("#multiEach").addEventListener("click", () => multiSubmit("each"));
+  $("#multiMerge").addEventListener("click", () => multiSubmit("merge"));
+  $("#multiCancel").addEventListener("click", closeMultiSheet);
+  $("#multiBackdrop").addEventListener("click", closeMultiSheet);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#multiSheet").classList.contains("show")) closeMultiSheet(); });
+
+  // 계산기 패드
+  buildCalcPad();
+  $("#calcApply").addEventListener("click", calcApply);
+  $("#calcCancel").addEventListener("click", calcClose);
+  $("#calcBackdrop").addEventListener("click", calcClose);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && $("#calcSheet").classList.contains("show")) calcClose();
+  });
+}
+
+/* ================= 공유 저장소 연결 (아티팩트 db · Firebase 공용) ================= */
+let localBackup = null;   // 공유 모드 전환 직전의 이 기기 기록 (이사 제안용)
+let migDismissed = false;
+
+function connectSharedStore(adapter, mode){
+  db = adapter;
+  state.mode = mode;
+  localBackup = {
+    entries: [...state.entries.values()],
+    rules: state.rules, members: state.members, recurring: state.recurring,
+  };
+  state.entries = new Map();   // 공유 데이터만 사용 (기기 데이터와 섞지 않음)
+  state.rules = ""; state.recurring = [];
+  setConn(mode);
+  db.collection("entries").onSnapshot(snap => {
+    state.entries = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
+    renderAll(); renderMigBanner();
+  }, () => toast("공유 저장소 연결이 끊겼어요 — 새로고침해 주세요"));
+  db.doc("meta/rules").onSnapshot(snap => {
+    state.rules = snap.exists ? String(snap.data().text || "") : "";
+    renderRules();
+  }, () => {});
+  db.doc("meta/settings").onSnapshot(snap => {
+    const m = snap.exists && snap.data().members;
+    if (Array.isArray(m) && m.length === 2) { state.members = m.map(String); renderAll(); }
+  }, () => {});
+  db.doc("meta/recurring").onSnapshot(snap => {
+    const items = snap.exists && snap.data().items;
+    state.recurring = Array.isArray(items) ? items : [];
+    renderSettings(); renderRecBanner();
+  }, () => {});
+}
+
+/* 이 기기에만 있던 기록을 공유 저장소로 올리는 배너 */
+function renderMigBanner(){
+  const b = $("#migBanner");
+  const show = !migDismissed && localBackup && localBackup.entries.length > 0 && state.entries.size === 0;
+  b.classList.toggle("show", !!show);
+  if (show) $("#migText").textContent =
+    "이 기기에 기록 " + localBackup.entries.length + "건이 있어요. 공유 가계부로 올릴까요?";
+}
+async function migrateLocal(){
+  if (!db || !localBackup) return;
+  const b = localBackup;
+  migDismissed = true; renderMigBanner();
+  try {
+    for (const e of b.entries) { const { id, ...rest } = e; await db.collection("entries").add(rest); }
+    if (b.rules && !state.rules) await db.doc("meta/rules").set({ text: b.rules, updatedAt: Date.now() });
+    if (b.recurring.length && !state.recurring.length) await db.doc("meta/recurring").set({ items: b.recurring, updatedAt: Date.now() });
+    toast("기록 " + b.entries.length + "건을 옮겼어요");
+  } catch (err) { dbWriteFailed(err); migDismissed = false; renderMigBanner(); }
+}
+
+/* ================= Firebase (외부 호스팅에서의 실시간 공유) =================
+   Realtime Database를 connectSharedStore()가 기대하는 형태로 감싼다:
+   컬렉션 = 자식들을 담은 노드, 문서 = 그 아래 한 노드. */
+function rtdbAdapter(root){
+  const collection = p => ({
+    onSnapshot(next, error){
+      const ref = root.child(p);
+      const handler = ref.on("value", snap => {
+        const val = snap.val() || {};
+        next({ docs: Object.keys(val).map(id => ({ id, exists: true, data: () => val[id] })) });
+      }, e => { if (error) error(e); });
+      return () => ref.off("value", handler);
+    },
+    add: data => root.child(p).push(data),
+    doc: id => ({
+      set: data => root.child(p).child(id).set(data),
+      delete: () => root.child(p).child(id).remove(),
+    }),
+  });
+  const doc = p => ({
+    onSnapshot(next, error){
+      const ref = root.child(p);
+      const handler = ref.on("value", snap => {
+        next({ exists: snap.exists(), data: () => snap.val() || {} });
+      }, e => { if (error) error(e); });
+      return () => ref.off("value", handler);
+    },
+    set: data => root.child(p).set(data),
+    delete: () => root.child(p).remove(),
+  });
+  return { collection, doc };
+}
+
+/* 연결 실패 이유를 화면에 그대로 보여 준다 — "이 기기에만 저장 중"만으로는
+   콘솔에서 무엇이 빠졌는지 알 수 없어 사용자가 스스로 고칠 수 없다. */
+let fbFailReason = "";
+const FB_ERR_MSG = {
+  "auth/operation-not-allowed": "익명 로그인이 꺼져 있어요 — Firebase 콘솔 > Authentication > 로그인 방법 > 익명을 켜 주세요",
+  "auth/configuration-not-found": "Authentication이 아직 시작되지 않았어요 — Firebase 콘솔 > Authentication > 시작하기 > 익명을 켜 주세요",
+  "auth/admin-restricted-operation": "익명 로그인이 꺼져 있어요 — Firebase 콘솔 > Authentication > 로그인 방법 > 익명을 켜 주세요",
+  "auth/unauthorized-domain": "이 주소가 승인되지 않았어요 — Firebase 콘솔 > Authentication > 설정 > 승인된 도메인에 " + location.hostname + " 을 추가해 주세요",
+  "auth/api-key-not-valid": "API 키가 올바르지 않아요 — 웹 앱 구성값을 다시 확인해 주세요",
+  "auth/invalid-api-key": "API 키가 올바르지 않아요 — 웹 앱 구성값을 다시 확인해 주세요",
+  "auth/network-request-failed": "네트워크에 연결하지 못했어요 — 잠시 후 새로고침해 주세요",
+};
+function fbReasonFor(e){
+  const code = String((e && e.code) || "");
+  if (FB_ERR_MSG[code]) return FB_ERR_MSG[code];
+  const msg = String((e && e.message) || e || "");
+  if (/PERMISSION_DENIED/i.test(code + " " + msg))
+    return "데이터베이스 규칙이 막고 있어요 — Realtime Database > 규칙을 게시했는지 확인해 주세요";
+  return "Firebase에 연결하지 못했어요" + (code ? " (" + code + ")" : msg ? " (" + msg.slice(0, 80) + ")" : "");
+}
+
+async function initFirebase(){
+  if (!firebaseConfigured()) {
+    if (typeof firebase === "undefined")
+      // 아티팩트에서는 Firebase 스크립트를 일부러 뺀다 — 거기서 "못 불러왔다"고 하면 거짓말이 된다
+      fbFailReason = (window.claude && window.claude.use)
+        ? "이 화면에서는 공유 저장소를 쓸 수 없어요 — 기록은 이 기기에만 남습니다"
+        : "Firebase 스크립트를 불러오지 못했어요 — 새로고침하거나 네트워크를 확인해 주세요";
+    else if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("PASTE"))
+      fbFailReason = "Firebase 설정값이 아직 비어 있어요 (오래된 화면일 수 있어요 — 새로고침해 주세요)";
+    return false;
+  }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    await firebase.auth().signInAnonymously();
+    let lid = hashLid();
+    let created = false;
+    if (!lid) { try { lid = localStorage.getItem(LID_KEY) || ""; } catch(e){} }
+    if (!lid) { lid = newLid(); created = true; }
+    try { localStorage.setItem(LID_KEY, lid); } catch(e){}
+    if (hashLid() !== lid) { try { history.replaceState(null, "", "#l=" + lid); } catch(e){} }
+    connectSharedStore(rtdbAdapter(firebase.database().ref("ledgers/" + lid)), "fs");
+    $("#inviteRow").hidden = false;
+    $("#inviteUrl").value = location.href.split("#")[0] + "#l=" + lid;
+    if (created) toast("공유 가계부를 새로 만들었어요 — 메뉴에서 초대 링크를 보내세요");
+    window.addEventListener("hashchange", () => {
+      const h = hashLid();
+      if (h && h !== lid) { try { localStorage.setItem(LID_KEY, h); } catch(e){} location.reload(); }
+    });
+    return true;
+  } catch (e) {
+    fbFailReason = fbReasonFor(e);
+    return false;
+  }
+}
+
+/* ================= 캐퍼빌리티 초기화 ================= */
+async function initCapabilities(){
+  const use = window.claude && window.claude.use ? name => window.claude.use(name) : () => Promise.resolve(null);
+
+  // 1) claude.ai 아티팩트 내장 공유 저장소 → 2) Firebase → 3) 이 기기(localStorage)
+  let artifactDb = null;
+  try { artifactDb = await use("db"); } catch(e){ artifactDb = null; }
+  if (artifactDb) {
+    connectSharedStore(artifactDb, "db");
+  } else if (!(await initFirebase())) {
+    setConn("local");
+  }
+
+  // sample: 사진/문자 인식
+  try {
+    sampleFn = await use("sample");
+    if (sampleFn) {
+      const caps = await sampleFn.limits().catch(() => null);
+      sampleImagesOk = !!(caps && caps.images);
+      if (sampleImagesOk) {
+        $("#photoBtn").hidden = false;
+        $("#photoFile").accept = caps.images.mediaTypes.join(",");
+      }
+    }
+  } catch(e){ sampleFn = null; }
+
+  // Claude 이미지 인식이 없으면 브라우저 OCR로 스크린샷 등록을 켠다
+  if (!sampleImagesOk && ocrAvailable()) $("#photoBtn").hidden = false;
+
+  // downloads: CSV
+  try { downloadsNs = await use("downloads"); } catch(e){ downloadsNs = null; }   // 없으면 Blob 폴백
+}
+
+/* ================= 시작 ================= */
+function init(){
+  loadLocal();
+  buildCatSelect("#expCat"); buildCatSelect("#recCat");
+  $("#incDate").value = todayStr(); $("#expDate").value = todayStr();
+  bindEvents();
+  let lastTab = "daily";
+  try { lastTab = localStorage.getItem("dani-ledger-tab") || "daily"; } catch(e){}
+  showTab(lastTab);
+  renderAll();
+  setConn("local");
+  $("#connText").textContent = "연결 확인 중…";
+  initCapabilities();
+}
+init();
+</script>
+</body>
+</html>

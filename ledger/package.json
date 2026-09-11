@@ -1,0 +1,14 @@
+{
+  "name": "dani-ledger",
+  "private": true,
+  "description": "다니랑 생활비 통장 — 개발용 검증 스크립트 (배포물이 아님)",
+  "scripts": {
+    "build": "node build-artifact.mjs",
+    "check": "node build-artifact.mjs --check",
+    "test": "node test/calc.mjs && node test/sms.mjs && node build-artifact.mjs && node test/page.mjs",
+    "shot": "node test/shot.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

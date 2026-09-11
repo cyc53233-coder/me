@@ -1,117 +1,86 @@
-# CLAUDE.md
+# cyc53233-coder/me
 
-## What this repository is
+핫딜 큐레이션 사이트(저장소 루트·`v2/`)와 **생활비 가계부**(`ledger/`)가 한 저장소에 있다. 두 배포 대상이 서로 다른 주소로 나가므로 섞지 않는다.
 
-A personal agent-skills library. It ships **29 skills** as prose — no application code, no build, no tests, no dependencies, no runtime. Every file is a `SKILL.md` that an agent reads and follows; changing this repo means changing prose that changes agent behavior.
+## 배포 지도
 
-The skills are hygiene and judgment reflexes for agentic work: check the read before spending, attack a plan before building it, cold-read your own output, keep one truth in one place, restart from lessons rather than from code.
+| 무엇 | 어디로 | 무엇이 트리거하나 |
+|---|---|---|
+| 저장소 루트 정적 사이트 | `cyc53233-coder.github.io/me/` | `main` 푸시 → GitHub Pages 자동 |
+| **가계부** `ledger/` | 같은 Pages 주소의 `/me/ledger/` | 위와 동일 |
+| 가계부 (선택) | `dani-yongcheol.web.app` | `main`의 `ledger/**` 푸시 → `firebase-hosting.yml` |
 
-Two provenances live side by side:
+**Firebase Hosting 워크플로는 저장소 시크릿 `FIREBASE_SERVICE_ACCOUNT`가 없으면 실패한다.** 없는 상태에서도 GitHub Pages 배포는 정상이므로, 그 주소로 쓰는 한 이 실패는 무시해도 되는 알려진 상태다 — 실패를 볼 때마다 새로 진단하지 말 것.
 
-- **28 skills** are the complete `LilMGenius/paperthin` catalog. They share one voice, one file shape, and a set of cross-skill contracts (below). Treat them as a single coherent suite.
-- **`find-skills`** comes from the open skills ecosystem (`npx skills`). It follows different conventions and is the one intentional outlier — do not "fix" it into paperthin's shape.
+## 가계부 배포 절차
 
-## Layout
+1. `main`에서 브랜치를 딴다 (`git checkout -B <branch> origin/main`). 이전 브랜치가 이미 머지됐다면 재사용하지 말고 새로 판다
+2. `ledger/index.html`을 고친다 — 단일 파일 웹앱이라 마크업·CSS·JS가 전부 여기 있다
+3. **`cd ledger && npm test`** — 계산기 엔진, 결제 문자 파싱, 브라우저 체크(아티팩트 변형·호스팅 변형·Firebase 실패 진단)를 모두 돌린다. 처음이면 `npm install` 먼저
+4. 커밋 → 푸시 → PR(초안으로 생성) → 준비 완료 전환 → 머지
+5. 머지 후 GitHub Pages 실행이 `success`인지 확인. 사용자에게는 **`Ctrl+Shift+R`** 로 열어보라고 안내한다 (Pages CDN 캐시 때문에 옛 파일이 보일 수 있다)
 
-```text
-.claude/skills/<skill-name>/SKILL.md    # 29 directories, one file each
-CLAUDE.md                               # this file
+`ledger/artifact.html`은 생성물이고 gitignore된다. 손으로 고치지 말고 `npm run build`로 만든다.
+
+## claude.ai 아티팩트 발행
+
+같은 앱을 아티팩트로도 발행해 왔다 (URL은 `/artifacts`에서 확인). `index.html`은 정식 HTML 문서이고 아티팩트 CSP는 외부 스크립트(Firebase SDK)를 막으므로, **반드시 `npm run build`가 만든 `artifact.html`을 발행한다.** 어떤 줄을 빼는지는 `build-artifact.mjs`의 `DROP` 목록이 유일한 기준이고, 문서 스켈레톤이나 Firebase 스크립트 줄을 고치면 목록도 함께 고쳐야 한다 (`npm run check`가 어긋남을 잡는다).
+
+## Firebase — 막혔을 때 추측하지 말고 여기서 확인
+
+프로젝트 `dani-yongcheol` · Realtime Database 싱가포르(`asia-southeast1`).
+
+페이지가 "이 기기에만 저장 중"이면 아래 요청 하나로 **원인이 확정된다.** 사용자에게 화면을 보라고 요청하기 전에 이걸 먼저 돌린다:
+
+```bash
+curl -s -X POST \
+  "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=<웹앱 apiKey>" \
+  -H "Content-Type: application/json" -d '{"returnSecureToken":true}'
 ```
 
-That is the entire repository. There are no assets, scripts, subdirectories, or reference files under any skill. Claude Code discovers `.claude/skills/` automatically from the project root; the directory name is the skill's invocation name and must match its frontmatter `name`.
+| 응답 | 뜻 | 사용자가 할 일 |
+|---|---|---|
+| `idToken` 반환 | 익명 로그인 정상 | 남은 건 데이터베이스 규칙 |
+| `CONFIGURATION_NOT_FOUND` | **Authentication이 시작된 적 없음** | 콘솔 > Authentication > 시작하기 > 익명 > 사용 설정 > 저장 |
+| `ADMIN_ONLY_OPERATION` | 익명 제공업체만 꺼짐 | 위와 동일 |
 
-## How skills fire
+**이 환경의 도달성**: `identitytoolkit.googleapis.com`은 나가지만 `*.firebasedatabase.app`은 차단(HTTP 000)이다. 그래서 로그인은 여기서 검증되지만 **규칙은 브라우저에서만 확인된다.** 데이터베이스가 안 된다고 단정하지 말 것.
 
-Invocation mode is the single most important property of a skill, and it is set by one frontmatter key.
+콘솔에서 흔히 빠뜨리는 두 가지 — 둘 다 "입력했지만 적용 안 된" 상태로 보인다:
+- Authentication 익명 토글을 켜고 **저장**을 안 누름
+- 규칙을 붙여넣고 **게시**를 안 누름 (파란 "게시되지 않은 변경사항" 띠가 남아 있다)
 
-**Model-invoked (17)** — no `disable-model-invocation` key. The agent fires these on its own when the `description` matches the situation:
+적용된 규칙:
 
-`aim`, `autobahn`, `catchup`, `detool`, `factchk`, `find-skills`, `mandela`, `modelchk`, `nba`, `re0`, `re0-loop`, `re0-memo`, `re0-work`, `readchk`, `shower`, `sip`, `ssotize`
-
-**User-invoked (12)** — `disable-model-invocation: true`. Only a human fires these, deliberately:
-
-`debloat`, `dedash`, `feynman`, `hate`, `macrothink`, `prism`, `re0-git`, `re0-merge`, `re0-plan`, `re0-release`, `re0-upgrade`, `reorder`
-
-The split is a design decision, not an accident. The pattern: a reflex that would bias the agent if always in reach is gated behind a human. `hate` would bias toward demolition, `feynman` toward chronic self-doubt, `re0-git` toward committing when it shouldn't, `prism` and `macrothink` toward spending fan-out that must never masquerade as proof — each of those says so in its own text. The rest (`debloat`, `dedash`, `reorder`, `re0-upgrade`) are gated without stating why; they are narrow, scope-owned mutations a human should aim deliberately.
-
-**Never auto-invoke a user-invoked skill.** `sip` and `nba` both say this outright: they name the skill for the human to fire instead of firing it themselves.
-
-Because these 12 are hidden from model invocation, they do not appear in an agent's available-skills listing. Read the directory, not the listing, to know what this repo carries.
-
-## SKILL.md anatomy
-
-Every paperthin skill follows the same shape. Match it exactly when editing or adding one.
-
-```markdown
----
-name: <matches the directory name>
-description: "<what it does> — <when to use it>"
-disable-model-invocation: true   # only if user-invoked; omit entirely otherwise
----
-
-<One-line imperative statement of the skill, directly under the frontmatter. No H1.>
-
-## Goal
-## Workflow
-## Rules
-## Verification
+```json
+{ "rules": { "ledgers": { "$ledger": { ".read": "auth != null", ".write": "auth != null" } } } }
 ```
 
-Conventions that hold across the suite:
+보호는 "익명 로그인 + 추측 불가능한 22자 가계부 코드" 조합이다. 코드는 초대 링크(`#l=<코드>`)에만 들어 있고 `ledgers` 루트에는 읽기 권한이 없어 열거되지 않는다.
 
-- **No H1 heading.** The line under the frontmatter is a bare imperative sentence. (`find-skills` uses an H1 — it is the outlier.)
-- **`description` is the trigger.** For model-invoked skills it is the only thing that decides whether the skill fires, so it states the behavior *and* the conditions, usually with an explicit "Use when…". Some go further and name the felt signal — `autobahn` fires on "the moment you notice yourself about to hedge", `factchk` on "metacognitive doubt". Write descriptions for recall, not for elegance.
-- **Four sections, in order.** Extra sections are earned, not default: `mandela` adds "The 8 leakage patterns", `modelchk` adds "Output", `re0-upgrade` adds "Deprecations" and "Current catalog". Do not add sections a skill has not earned.
-- **`Verification` is a self-check the agent runs before finishing**, not a test suite. It is written as numbered conditions to confirm, and it is where each skill's failure mode is named.
-- **Voice**: imperative, second person, terse. Skill names and paths in backticks. Terms of art bolded on definition. Rules are one-line assertions, not paragraphs.
-- **Self-contained by default.** A skill should work when installed alone, so it avoids naming siblings as dependencies. `re0-plan` is the deliberate exception and says so in its Rules.
-- **One source line per paragraph and per list item.** 28 of the 29 files are unwrapped — no hard line breaks mid-sentence, however long the line gets (`re0-git`'s longest runs 973 characters). `catchup` is the lone hard-wrapped file. `re0`'s workflow calls unwrapping "source noise" cleanup and says to match how sibling artifacts format theirs, so match the majority. This file follows the same rule.
+## 가계부 구조에서 알아둘 것
 
-## Cross-skill contracts
+- **저장소 3단계 폴백** — claude.ai 아티팩트 내장 `db` → Firebase RTDB → 기기별 localStorage. `connectSharedStore()`가 요구하는 인터페이스만 맞추면 어댑터를 갈아끼울 수 있다 (`rtdbAdapter()` 참고)
+- **연결 실패는 조용히 넘기지 않는다** — `initFirebase()`가 실패 이유를 `fbFailReason`에 담아 화면 하단에 띄운다. 새 실패 코드를 만나면 `FB_ERR_MSG`에 사람이 읽을 문구로 추가한다
+- **공유 데이터는 신뢰하지 않는다** — 렌더는 전부 `textContent`. 사용자 문자열에 `innerHTML`을 쓰지 않는다
+- **계산 엔진은 `eval()`을 쓰지 않는다** (`/*CALC_START*/` 구간). 계산 결과가 공유 저장소를 거쳐 상대방 화면에도 렌더되기 때문이다
+- 사진 인식은 아티팩트에서는 Claude(`sample`), 그 밖에서는 브라우저 OCR로 동작한다. CSV 내보내기는 `downloads` 캐퍼빌리티가 없으면 Blob 다운로드로 폴백하고, **CSV 가져오기**(`parseCsv`, `/*CSV_START*/` 구간)는 어디서나 된다 — 이미 있는 기록·파일 안 중복은 미리보기에서 체크 해제된 채로 보여 준다
 
-These named conventions recur verbatim across skills. When you edit one copy, check the others — they are shared vocabulary, and drift between them is a real defect (`ssotize` exists for exactly this, and `re0-release` lists coherence across copies as a ship gate).
+## `.claude/skills/` — 설치된 에이전트 스킬 29개
 
-- **edit-safety** (`re0`, `ssotize`, `detool`, `debloat`, `dedash`, `reorder`, `re0-release`) — the mutation contract: assert each target exists and **report a MISS rather than silently no-op**; edit unicode-safe (`PYTHONUTF8=1`); replace **per occurrence, never by blanket sweep**; script large structural moves instead of sweeping by hand.
-- **negatives-as-corpus** (`autobahn`, `re0-plan`, `re0-merge`, `re0-release`, and as "negative corpus" in `re0-loop`, `re0-memo`, `re0-work`) — failed paths, declined contributions, and descoped material are archived with their cause of death and safe replacement. Nothing is deleted; a later cycle mines them to prove the anti-pattern is gone.
-- **commit-economy** (`re0-git`, `re0-release`) — one bullet per real, durable change, supporting edits folded in, nothing the diff or version already proves, matched to the local log's shape.
-- **A pass that finds nothing changes nothing** (`re0`, `ssotize`, `detool`, `debloat`, `factchk`, each phrasing it for its own target) — an empty finding is a valid result. Never invent drift to justify a mutation.
-- **Fresh-context isolation** (`shower`, `feynman`, `macrothink`, `prism`, `autobahn`, optionally `mandela`) — the judging mind must never be the one that made the thing. These skills hand an artifact's *contents* to a context-free subagent and withhold the author's intent, because a session cannot un-see what it built. Self-assessing in-session defeats the skill entirely.
-- **Roots over instances** (`macrothink`, `hate`, `prism`, `mandela`, `re0-memo`, `nba`) — collapse many findings into the one load-bearing root and return that. A checklist is the failure mode; several of these skills return exactly one item by design.
-- **Approval gates** (`ssotize`, `autobahn`, `re0-upgrade`, `re0-release`) — audit read-only, report the plan, mutate only after explicit confirmation. `re0-release` stakes two separate confirmations because commit is local and reversible while tag-and-push is public.
-- **Read-only means read-only** — `catchup`, `nba`, `mandela`, `modelchk`, and `macrothink` declare it in so many words; `shower` ("it diagnoses, it does not fix"), `hate` ("attack, don't improve"), and `prism` hold the same line without the label. All eight brief, diagnose, or recommend, and hand the fixing back to the calling session. They do not edit, execute, or decide.
+`.claude/skills/<이름>/SKILL.md` 29개가 들어 있다. 이 앱들과는 무관한, 작업 습관용 도구다. 28개는 `LilMGenius/paperthin` 카탈로그 전체이고 `find-skills` 하나만 다른 생태계에서 왔다 — 규약이 달라(H1을 쓴다) 의도된 예외이니 paperthin 모양으로 "고치지" 말 것.
 
-## The catalog by function
+**사람만 부를 수 있는 12개는 에이전트의 스킬 목록에 아예 안 보인다.** 프론트매터에 `disable-model-invocation: true`가 있으면 그렇다. 무엇이 들어 있는지 알려면 목록이 아니라 디렉터리를 봐야 한다.
 
-**Before spending work** — `readchk` (did I understand the instruction?), `aim` (propose the intent behind thin data), `modelchk` (size the capability tier and reasoning effort).
+- 모델이 스스로 호출(17): `aim` `autobahn` `catchup` `detool` `factchk` `find-skills` `mandela` `modelchk` `nba` `re0` `re0-loop` `re0-memo` `re0-work` `readchk` `shower` `sip` `ssotize`
+- 사람만 호출(12): `debloat` `dedash` `feynman` `hate` `macrothink` `prism` `re0-git` `re0-merge` `re0-plan` `re0-release` `re0-upgrade` `reorder`
 
-**Pressure-testing** — `hate` (one load-bearing objection plus the cheapest falsification), `macrothink` (strip the session's bait, fan out fresh reads, report divergence first), `feynman` (press a just-made decision until you can explain it), `prism` (2–5 independent lenses, return where they disagree), `mandela` (8-pattern leakage audit on any eval or metric), `factchk` (verify reality-grounded claims in both directions).
+사람만 호출하는 스킬은 에이전트가 대신 실행하지 않는다 — `sip`과 `nba`가 각각 그렇게 못박아 뒀다. 사람이 부를 스킬이라고 알려 주기만 한다.
 
-**Cleaning artifacts** — `re0` (refresh into a clean v0), `debloat` (compress to load-bearing density), `dedash` (remove em-dashes per grammatical role), `detool` (strip incidental stack coupling), `reorder` (realign a listing under one principle), `ssotize` (one fact, one home). These are deliberately narrow, non-overlapping reflexes — `debloat` spells the boundaries out, disclaiming `re0`'s rewrite, `ssotize`'s dedup, and `dedash`/`detool`'s tell-removal. Route a task to the narrowest one that fits rather than blending them.
+`SKILL.md`를 고칠 일이 생기면 모양을 맞춘다: 프론트매터(`name`은 디렉터리명과 일치, `description`, 사람만 호출이면 `disable-model-invocation: true`), 그 아래 한 줄짜리 명령문, 그다음 `## Goal` `## Workflow` `## Rules` `## Verification`. H1은 쓰지 않고, 한 문단·한 항목은 줄바꿈 없이 한 줄에 쓴다 (29개 중 28개가 그렇게 돼 있다). `description`은 모델이 그 스킬을 부를지 판단하는 유일한 근거이므로 "무엇을 하는지 + 언제 쓰는지"를 함께 적는다.
 
-**Self-check** — `shower` (cold-read from a context-free subagent), `sip` (after you make anything, run this repo's own skills on it before serving it — the recursive loop, and the closest thing to a default quality gate here).
+**`re0-release`·`re0-plan`·`re0-merge`·`re0-upgrade`는 이 저장소용이 아니다.** paperthin 상위 저장소를 전제로 쓰여서 `plugin.json`, `scripts/catalog.cjs`, `docs/readme/`, `.re0/` 같은 것을 참조하는데 여기엔 없다 (`ledger/`·`v2/`의 `package.json`은 그 구조가 아니다). 그 스킬을 만족시키려고 그런 파일을 만들지 말고, 이 저장소를 `re0-release`로 배포하지 않는다 — 배포는 위의 **가계부 배포 절차**를 따른다.
 
-**The long cycle** — `re0-plan` opens an iteration, `re0-loop` runs `FRAME → BUILD → DRIVE → RE0-MEMO → HATE → RE0-WORK → BUILD AGAIN`, `re0-memo` extracts lessons, `re0-work` restarts from what was proven, `nba` returns the single next action when the cycle stalls, `catchup` rebuilds a returning human's context from live state.
+## 커밋·PR
 
-**Shipping and collaboration** — `re0-git` (rewrite a finished commit message), `re0-release` (the full ship checklist, tag, publish), `re0-merge` (land an external contribution with credit intact), `re0-upgrade` (converge an install on the current catalog).
-
-**Scope safety** — `autobahn` (carve guardrail-adjacent items out with safe alternatives, then run the safe remainder at full strength in a subagent that never sees the risky input).
-
-**Ecosystem** — `find-skills` (search and install from `npx skills`).
-
-## Working in this repo
-
-**Editing a skill.** Read the whole `SKILL.md` first — they are 28–141 lines, so there is no excuse for a partial read. Keep the four-section shape and the voice. If your edit touches a cross-skill contract, grep for the term and update every copy in the same change. Prefer editing an existing Rule over appending a new one; `re0`'s own guidance applies to this repo's files.
-
-**Adding a skill.** Create `.claude/skills/<name>/SKILL.md` with `name` matching the directory. Decide invocation mode explicitly and justify a `disable-model-invocation: true` in the skill's own text. Write the `description` as behavior plus trigger. Check the new skill does not duplicate an existing one — the suite's own bar (`re0-merge`) is that an addition must show the set is worse without it.
-
-**Verifying a change.** There is nothing to run — no linter, no test, no build. Verification is reading. The house method is `sip`: cold-read it (`shower`), check truth claims (`factchk` / `mandela`) if it makes any, check consistency across copies (`ssotize`, audit first), tidy (`re0`). Since a skill's real behavior is "does the agent fire it at the right moment and follow it", the meaningful check is whether a fresh agent reading the file alone would do the right thing.
-
-**Git.** Branch work off `main`. Commit subjects are short and imperative (`Add paperthin skill pack (29 skills)`). Apply commit-economy: one bullet per durable change, nothing the diff already proves. Note that `re0-git`'s commit-economy rules out co-author trailers while this harness mandates one — the harness trailer wins for commits made here; do not treat the existing trailer in history as a violation to clean up.
-
-## What is not here, on purpose
-
-Four skills — `re0-plan`, `re0-release`, `re0-merge`, `re0-upgrade` — are written for the *upstream paperthin maintainer repository* and reference infrastructure this repository does not have: `package.json`, `plugin.json`, `scripts/catalog.cjs`, a README plus localized copies under `docs/readme/`, `.re0/iteration/` cycle folders, signed release tags, and a release workflow.
-
-**Do not create any of that to satisfy them, and do not run `re0-release` against this repository.** Those skills are installed here as reflexes to use on *other* projects, not as a description of this one. When `re0-plan` and `re0-release` cite "CLAUDE.md's Shipping checklist" or "CLAUDE.md's docs-role split", they mean upstream paperthin's CLAUDE.md — not this file. This repository has no README and no shipping process; CLAUDE.md is its only documentation surface.
-
-Likewise, `re0-upgrade`'s "Current catalog" and "Deprecations" tables are the upstream rename SSOT. This repo's 28 paperthin directories match that catalog exactly, with `find-skills` as the 29th. If you add or rename a skill here, that alignment is yours to track — nothing in this repo enforces it.
+커밋 메시지는 무엇이 왜 바뀌었는지를 산문으로 쓴다 (`git log` 참고). PR은 초안으로 열고, 검증 결과를 본문에 남긴다.

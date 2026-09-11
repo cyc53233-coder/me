@@ -1,0 +1,13 @@
+name: 딜 마감
+description: 끝난 딜을 마감으로 바꿉니다. 지우지 않고 기록으로 남깁니다.
+title: "마감: "
+labels: ["deal"]
+body:
+  - type: input
+    id: key
+    attributes:
+      label: 마감할 딜
+      description: 쉐어링크 주소를 그대로 넣거나, 상품명 일부만 적어도 됩니다.
+      placeholder: 토마토 케찹
+    validations:
+      required: true
