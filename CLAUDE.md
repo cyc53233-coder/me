@@ -66,6 +66,21 @@ curl -s -X POST \
 - **계산 엔진은 `eval()`을 쓰지 않는다** (`/*CALC_START*/` 구간). 계산 결과가 공유 저장소를 거쳐 상대방 화면에도 렌더되기 때문이다
 - 사진 인식은 아티팩트에서는 Claude(`sample`), 그 밖에서는 브라우저 OCR로 동작한다. CSV 내보내기는 `downloads` 캐퍼빌리티가 없으면 Blob 다운로드로 폴백하고, **CSV 가져오기**(`parseCsv`, `/*CSV_START*/` 구간)는 어디서나 된다 — 이미 있는 기록·파일 안 중복은 미리보기에서 체크 해제된 채로 보여 준다
 
+## `.claude/skills/` — 설치된 에이전트 스킬 29개
+
+`.claude/skills/<이름>/SKILL.md` 29개가 들어 있다. 이 앱들과는 무관한, 작업 습관용 도구다. 28개는 `LilMGenius/paperthin` 카탈로그 전체이고 `find-skills` 하나만 다른 생태계에서 왔다 — 규약이 달라(H1을 쓴다) 의도된 예외이니 paperthin 모양으로 "고치지" 말 것.
+
+**사람만 부를 수 있는 12개는 에이전트의 스킬 목록에 아예 안 보인다.** 프론트매터에 `disable-model-invocation: true`가 있으면 그렇다. 무엇이 들어 있는지 알려면 목록이 아니라 디렉터리를 봐야 한다.
+
+- 모델이 스스로 호출(17): `aim` `autobahn` `catchup` `detool` `factchk` `find-skills` `mandela` `modelchk` `nba` `re0` `re0-loop` `re0-memo` `re0-work` `readchk` `shower` `sip` `ssotize`
+- 사람만 호출(12): `debloat` `dedash` `feynman` `hate` `macrothink` `prism` `re0-git` `re0-merge` `re0-plan` `re0-release` `re0-upgrade` `reorder`
+
+사람만 호출하는 스킬은 에이전트가 대신 실행하지 않는다 — `sip`과 `nba`가 각각 그렇게 못박아 뒀다. 사람이 부를 스킬이라고 알려 주기만 한다.
+
+`SKILL.md`를 고칠 일이 생기면 모양을 맞춘다: 프론트매터(`name`은 디렉터리명과 일치, `description`, 사람만 호출이면 `disable-model-invocation: true`), 그 아래 한 줄짜리 명령문, 그다음 `## Goal` `## Workflow` `## Rules` `## Verification`. H1은 쓰지 않고, 한 문단·한 항목은 줄바꿈 없이 한 줄에 쓴다 (29개 중 28개가 그렇게 돼 있다). `description`은 모델이 그 스킬을 부를지 판단하는 유일한 근거이므로 "무엇을 하는지 + 언제 쓰는지"를 함께 적는다.
+
+**`re0-release`·`re0-plan`·`re0-merge`·`re0-upgrade`는 이 저장소용이 아니다.** paperthin 상위 저장소를 전제로 쓰여서 `plugin.json`, `scripts/catalog.cjs`, `docs/readme/`, `.re0/` 같은 것을 참조하는데 여기엔 없다 (`ledger/`·`v2/`의 `package.json`은 그 구조가 아니다). 그 스킬을 만족시키려고 그런 파일을 만들지 말고, 이 저장소를 `re0-release`로 배포하지 않는다 — 배포는 위의 **가계부 배포 절차**를 따른다.
+
 ## 커밋·PR
 
 커밋 메시지는 무엇이 왜 바뀌었는지를 산문으로 쓴다 (`git log` 참고). PR은 초안으로 열고, 검증 결과를 본문에 남긴다.
