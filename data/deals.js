@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "롯데웰푸드 구구 크러스트 홈, 660ml, 6개",
+    url: "https://toss.im/_m/lH4ogW93",
+    price: 23300,
+    listPrice: 38900,
+    image: "https://shopping.toss.im/live/taca/ai/v2/NWNmYmIz/TFhxN2NQb3Yxbmpicjg1dzJxOVZLb2MxbUljMDBOT3ZUUkNxVldwUVZiZz0.png",
+    category: "간식·음료",
+    note: "컵 아이스크림 6위 · 10ml당 59원",
+    postedAt: "2026-09-20T17:01+09:00",
+    grade: 1,
+  },
+  {
     title: "스파클 생수, 무라벨, 2L, 24개",
     url: "https://toss.im/_m/BECumSdn",
     price: 7400,
