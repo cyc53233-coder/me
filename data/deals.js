@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "좋은콩 두부, 부침/찌개 겸용, 300g, 2입, 1개",
+    url: "https://toss.im/_m/vwUt6tuy",
+    price: 1000,
+    listPrice: 4800,
+    image: "https://shopping.toss.im/live/temp/2026-09-09/c7e940c8-9cee-4bb1-8a43-a80d7ef43a33.jpg",
+    category: "고기·메인반찬",
+    note: "오아시스 · 평점 4.8 · 하루 1개까지 · 단품 배송비 5,000원, 2만원 이상 사면 무료배송",
+    postedAt: "2026-09-20T18:44+09:00",
+    grade: 1,
+  },
+  {
     title: "지퍼 멀티 크로스백, 블랙, 1개",
     url: "https://toss.im/_m/RhrXtPfs",
     price: 5870,
