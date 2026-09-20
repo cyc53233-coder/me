@@ -38,9 +38,13 @@ export function writeDeals(deals) {
   fs.writeFileSync(DEALS_PATH, `${header}${MARK}\n${deals.map(serialize).join("\n")}\n];\n`, "utf8");
 }
 
+/* 여기 없는 키는 저장할 때 조용히 버려집니다.
+   새 필드를 쓰기 시작하면 반드시 이 목록에도 넣을 것. */
 const KEY_ORDER = [
   "title", "url", "price", "listPrice", "mall", "image",
-  "category", "note", "postedAt", "grade", "ended", "sample",
+  "category", "note", "postedAt", "grade",
+  "soldOut", "soldOutAt", "ended", "endedAt",
+  "deadStrikes", "sample",
 ];
 
 const js = (v) =>

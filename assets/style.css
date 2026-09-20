@@ -234,6 +234,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 11.5px;
   font-weight: 800;
 }
+/* 배지에는 tag-ended 와 tag-soldOut 이 함께 붙으므로 이 규칙이 뒤에 와야 이깁니다.
+   품절은 보라 — 재입고될 수 있어 "마감" 의 진회색과 갈라 둡니다. */
+.tag-soldOut { background: #7c3aed; }
 
 /* 공유 버튼 */
 .share {
@@ -277,7 +280,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 .deal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.deal-time { font-size: 13px; color: var(--muted); }
+/* 등급 · 시각이 함께 오는 줄. 카드 안 너비는 178px 뿐이라 🔥 5개짜리 등급이
+   시각까지 밀면 줄이 넘어가고 그 카드만 키가 커집니다 — 여기서만 글자를 줄입니다.
+   위쪽 등급 칩은 그대로 큽니다. */
+.deal-time { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deal-time .grade { font-size: 11.5px; }
 .deal-title {
   margin: 0;
   font-size: 16px;

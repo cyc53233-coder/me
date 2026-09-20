@@ -1,5 +1,5 @@
-name: 딜 마감
-description: 끝난 딜을 마감으로 바꿉니다. 지우지 않고 기록으로 남깁니다.
+name: 딜 마감 · 품절
+description: 끝났거나 품절된 딜을 표시합니다. 지우지 않고 기록으로 남깁니다.
 title: "마감: "
 labels: ["deal"]
 body:
@@ -11,3 +11,12 @@ body:
       placeholder: 토마토 케찹
     validations:
       required: true
+  - type: dropdown
+    id: state
+    attributes:
+      label: 어떻게
+      description: 품절은 다시 들어올 수 있고, 마감은 끝난 것입니다. 둘 다 잠깐 표시로 남았다 목록에서 빠집니다.
+      options:
+        - 품절 (물건이 다 나감)
+        - 마감 (딜이 끝남)
+      default: 0
