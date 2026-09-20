@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "마롱 휘낭시에, 35g, 1개",
+    url: "https://toss.im/_m/vP0wWqUe",
+    price: 1600,
+    listPrice: 2400,
+    image: "https://shopping.toss.im/live/temp/2026-09-09/59274f54-246e-4b81-b396-c8ba0a215e42.jpg",
+    category: "간식·음료",
+    note: "오아시스 · 35g 낱개 · 평점 4.5(리뷰 2개) · 단품 배송비 5,000원, 2만원 이상 사면 무료배송",
+    postedAt: "2026-09-20T18:46+09:00",
+    grade: 1,
+  },
+  {
     title: "제주청정우유, 900ml, 1개",
     url: "https://toss.im/_m/1OKB8MTe",
     price: 1000,
