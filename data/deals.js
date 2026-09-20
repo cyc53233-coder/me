@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "을지로 연탄불고기식 돼지불고기, 250g, 4개",
+    url: "https://toss.im/_m/rL8T9U4r",
+    price: 7990,
+    listPrice: 16000,
+    image: "https://shopping.toss.im/live/temp/2026-08-27/6fb1bb32-205c-4951-a2d8-18f8c132d76f.jpeg",
+    category: "고기·메인반찬",
+    note: "양념·가공육 1위 · 250g 1팩 1,998원 · 총 1kg · 무료배송",
+    postedAt: "2026-09-20T18:20+09:00",
+    grade: 1,
+  },
+  {
     title: "한예지 클린터치 위생백, 중형, 25x35cm, 100매, 3개",
     url: "https://toss.im/_m/XEHCx2hi",
     price: 3990,
