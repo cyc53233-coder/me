@@ -277,11 +277,74 @@ async function newPage(scheme, width) {
   await page.fill("#pasteText", "쿠팡\n사과\n4,000 원\n배\n6,000 원");
   await page.click("#pasteParse");
   await page.waitForTimeout(300);
-  await page.locator("#multiRows .mrow input[type=checkbox]").nth(1).uncheck();
+  await page.locator("#multiRows .mpick").nth(1).uncheck();
   await page.click("#multiMerge");
   await page.waitForTimeout(400);
   check("여러 품목: 체크 해제 반영 + 합쳐서 1건", await page.locator("#expRows .row").count() === beforeMulti + 4);
   check("여러 품목: 합친 금액 4,000", (await page.locator("#expRows .row").first().textContent()).includes("4,000"));
+
+  // ===== 보관함 =====
+  await goTab("pantry");
+  const pBefore = await page.locator("#pantryRows .row").count();
+  await goTab("daily");
+  await page.click("#pasteBtn");
+  await page.fill("#pasteText", "쿠팡\n서울우유 900ml\n3,200 원\n신라면 5개입\n4,500 원\n고양이 터널\n7,150 원");
+  await page.click("#pasteParse");
+  await page.waitForTimeout(350);
+  check("보관함: 시트에 보관함 칸", await page.locator("#multiRows .mpk").count() === 3);
+  // 식품만 기본 체크 — 고양이 터널은 꺼져 있어야
+  check("보관함: 우유 기본 체크", await page.locator("#multiRows .mrow").nth(0).locator(".mpk").isChecked());
+  check("보관함: 라면 기본 체크", await page.locator("#multiRows .mrow").nth(1).locator(".mpk").isChecked());
+  check("보관함: 비식품은 체크 해제", (await page.locator("#multiRows .mrow").nth(2).locator(".mpk").isChecked()) === false);
+  check("보관함: 추정 표시", await page.locator("#multiRows .mguess").count() === 2);
+  const uyuExpire = await page.locator("#multiRows .mrow").nth(0).locator(".mexp").inputValue();
+  check("보관함: 우유 기한 추정됨", /^\d{4}-\d{2}-\d{2}$/.test(uyuExpire), uyuExpire);
+  const expBeforePantry = await page.locator("#expRows .row").count();
+  await page.click("#multiEach");
+  await page.waitForTimeout(600);
+  check("보관함: 지출도 3건 증가", await page.locator("#expRows .row").count() === expBeforePantry + 3);
+
+  await goTab("pantry");
+  const pAfterReceipt = await page.locator("#pantryRows .row").count();
+  check("보관함: 영수증에서 2개만 담김 (비식품 제외)", pAfterReceipt === pBefore + 2, pBefore + " → " + pAfterReceipt);
+  check("보관함: 임박한 순 정렬(우유 먼저)", (await page.locator("#pantryRows .row").first().textContent()).includes("우유"));
+  check("보관함: D-day 표시", await page.locator("#pantryRows .pchip").count() === pAfterReceipt);
+  check("보관함: 추정 표시 있음", await page.locator("#pantryRows .pguess").count() >= 2);
+
+  // 직접 담기 — 오늘 기한이면 배너·배지가 떠야
+  await page.click("#pantryAddBtn");
+  await page.fill("#pName", "임박 두부");
+  const todayIso = new Date().toISOString().slice(0, 10);
+  await page.fill("#pExpire", todayIso);
+  await page.click("#pSave");
+  await page.waitForTimeout(400);
+  check("보관함: 직접 담기 반영", await page.locator("#pantryRows .row").count() === pAfterReceipt + 1);
+  check("보관함: 임박 항목이 맨 위", (await page.locator("#pantryRows .row").first().textContent()).includes("임박 두부"));
+  check("보관함: 오늘까지 라벨", (await page.locator("#pantryRows .pchip").first().textContent()) === "오늘까지");
+  check("보관함: 탭 배지 노출", await page.locator("#pantryBadge").isVisible());
+  check("보관함: 배너 노출", await page.locator("#pantryBanner.show").count() === 1);
+  check("보관함: 배너에 개수", (await page.locator("#pantryBannerText").textContent()).includes("1개"));
+
+  // 다 먹었어요 → 치운 목록으로, 되돌리기
+  await page.locator("#pantryRows .row").first().locator(".peat").click();
+  await page.waitForTimeout(400);
+  check("보관함: 치우면 목록에서 빠짐", await page.locator("#pantryRows .row").count() === pAfterReceipt);
+  check("보관함: 치우면 배지 사라짐", await page.locator("#pantryBadge").isHidden());
+  check("보관함: 되돌리기 제공", await page.locator("#toast .toast-act").count() === 1);
+  await page.click("#toast .toast-act");
+  await page.waitForTimeout(400);
+  check("보관함: 되돌리면 복구", await page.locator("#pantryRows .row").count() === pAfterReceipt + 1);
+
+  // 행을 눌러 고치기
+  await page.locator("#pantryRows .row").first().click();
+  await page.waitForTimeout(250);
+  check("보관함: 편집 폼에 이름 실림", (await page.inputValue("#pName")) === "임박 두부");
+  await page.fill("#pName", "두부 반모");
+  await page.click("#pSave");
+  await page.waitForTimeout(400);
+  check("보관함: 고쳐도 개수 그대로", await page.locator("#pantryRows .row").count() === pAfterReceipt + 1);
+  check("보관함: 고친 이름 반영", (await page.locator("#pantryRows").textContent()).includes("두부 반모"));
+  await goTab("daily");
 
   // ===== 계산기: 금액 칸 수식 =====
   await page.evaluate(() => { document.querySelector("#expAdder").open = true; });
@@ -346,7 +409,7 @@ async function newPage(scheme, width) {
   await page.reload(); await page.waitForTimeout(600);
   // 계산기 테스트가 지출 1건(13,500)을 더 저장했으므로 이번 달 3건
   const afterReload = await page.locator("#expRows .row").count();
-  check("새로고침 후 데이터 유지", afterReload === 16, afterReload + "건");
+  check("새로고침 후 데이터 유지", afterReload === 19, afterReload + "건");
   check("새로고침 후 수식 저장분 유지", (await page.locator("#expRows").textContent()).includes("13,500"));
   check("새로고침 후 이름 유지", (await page.locator("#expWho button").first().textContent()) === "채영");
 
