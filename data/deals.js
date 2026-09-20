@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "산과들에 원데이 발란스 그린라벨, 20g, 30봉",
+    url: "https://toss.im/_m/VB9iIlu4",
+    price: 7630,
+    listPrice: 16000,
+    image: "https://shopping.toss.im/live/taca/ai/MmNlNjFi/QUszS3g4YldOeXgvK2x4K0ZsOFlzbm1CSEsxclpHUlhvVld4TXBXNkJQVk8.png",
+    category: "간식·음료",
+    note: "혼합견과·믹스넛 1위 · 1봉당 255원 · 무료배송",
+    postedAt: "2026-09-20T18:14+09:00",
+    grade: 1,
+  },
+  {
     title: "셰프애찬 수제 청양 맵짤이, 매콤알싸한, 225g, 2통",
     url: "https://toss.im/_m/bCLByjZb",
     price: 7990,
