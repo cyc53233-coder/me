@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "지퍼 멀티 크로스백, 블랙, 1개",
+    url: "https://toss.im/_m/RhrXtPfs",
+    price: 5870,
+    listPrice: 32900,
+    image: "https://shopping.toss.im/live/temp/2026-07-10/9f52160b-fd2a-492f-8b5e-66abc4d77f94.jpeg",
+    category: "생활용품·기타",
+    note: "나일론 크로스백 5,870원 · 무료배송 · 평점 4.3",
+    postedAt: "2026-09-20T18:23+09:00",
+    grade: 2,
+  },
+  {
     title: "푸드센터 소갈비살, 200g, 5팩",
     url: "https://toss.im/_m/PtX4XOAy",
     price: 29900,
