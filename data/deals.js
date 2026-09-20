@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "더건강플러스 엑스트라버진 올리브오일, 1L, 1개",
+    url: "https://toss.im/_m/JkNGxKlw",
+    price: 8900,
+    listPrice: 39800,
+    image: "https://shopping.toss.im/live/temp/2026-06-05/28f63f1a-246e-4e36-82ad-12f0fbb50755.jpeg",
+    category: "생활용품·기타",
+    note: "엑스트라버진 올리브유 1위 · 하루 1개 한정",
+    postedAt: "2026-09-20T16:57+09:00",
+    grade: 2,
+  },
+  {
     title: "베베앙 데일리 비데 물티슈 캡형, 60매, 10팩",
     url: "https://toss.im/_m/NvBEQ4po",
     price: 6860,
