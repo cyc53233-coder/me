@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "직접푸드 생물 갑오징어, 1kg, 1박스",
+    url: "https://toss.im/_m/dxVWKrVa",
+    price: 16800,
+    listPrice: 30900,
+    image: "https://shopping.toss.im/live/taca/ai/YzJhNjUx/QU5YckluUVljNTlsRXVJK3hlTUQ4SXpHcjQ4ZHpsNTE4NDI2THRlMTYzRkc.png",
+    category: "고기·메인반찬",
+    note: "오징어·낙지 8위 · 생물 1kg · 배송비 포함 · 평점 4.0(584)",
+    postedAt: "2026-09-20T19:02+09:00",
+    grade: 2,
+  },
+  {
     title: "마롱 휘낭시에, 35g, 1개",
     url: "https://toss.im/_m/vP0wWqUe",
     price: 1600,
