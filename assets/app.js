@@ -65,6 +65,10 @@ function gradeOf(deal) {
 
 const gradeText = (g) => (g ? `${g.label} ${fires(g.fire)}` : "");
 
+/* 카테고리 설정은 {name, icon} 이지만, 예전처럼 문자열만 써 둔 설정도 그대로 받습니다 */
+const catOf = (c) =>
+  typeof c === "string" ? { name: c, icon: "" } : { name: c.name || "", icon: c.icon || "" };
+
 /* 카톡방에 그대로 붙여넣는 문구 */
 function kakaoText(deal) {
   const g = gradeOf(deal);
@@ -126,27 +130,45 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("is-on"), 1800);
 }
 
-/* ── 카드 — 카드 전체가 상품 링크입니다 ───────────────────── */
-function dealCardHTML(deal) {
+/* ── 카드 ──────────────────────────────────────────────────
+   카드 전체가 여전히 상품 링크입니다. 다만 공유 버튼을 함께 놓아야 해서
+   <a> 로 카드를 통째로 감싸는 대신, 카드를 꽉 덮는 <a> 를 맨 뒤에 깔고
+   공유 버튼만 그 위로 띄웁니다. <a> 안에 <button> 을 넣을 수는 없습니다. */
+function dealCardHTML(deal, i) {
   const g = gradeOf(deal);
+  const rate = discountRate(deal);
   const thumb = deal.image
     ? `<img class="thumb" src="${esc(deal.image)}" alt="" loading="lazy">`
     : `<div class="thumb thumb-empty">${mallEmoji(mallOf(deal))}</div>`;
-  const inner = `
+  const body = `
       ${thumb}
       <div class="deal-body">
-        <div class="deal-time">${esc(timeAgo(deal.postedAt))}${deal.sample ? " · 샘플" : ""}</div>
+        <div class="deal-time">${
+          deal.ended ? `<span class="tag-ended">마감</span> ` : ""
+        }${esc(timeAgo(deal.postedAt))}${deal.sample ? " · 샘플" : ""}</div>
         <h2 class="deal-title">${esc(deal.title)}</h2>
         <div class="deal-price">
           ${g ? `<span class="grade">${esc(g.label)}${fires(g.fire)}</span>` : ""}
           <span class="price-now">${won(deal.price)}</span>
         </div>
-        ${deal.listPrice ? `<div class="price-was">평소가 ${won(deal.listPrice)}</div>` : ""}
-      </div>
-      <span class="chevron" aria-hidden="true">›</span>`;
-  return deal.sample
-    ? `<div class="deal is-sample">${inner}</div>`
-    : `<a class="deal" href="${esc(deal.url)}" target="_blank" rel="nofollow sponsored noopener">${inner}</a>`;
+        ${
+          deal.listPrice
+            ? `<div class="price-was">평소가 ${won(deal.listPrice)}${
+                rate ? `<span class="rate">${rate}%↓</span>` : ""
+              }</div>`
+            : ""
+        }
+        ${deal.note ? `<div class="deal-note">${esc(deal.note)}</div>` : ""}
+      </div>`;
+  if (deal.sample) return `<div class="deal is-sample">${body}</div>`;
+  const cls = "deal" + (deal.ended ? " is-ended" : "");
+  return (
+    `<div class="${cls}">${body}` +
+    `<button type="button" class="share" data-share="${i}" aria-label="공유하기">` +
+    `<span aria-hidden="true">↗</span><span class="share-text">공유</span></button>` +
+    `<a class="deal-link" href="${esc(deal.url)}" target="_blank" rel="nofollow sponsored noopener"` +
+    ` aria-label="${esc(deal.title)} 보러 가기"></a></div>`
+  );
 }
 
 /* 이미지가 깨지면 기본 아이콘 칸으로 바꿉니다 (error 는 캡처 단계에서만 잡힙니다) */
@@ -184,13 +206,65 @@ function bindChips(box, onPick) {
   });
 }
 
+/* 정렬 — 기본은 최신순입니다.
+   "가격 낮은순" 은 배송비가 따로 붙는 미끼상품을 맨 위로 올려 줄 수 있어서,
+   카드에 한 줄 메모(배송비 조건이 적혀 있습니다)가 함께 보이는 것을 전제로 둡니다. */
+const SORTS = [
+  { value: "new", label: "최신순", cmp: (a, b) => new Date(b.postedAt || 0) - new Date(a.postedAt || 0) },
+  { value: "grade", label: "등급순", cmp: (a, b) => ((gradeOf(b) || {}).fire || 0) - ((gradeOf(a) || {}).fire || 0) },
+  { value: "rate", label: "할인율순", cmp: (a, b) => discountRate(b) - discountRate(a) },
+  { value: "cheap", label: "가격 낮은순", cmp: (a, b) => (a.price || 0) - (b.price || 0) },
+];
+const sortBy = (key) => (SORTS.find((s) => s.value === key) || SORTS[0]).cmp;
+
+/* 마감된 딜도 잠깐은 남깁니다 — 놓친 딜이 보여야 알림방에 들어올 이유가 생깁니다.
+   언제 마감됐는지 모르는 예전 딜(endedAt 이 없는 것)은 그대로 숨깁니다. */
+function stillShown(d) {
+  if (!d.ended) return true;
+  const hours = Number(SITE.endedHours);
+  if (!(hours > 0) || !d.endedAt) return false;
+  const t = new Date(d.endedAt).getTime();
+  return !Number.isNaN(t) && Date.now() - t < hours * 3600e3;
+}
+
+/* 마지막 방문 시각 — 사생활 보호 모드에서는 저장이 막히므로 전부 감쌉니다 */
+const VISIT_KEY = "hotdeal:lastVisit";
+function readLastVisit() {
+  try {
+    const v = Number(localStorage.getItem(VISIT_KEY));
+    return v > 0 ? v : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+function writeLastVisit() {
+  try {
+    localStorage.setItem(VISIT_KEY, String(Date.now()));
+  } catch (e) {
+    /* 저장이 막혀도 화면은 그대로 동작합니다 */
+  }
+}
+
 function initDealList() {
   const grid = document.getElementById("grid");
   if (!grid) return;
 
-  // 마감된 딜은 파일에는 남지만 화면에는 안 나옵니다
-  const all = (window.DEALS || []).filter((d) => !d.ended);
-  const state = { cat: "전체", grade: 0 };
+  const all = (window.DEALS || []).filter(stillShown);
+  const state = { cat: "전체", grade: 0, sort: "new" };
+
+  // "지난 방문 이후 새 딜 N개" — 처음 온 사람에게는 띄우지 않습니다
+  const since = readLastVisit();
+  const badge = document.getElementById("new-badge");
+  if (badge) {
+    const fresh = since
+      ? all.filter((d) => !d.ended && new Date(d.postedAt || 0).getTime() > since).length
+      : 0;
+    if (fresh > 0) {
+      badge.textContent = `지난 방문 이후 새 딜 ${fresh}개`;
+      badge.hidden = false;
+    }
+  }
+  writeLastVisit();
 
   const gradeBox = document.getElementById("grade-chips");
   gradeBox.innerHTML = chipsHTML(
@@ -205,31 +279,77 @@ function initDealList() {
 
   // 설정해 둔 카테고리는 딜이 없어도 늘 보이고, 목록에만 있는 카테고리는 뒤에 붙입니다
   const catBox = document.getElementById("chips");
-  const configured = Array.isArray(SITE.categories) ? SITE.categories : [];
-  const extra = [...new Set(all.map((d) => d.category).filter(Boolean))].filter(
-    (c) => !configured.includes(c)
+  const configured = (Array.isArray(SITE.categories) ? SITE.categories : []).map(catOf);
+  const names = configured.map((c) => c.name);
+  const extra = [...new Set(all.map((d) => d.category).filter(Boolean))]
+    .filter((c) => !names.includes(c))
+    .map((c) => ({ name: c, icon: "" }));
+  const cats = [{ name: "전체", icon: "" }, ...configured, ...extra];
+  // 아이콘을 이름 옆이 아니라 위에 얹습니다 — 옆에 두면 칩 5개가 폰 폭을 넘어
+  // 뒤쪽 카테고리가 화면 밖으로 밀려납니다.
+  catBox.innerHTML = chipsHTML(
+    cats.map((c) => (c.icon ? { value: c.name, label: c.icon, sub: c.name } : { value: c.name, label: c.name })),
+    "cat",
+    "전체"
   );
-  const cats = ["전체", ...configured, ...extra];
-  catBox.innerHTML = chipsHTML(cats.map((c) => ({ value: c, label: c })), "cat", "전체");
   if (cats.length < 2) catBox.hidden = true;
+
+  // 정렬은 목록 아래 안내문 자리를 그대로 씁니다 — 칩을 한 줄 더 늘리면
+  // 폰에서 상품이 화면 밖으로 밀려납니다.
+  const sortSel = document.getElementById("sort");
+  if (sortSel) {
+    sortSel.innerHTML = SORTS.map(
+      (s) => `<option value="${esc(s.value)}">${esc(s.label)}</option>`
+    ).join("");
+    sortSel.value = state.sort;
+    sortSel.addEventListener("change", () => {
+      state.sort = sortSel.value;
+      render();
+    });
+  }
+
+  let shown = [];
 
   function visible() {
     return all
       .filter((d) => !state.grade || (gradeOf(d) || {}).fire === state.grade)
       .filter((d) => state.cat === "전체" || d.category === state.cat)
-      .sort((a, b) => new Date(b.postedAt || 0) - new Date(a.postedAt || 0))
+      .slice()
+      .sort(sortBy(state.sort))
       .slice(0, MAX_DEALS);
   }
 
   function render() {
-    const list = visible();
-    grid.innerHTML = list.length
-      ? list.map(dealCardHTML).join("")
+    shown = visible();
+    grid.innerHTML = shown.length
+      ? shown.map((d, i) => dealCardHTML(d, i)).join("")
       : `<div class="empty"><div class="empty-emoji">🕳️</div>${
           all.length ? "이 조건에 맞는 딜이 없어요" : "아직 올라온 딜이 없어요"
         }</div>`;
-    document.getElementById("caption").textContent = `최신 등록순 · 최대 ${MAX_DEALS}개`;
+    const cap = document.getElementById("count");
+    if (cap) cap.textContent = `${shown.length}개`;
   }
+
+  /* 공유 — 폰은 기본 공유창이 뜨고, 안 되면 문구를 클립보드에 넣습니다.
+     어느 쪽이든 수수료 고지가 들어간 kakaoText 를 그대로 보냅니다. */
+  grid.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".share");
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const deal = shown[Number(btn.dataset.share)];
+    if (!deal) return;
+    const text = kakaoText(deal);
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // 사용자가 공유창을 닫은 것
+    }
+    toast((await copyText(text)) ? "문구를 복사했어요" : "복사하지 못했어요");
+  });
 
   bindChips(gradeBox, (btn) => {
     state.grade = Number(btn.dataset.grade) || 0;
@@ -306,6 +426,9 @@ function initChrome() {
     el.innerHTML = (SITE.shareNotes || []).map((n) => `<li>${esc(n)}</li>`).join("");
   });
   if (SITE.name) document.title = document.title.replace("{site}", SITE.name);
+  // 카톡·인스타는 og:image 가 절대주소여야 미리보기를 그립니다.
+  const og = document.querySelector('meta[property="og:image"]');
+  if (og && SITE.ogImage) og.setAttribute("content", new URL(SITE.ogImage, location.href).href);
   document.querySelectorAll("[data-issue-link]").forEach((el) => {
     if (!SITE.repo) return el.remove();
     el.href = `https://github.com/${SITE.repo}/issues/new?template=${el.dataset.issueLink}`;

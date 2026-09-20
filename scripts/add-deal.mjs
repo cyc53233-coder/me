@@ -37,6 +37,11 @@ const toNumber = (v) => Number(String(v).replace(/[^\d]/g, "")) || 0;
 /* 등급 드롭다운은 "대박 🔥🔥🔥" 처럼 오므로 🔥 개수만 셉니다 */
 const fireCount = (v) => (String(v || "").match(/🔥/g) || []).length;
 
+/* 카테고리 드롭다운은 "🥬 신선식품" 처럼 아이콘을 달고 옵니다.
+   아이콘은 화면에서 site.js 가 붙이므로 데이터에는 이름만 남깁니다. */
+const categoryName = (v) =>
+  String(v || "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
+
 /* ── 공유하기 문구 풀기 ───────────────────────────────────────
    쿠팡·토스 앱의 "공유하기"는 이런 덩어리를 클립보드에 넣습니다:
 
@@ -264,6 +269,9 @@ function endDeal(form) {
     return { changed: false };
   }
   hit.ended = true;
+  // 언제 마감됐는지 남겨 둡니다 — 사이트가 마감 딜을 잠깐(site.js 의 endedHours)
+  // "마감" 표시로 남겨야 놓친 사람이 알림방에 들어올 이유가 생깁니다.
+  hit.endedAt = nowKST();
   writeDeals(deals);
   comment(`✅ **${hit.title}** 을(를) 마감으로 바꿨습니다. 목록에서는 "마감 포함"을 켜야 보입니다.`);
   return { changed: true, message: `딜 마감: ${hit.title}` };
@@ -304,7 +312,7 @@ async function addDeal(form) {
     price,
     listPrice: toNumber(field(form, "평소 가격")) || undefined,
     image: field(form, "이미지 주소") || meta.image || undefined,
-    category: field(form, "카테고리") || undefined,
+    category: categoryName(field(form, "카테고리")) || undefined,
     note: field(form, "한 줄 메모") || undefined,
     postedAt: nowKST(),
     grade: fireCount(field(form, "등급")) || (checked(form, "표시", "대박") ? 3 : 0) || undefined,
