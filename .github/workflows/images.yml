@@ -1,0 +1,48 @@
+name: 딜 사진 내려받기
+
+# 쇼핑몰이 주는 사진 주소는 임시 보관함(토스는 /live/temp/…)이라
+# 쇼핑몰이 지우면 사이트의 사진이 한꺼번에 깨집니다. 저장소 안으로 옮겨 둡니다.
+#
+# 평소에는 「딜 등록」이 올리는 김에 같이 받으므로 이 워크플로는 할 일이 없습니다.
+# 그때 못 받은 것과, 이 기능이 생기기 전에 올라온 딜을 위해 남겨 둡니다.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1" # 매주 월요일 — 놓친 사진을 다시 받습니다
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 사진 받기
+        run: node scripts/save-images.mjs
+
+      - name: 바뀐 것이 있으면 올리기
+        env:
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/deals.js assets
+          if git diff --cached --quiet; then
+            echo "받을 사진이 없습니다 — 이미 전부 저장소 안에 있습니다."
+            exit 0
+          fi
+          n=$(git diff --cached --name-only -- assets/deals | wc -l)
+          git commit -m "$(printf '딜 사진 %s장을 저장소로 옮김\n\n쇼핑몰이 주는 주소는 임시 보관함이라 언젠가 지워집니다.\n받아 두면 그 뒤로는 우리 것입니다.' "$n")"
+          for attempt in 1 2 3; do
+            git fetch origin "$BRANCH"
+            git rebase "origin/$BRANCH" || { git rebase --abort; exit 1; }
+            if git push origin "HEAD:$BRANCH"; then exit 0; fi
+            sleep $((attempt * 3))
+          done
+          exit 1
