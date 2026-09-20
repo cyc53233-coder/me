@@ -30,11 +30,19 @@ const live=DEALS.filter(d=>!d.ended), g={};
 live.forEach(d=>g[d.grade]=(g[d.grade]||0)+1);
 const pct=f=>Math.round((g[f]||0)/live.length*100);
 console.log(`딜 ${live.length}개 · 분포 ${fires.map(f=>pct(f)+"%").join(" / ")} (목표 20 / 60 / 20)`);
+const isRemote=u=>/^https?:\/\//i.test(u||"");
 const host=u=>{try{return new URL(u).host}catch{return "?"}};
-const imgs={};live.forEach(d=>{if(d.image)imgs[host(d.image)]=(imgs[host(d.image)]||0)+1;});
+const imgs={};
+live.forEach(d=>{ if(!d.image) return;
+  const k = isRemote(d.image) ? host(d.image) : "저장소";
+  imgs[k]=(imgs[k]||0)+1; });
 console.log("사진 출처:",JSON.stringify(imgs));
 console.log("사진 없는 딜:",live.filter(d=>!d.image).length);
-const temp=live.filter(d=>/\/live\/temp\//.test(d.image||"")).length;
-if(temp) console.log(`⚠ 사진 ${temp}개가 /live/temp/ 경로 — 토스가 지우면 한꺼번에 깨짐`);
+// 저장소 안을 가리키는데 파일이 없으면 카드가 조용히 아이콘으로 바뀝니다
+live.forEach((d,i)=>{ if(!d.image||isRemote(d.image)) return;
+  if(!fs.existsSync(path.join(R,d.image)))
+    bad.push(`[${i}] ${String(d.title).slice(0,28)} 사진 파일이 없음: ${d.image}`); });
+const remote=live.filter(d=>isRemote(d.image)).length;
+if(remote) console.log(`⚠ 사진 ${remote}장이 아직 바깥 주소 — 「딜 사진 내려받기」 워크플로를 돌리면 저장소로 옮겨집니다`);
 console.log(bad.length?"\n문제 "+bad.length+"건:\n"+bad.join("\n"):"\n데이터 정합성 오류 0");
 process.exit(bad.length?1:0);

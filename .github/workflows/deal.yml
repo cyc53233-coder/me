@@ -55,7 +55,10 @@ jobs:
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
             node scripts/add-deal.mjs
-            git add data/deals.js
+            # 쇼핑몰 사진은 임시 보관함 주소라 언젠가 지워집니다. 등록하는 김에 받아 둡니다.
+            # 못 받아도 등록은 그대로 진행합니다 — 사진은 나중에 다시 받을 수 있습니다.
+            node scripts/save-images.mjs || true
+            git add data/deals.js assets
             git commit -m "$(cat .deal-commit-message)"
             if git push origin "HEAD:$BRANCH"; then pushed=yes; break; fi
             echo "다른 등록과 겹쳤습니다. 최신 목록으로 다시 적용합니다 ($attempt/5)"
