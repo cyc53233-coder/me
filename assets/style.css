@@ -53,31 +53,26 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--navy);
+  background: linear-gradient(180deg, #16357e, var(--navy));
   color: #fff;
 }
-.top-inner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 66px;
-}
+.top-inner { position: relative; display: flex; align-items: center; gap: 12px; height: 66px; }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .logo {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: #fff;
+  background: radial-gradient(circle at 50% 35%, #4f8cff, #1b4fd0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
-.brand-text small { color: var(--cta); font-size: 12px; font-weight: 700; }
-.brand-text b { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
+.brand-text small { color: var(--cta); font-size: 13px; font-weight: 800; letter-spacing: -0.02em; }
+.brand-text b { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
 .menu-btn {
   margin-left: auto;
   flex: none;
@@ -87,13 +82,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 10px;
   background: none;
   color: #fff;
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1;
 }
-.menu-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.menu-btn:hover { background: rgba(255, 255, 255, 0.14); }
 .menu {
   position: absolute;
-  right: 14px;
+  right: 0;
   top: 58px;
   display: flex;
   flex-direction: column;
@@ -102,19 +97,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 12px;
   background: #fff;
   color: var(--text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 .menu[hidden] { display: none; }
-.menu a { padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+.menu a { padding: 11px 12px; border-radius: 8px; font-size: 14.5px; font-weight: 600; }
 .menu a:hover { background: var(--bg-soft); }
 
 /* ── 제목 ─────────────────────────────────────────────────── */
-.intro { padding: 18px 14px 10px; }
-.intro h1 { margin: 0 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
-.intro p { margin: 0; color: var(--muted); font-size: 14px; }
+.intro { background: linear-gradient(180deg, #fdf5e6, #fff 85%); padding: 22px 0 6px; }
+.intro h1 { margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.04em; }
+.intro p { margin: 0; color: var(--muted); font-size: 14.5px; }
 
-/* ── 칩 — 줄바꿈되는 두 줄 버튼 ──────────────────────────── */
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+/* ── 칩 — 이름 위, 🔥 아래 두 줄 버튼 ───────────────────── */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .chips[hidden] { display: none; }
 .chip {
   flex: 1 1 auto;
@@ -122,25 +117,27 @@ button { font: inherit; color: inherit; cursor: pointer; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-height: 46px;
-  padding: 6px 12px;
-  border: 1px solid #d5d9e2;
-  border-radius: 10px;
+  gap: 1px;
+  min-height: 52px;
+  padding: 6px 14px;
+  border: 1px solid #dfe3ea;
+  border-radius: 12px;
   background: #fff;
   color: #222;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.25;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-.chip-sub { font-size: 12px; letter-spacing: -1px; }
+.chip-sub { font-size: 13px; letter-spacing: -1px; }
+.chips-cat .chip { min-height: 44px; }
 .chip[aria-pressed="true"] {
   background: var(--blue);
   border-color: var(--blue);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(27, 92, 240, 0.3);
 }
-.chips-cat .chip { min-height: 42px; }
 
 /* ── 카톡 인앱 브라우저 안내 ─────────────────────────────── */
 .kakao-notice {
@@ -175,7 +172,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .deal {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   padding: 14px 12px 14px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -187,8 +184,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .thumb {
   flex: none;
-  width: 96px;
-  height: 96px;
+  width: 88px;
+  height: 88px;
   border-radius: 10px;
   object-fit: contain;
   background: #fff;
@@ -214,9 +211,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.deal-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
-.grade { color: var(--red); font-size: 15px; font-weight: 800; letter-spacing: -1px; white-space: nowrap; }
-.price-now { font-size: 23px; font-weight: 800; letter-spacing: -0.03em; }
+.deal-price { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; }
+.grade { flex: none; color: var(--red); font-size: 14px; font-weight: 800; letter-spacing: -1.5px; white-space: nowrap; }
+.price-now { font-size: 21px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
 .price-was { font-size: 13.5px; color: var(--dim); text-decoration: line-through; }
 .chevron { flex: none; color: #b0b6c2; font-size: 26px; line-height: 1; }
 

@@ -36,6 +36,49 @@ const toNumber = (v) => Number(String(v).replace(/[^\d]/g, "")) || 0;
 /* 등급 드롭다운은 "대박 🔥🔥🔥" 처럼 오므로 🔥 개수만 셉니다 */
 const fireCount = (v) => (String(v || "").match(/🔥/g) || []).length;
 
+/* ── 공유하기 문구 풀기 ───────────────────────────────────────
+   쿠팡·토스 앱의 "공유하기"는 이런 덩어리를 클립보드에 넣습니다:
+
+     쿠팡을 추천합니다!
+      키토리지 맥세이프 차량 거치대 핸드폰거치대
+      https://link.coupang.com/a/XXXXXXX
+
+   그대로 붙여넣으면 링크와 상품명을 갈라냅니다. 링크만 넣어도 됩니다. */
+const BOILERPLATE = [
+  /추천합니다/,
+  /파트너스 활동|쉐어링크 활동|제휴 ?활동/,
+  /수수료를? (제공|지급)받/,
+  /일정액의 수수료/,
+  /^[\s*·\-]*$/,
+];
+
+export function parseShare(text) {
+  const lines = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const urls = [];
+  const rest = [];
+  for (const line of lines) {
+    const found = line.match(/https?:\/\/[^\s<>"']+/);
+    if (found) {
+      urls.push(found[0].replace(/[.,)\]]+$/, ""));
+      // 링크와 글이 한 줄에 같이 있으면 남은 글도 후보로 둡니다
+      const without = line.replace(found[0], "").trim();
+      if (without) rest.push(without);
+      continue;
+    }
+    if (BOILERPLATE.some((re) => re.test(line))) continue;
+    rest.push(line);
+  }
+
+  // 제목은 남은 줄 중 가장 긴 것 — 상품명이 보통 가장 깁니다
+  const title = rest.sort((a, b) => b.length - a.length)[0] || "";
+  return { url: urls[0] || "", title };
+}
+
 /* ── 링크에서 상품 정보 긁어오기 (실패해도 진행) ──────────── */
 const unescapeHtml = (s) =>
   String(s)
@@ -106,19 +149,27 @@ function endDeal(form) {
 
 /* ── 등록 처리 ────────────────────────────────────────────── */
 async function addDeal(form) {
-  const url = field(form, "쉐어링크 주소");
-  if (!/^https:\/\/\S+$/i.test(url)) fail("쉐어링크 주소는 `https://` 로 시작하는 주소여야 합니다.");
-  if (/example\.com/i.test(url)) fail("샘플 주소(example.com)가 들어왔습니다. 내 계정에서 만든 쉐어링크를 넣어 주세요.");
+  const share = parseShare(field(form, "붙여넣기") || field(form, "쉐어링크 주소"));
+  const url = share.url;
+  if (!/^https:\/\/\S+$/i.test(url)) {
+    fail(
+      "붙여넣은 내용에서 `https://` 로 시작하는 링크를 찾지 못했습니다.\n\n" +
+        "쿠팡·토스 앱의 **공유하기**로 복사한 내용을 그대로 붙여넣거나, 링크만 넣어 주세요."
+    );
+  }
+  if (/example\.com/i.test(url)) fail("샘플 주소(example.com)가 들어왔습니다. 내 계정에서 만든 링크를 넣어 주세요.");
 
-  const meta = field(form, "상품명") && field(form, "이미지 주소") ? {} : await fetchMeta(url);
+  const haveTitle = field(form, "상품명") || share.title;
+  const haveImage = field(form, "이미지 주소");
+  const meta = haveTitle && haveImage ? {} : await fetchMeta(url);
 
   const price = toNumber(field(form, "지금 가격")) || toNumber(meta.price);
   if (!price) fail("지금 가격을 숫자로 적어 주세요. (예: `19900` 또는 `19,900`)");
 
-  const title = field(form, "상품명") || meta.title;
+  const title = field(form, "상품명") || share.title || meta.title;
   if (!title) {
     fail(
-      "상품명을 링크에서 읽지 못했습니다. 이슈의 **상품명** 칸에 직접 적어 주세요." +
+      "상품명을 찾지 못했습니다. 공유하기 문구를 통째로 붙여넣거나, **상품명** 칸에 직접 적어 주세요." +
         (meta.error ? `\n\n> 링크를 여는 중: ${meta.error}` : "")
     );
   }

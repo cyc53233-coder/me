@@ -261,7 +261,8 @@ function initKakaoNotice() {
   }
 }
 
-/* ── 헤더 ≡ 메뉴 ──────────────────────────────────────────── */
+/* ── 헤더 ☰ 메뉴 ──────────────────────────────────────────
+   「딜 올리기」는 여기에 넣지 않습니다 — 관리자 전용 도구입니다. */
 function initMenu() {
   const btn = document.getElementById("menu-btn");
   const menu = document.getElementById("menu");
@@ -277,6 +278,7 @@ function initMenu() {
   document.addEventListener("click", (e) => {
     if (!menu.hidden && !menu.contains(e.target)) set(false);
   });
+  menu.addEventListener("click", () => set(false));
 }
 
 /* ── 공통 채우기 ──────────────────────────────────────────── */

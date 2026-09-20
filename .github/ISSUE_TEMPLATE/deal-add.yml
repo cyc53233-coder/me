@@ -1,20 +1,26 @@
 name: 딜 올리기
-description: 내 쉐어링크를 붙여넣으면 사이트에 올라가고, 카톡 문구를 답글로 드립니다.
+description: 쿠팡·토스 공유하기 내용을 그대로 붙여넣으면 사이트에 올라갑니다.
 title: "딜: "
 labels: ["deal"]
 body:
-  - type: input
-    id: link
+  - type: textarea
+    id: paste
     attributes:
-      label: 쉐어링크 주소
-      description: 토스 앱 / 쿠팡 파트너스에서 복사한 **내 링크**를 넣으세요.
-      placeholder: https://toss.im/_m/XXXXXXXX
+      label: 붙여넣기
+      description: |
+        쿠팡·토스 앱의 **공유하기**로 복사한 내용을 그대로 붙여넣으세요.
+        링크와 상품명을 알아서 갈라냅니다. 링크만 넣어도 됩니다.
+      placeholder: |
+        쿠팡을 추천합니다!
+         키토리지 맥세이프 차량 거치대 핸드폰거치대
+         https://link.coupang.com/a/XXXXXXX
     validations:
       required: true
   - type: input
     id: price
     attributes:
       label: 지금 가격
+      description: 쇼핑몰이 가격을 안 내줘서 이것만 직접 적어 주세요.
       placeholder: "14900"
     validations:
       required: true
@@ -52,14 +58,14 @@ body:
     id: name
     attributes:
       label: 상품명
-      description: 비워두면 링크에서 자동으로 가져옵니다. 못 가져오면 답글로 알려 드려요.
-  - type: input
-    id: image
-    attributes:
-      label: 이미지 주소
-      description: 비워두면 링크에서 자동으로 가져옵니다.
+      description: 붙여넣은 내용에서 못 찾았을 때만 씁니다. 보통 비워 두세요.
   - type: input
     id: note
     attributes:
       label: 한 줄 메모
-      placeholder: 냉장 삼겹 1kg 이 가격이면 바로 담으세요
+      placeholder: 이 가격이면 바로 담으세요
+  - type: input
+    id: image
+    attributes:
+      label: 이미지 주소
+      description: 보통 비워 두세요. 링크에서 상품 사진을 못 읽어 왔을 때만 씁니다.
