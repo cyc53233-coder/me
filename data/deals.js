@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "수뜰리에 클린 퍼퓸 포밍 핸드 워시, 일랑일랑향, 510ml, 2개",
+    url: "https://toss.im/_m/Tapr9r2B",
+    price: 2490,
+    listPrice: 39600,
+    image: "https://shopping.toss.im/live/temp/2025-07-23/d282d6f9-2583-4c2a-84c2-6927db02a36a.jpeg",
+    category: "생활용품·기타",
+    note: "핸드워시 1위 · 510ml 1개당 1,245원 · 무료배송",
+    postedAt: "2026-09-20T18:18+09:00",
+    grade: 3,
+  },
+  {
     title: "크라운 빙수하임 말차팥빙수, 284g, 2개",
     url: "https://toss.im/_m/fjRzzPen",
     price: 6600,
