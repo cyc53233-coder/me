@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "한예지 클린터치 위생백, 중형, 25x35cm, 100매, 3개",
+    url: "https://toss.im/_m/XEHCx2hi",
+    price: 3990,
+    listPrice: 24000,
+    image: "https://shopping.toss.im/live/temp/2026-08-31/4fb9678e-8fc9-43f3-86e7-4e67f89e57f7.jpeg",
+    category: "생활용품·기타",
+    note: "뽑아쓰는위생백 1위 · 1매 14원 · 총 300매 · 무료배송",
+    postedAt: "2026-09-20T18:20+09:00",
+    grade: 2,
+  },
+  {
     title: "시치미 쓱 데일리 물티슈 캡형, 100매, 10팩",
     url: "https://toss.im/_m/VgOw5ch8",
     price: 5000,
