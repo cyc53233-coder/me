@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "노랑 곱빼기 왕 떡갈비, 160g, 5봉",
+    url: "https://toss.im/_m/XImWzv2m",
+    price: 7350,
+    listPrice: 19900,
+    image: "https://shopping.toss.im/955d5c28-ce13-4baa-9f0a-f06de476fcc0.jpg",
+    category: "고기·메인반찬",
+    note: "떡갈비 1위 · 160g 1봉 1,470원 · 총 800g · 하루 2개까지 · 무료배송",
+    postedAt: "2026-09-20T18:20+09:00",
+    grade: 2,
+  },
+  {
     title: "풍연 굳지않는 쑥+백미 절편세트, 50g, 20개",
     url: "https://toss.im/_m/hnKRF4Pz",
     price: 6500,
