@@ -15,4 +15,15 @@
 //  ended      true 면 목록에서 빠집니다 (기록은 남습니다)
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
+  {
+    title: "베베앙 데일리 비데 물티슈 캡형, 60매, 10팩",
+    url: "https://toss.im/_m/NvBEQ4po",
+    price: 6860,
+    listPrice: 25900,
+    image: "https://shopping.toss.im/live/temp/2025-06-05/f19b42f0-7bc7-4a21-b91b-7089d83de9fd.png",
+    category: "생활용품·기타",
+    note: "비데티슈 1위 · 1팩당 686원",
+    postedAt: "2026-09-20T16:56+09:00",
+    grade: 2,
+  },
 ];
