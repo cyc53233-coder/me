@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "시치미 쓱 데일리 물티슈 캡형, 100매, 10팩",
+    url: "https://toss.im/_m/VgOw5ch8",
+    price: 5000,
+    listPrice: 15900,
+    image: "https://shopping.toss.im/live/temp/2026-04-24/c7c3c65f-9b78-4306-87fa-7efa41be18db.jpeg",
+    category: "생활용품·기타",
+    note: "물티슈 1위 · 1팩 500원, 1매 5원 · 총 1,000매 · 무료배송",
+    postedAt: "2026-09-20T18:19+09:00",
+    grade: 3,
+  },
+  {
     title: "수뜰리에 고농축 주방세제, 레몬버베너향, 2.5L, 4개",
     url: "https://toss.im/_m/bqFlaI3r",
     price: 5950,
