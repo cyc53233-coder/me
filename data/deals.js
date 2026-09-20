@@ -21,7 +21,7 @@ window.DEALS = [
     price: 5500,
     listPrice: 36000,
     image: "https://shopping.toss.im/live/temp/2026-08-26/62d89171-433b-4c65-83b4-fb8a37670acb.jpeg",
-    category: "🧻 생활용품",
+    category: "생활용품",
     note: "1매당 110원 · 50매 5종 혼합 · 무료배송 · 평점 5.0(리뷰 6개)",
     postedAt: "2026-09-20T19:07+09:00",
     grade: 5,
