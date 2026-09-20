@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "더프리미엄프룻 친환경 무화과, 500g, 1개",
+    url: "https://toss.im/_m/3ZQZJvfx",
+    price: 10500,
+    listPrice: 13600,
+    image: "https://shopping.toss.im/ee9/live/product/847382967/ee91e9ea-df5e-43f6-9b7f-55c8d391d8ce.jpg",
+    category: "간식·음료",
+    note: "오아시스 · 무농약 · 평점 4.5(리뷰 4개) · 단품 배송비 5,000원, 2만원 이상 사면 무료배송",
+    postedAt: "2026-09-20T18:45+09:00",
+    grade: 1,
+  },
+  {
     title: "좋은콩 두부, 부침/찌개 겸용, 300g, 2입, 1개",
     url: "https://toss.im/_m/vwUt6tuy",
     price: 1000,
