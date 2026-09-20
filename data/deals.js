@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "스파클 생수, 무라벨, 2L, 24개",
+    url: "https://toss.im/_m/BECumSdn",
+    price: 7400,
+    listPrice: 20000,
+    image: "https://shopping.toss.im/live/temp/2026-03-18/268e4c6a-1595-43e9-9c1b-f101e5774429.jpeg",
+    category: "생활용품·기타",
+    note: "국산생수 2위 · 1병당 309원",
+    postedAt: "2026-09-20T17:01+09:00",
+    grade: 2,
+  },
+  {
     title: "던킨 제로 아이스티 화이트피치 6개 + 샤인앤라임 6개, 500ml, 1세트",
     url: "https://toss.im/_m/DmxOW6s8",
     price: 6600,
