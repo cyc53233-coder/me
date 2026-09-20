@@ -227,6 +227,18 @@ export async function fetchMeta(url) {
   }
 }
 
+/* 링크에서 무엇을 읽어 왔는지 답글에 남깁니다. 쇼핑몰이 막으면 "왜 사진이
+   없는지"를 여기서 알 수 있어야 합니다 — 조용히 넘어가면 원인을 못 찾습니다. */
+function linkReport(meta) {
+  if (!meta || (!meta.error && meta.title === undefined && meta.image === undefined)) return "";
+  if (meta.error) return `\n\n> 링크를 여는 중 막혔습니다 — ${meta.error}`;
+  const mark = (v) => (v ? "읽음" : "없음");
+  return (
+    `\n\n> 링크에서 읽은 것 — 상품명 ${mark(meta.title)} · ` +
+    `사진 ${mark(meta.image)} · 가격 ${mark(meta.price)}`
+  );
+}
+
 /* ── 답글 ─────────────────────────────────────────────────── */
 function comment(md) {
   fs.writeFileSync(COMMENT_PATH, md.trimStart() + "\n", "utf8");
@@ -274,7 +286,9 @@ async function addDeal(form) {
   const meta = haveTitle && haveImage ? {} : await fetchMeta(url);
 
   const price = toNumber(field(form, "지금 가격")) || toNumber(meta.price);
-  if (!price) fail("지금 가격을 숫자로 적어 주세요. (예: `19900` 또는 `19,900`)");
+  if (!price) {
+    fail("지금 가격을 숫자로 적어 주세요. (예: `19900` 또는 `19,900`)" + linkReport(meta));
+  }
 
   const title = field(form, "상품명") || share.title || meta.title;
   if (!title) {
@@ -311,7 +325,7 @@ async function addDeal(form) {
 \`\`\`
 ${kakao}
 \`\`\`
-${meta.error ? `\n> 링크에서 상품 정보를 읽지 못해 적어 주신 내용만 썼습니다: ${meta.error}\n` : ""}
+${deal.image ? "" : "\n> 상품 사진을 읽지 못했습니다. 카드에는 판매처 아이콘이 들어갑니다 — 이 이슈에 사진을 첨부해 다시 열면 그 사진을 씁니다." + linkReport(meta) + "\n"}
 ${SITE_URL ? `사이트: ${SITE_URL}` : ""}
 `);
   return { changed: true, message: `딜 추가: ${title}` };
