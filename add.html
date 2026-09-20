@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0d2a66">
 <title>{site} — 딜 올리기</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
@@ -15,28 +15,27 @@
 <header class="top">
   <div class="wrap top-inner">
     <a class="brand" href="./">
-      <span class="brand-emoji" data-site-emoji>🔥</span>
-      <span data-site-name>핫딜</span>
+      <span class="logo" data-site-emoji>🔥</span>
+      <span class="brand-text">
+        <small data-site-name>핫딜</small>
+        <b>딜 올리기</b>
+      </span>
     </a>
-    <nav class="top-nav">
+    <button class="menu-btn" id="menu-btn" type="button" aria-label="메뉴" aria-expanded="false">≡</button>
+    <nav class="menu" id="menu" hidden>
+      <a href="./">핫딜 모아보기</a>
       <a href="about.html">채널 소개</a>
-      <a href="add.html" aria-current="page">딜 올리기</a>
     </nav>
   </div>
 </header>
 
 <main>
-  <section class="hero">
-    <div class="wrap">
-      <h1>딜 올리기</h1>
-      <p>채우면 아래에 붙여넣을 코드와 카톡 문구가 만들어집니다.</p>
-      <p class="disclosure">
-        <span>📱</span>
-        <span>폰에서는 <a data-issue-link="deal-add.yml" href="#" target="_blank" rel="noopener">GitHub 이슈로 올리면</a>
-          코드를 만질 필요 없이 사이트에 자동으로 올라가고, 카톡 문구를 답글로 받습니다.
-          끝난 딜은 <a data-issue-link="deal-end.yml" href="#" target="_blank" rel="noopener">마감 이슈</a>로 내리세요.</span>
-      </p>
-    </div>
+  <section class="wrap intro">
+    <h1>딜 올리기</h1>
+    <p>채우면 아래에 붙여넣을 코드와 카톡 문구가 만들어집니다.</p>
+    <p class="disclosure">폰에서는 <a data-issue-link="deal-add.yml" href="#" target="_blank" rel="noopener">GitHub 이슈로 올리면</a>
+      코드를 만질 필요 없이 사이트에 자동으로 올라가고, 카톡 문구를 답글로 받습니다.
+      끝난 딜은 <a data-issue-link="deal-end.yml" href="#" target="_blank" rel="noopener">마감 이슈</a>로 내리세요.</p>
   </section>
 
   <section class="wrap">
@@ -114,9 +113,7 @@
 </main>
 
 <footer>
-  <div class="wrap">
-    <p data-site-disclosure></p>
-  </div>
+  <div class="wrap"><p><a href="./">← 핫딜 모아보기</a></p></div>
 </footer>
 
 <script src="data/site.js"></script>
@@ -183,12 +180,6 @@ function refresh() {
   $("out-code").textContent = codeFor(d);
   $("out-kakao").textContent = kakaoText(d);
   $("preview").innerHTML = dealCardHTML(d);
-  const copyBtn = $("preview").querySelector(".js-copy");
-  if (copyBtn) {
-    copyBtn.addEventListener("click", async () =>
-      toast((await copyText(kakaoText(d))) ? "카톡 문구를 복사했어요" : "복사에 실패했어요")
-    );
-  }
 }
 
 document.querySelectorAll("input, select").forEach((el) => {
