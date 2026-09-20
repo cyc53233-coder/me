@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "크라운 빙수하임 말차팥빙수, 284g, 2개",
+    url: "https://toss.im/_m/fjRzzPen",
+    price: 6600,
+    listPrice: 19500,
+    image: "https://shopping.toss.im/live/temp/2026-07-30/6f6b2803-5537-4120-aa1e-0ed6ea92cadb.jpeg",
+    category: "간식·음료",
+    note: "과자파이 1위 · 여름 한정 · 무료배송",
+    postedAt: "2026-09-20T18:16+09:00",
+    grade: 2,
+  },
+  {
     title: "산과들에 원데이 발란스 그린라벨, 20g, 30봉",
     url: "https://toss.im/_m/VB9iIlu4",
     price: 7630,
