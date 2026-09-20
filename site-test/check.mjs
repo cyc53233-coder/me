@@ -7,7 +7,19 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const S = path.join(ROOT, "site-test", "shots");
 fs.mkdirSync(S, { recursive: true });
 
-const TYPES = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript" };
+// 실제 배포(Pages·Workers)가 내주는 것과 같게 둡니다. 여기서 빠뜨리면
+// 파일이 멀쩡해도 검사만 엉뚱하게 실패하거나, 반대로 진짜 문제를 놓칩니다.
+const TYPES = {
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "text/javascript",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".json": "application/json",
+};
 const server = createServer((req, res) => {
   const rel = decodeURIComponent(req.url.split("?")[0]).replace(/^\/+/, "") || "index.html";
   const file = path.join(ROOT, rel);
@@ -75,7 +87,34 @@ const chromePath = () => {
   return process.env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync(preinstalled) ? preinstalled : "";
 };
 
+/* 브라우저를 띄우기 전에 — 설정과 이슈 폼이 어긋나지 않았는지 봅니다.
+   어긋나면 화면은 멀쩡한데 등급·카테고리만 조용히 틀어져서 제일 늦게 발견됩니다. */
+const loadSite = () => { const w = {}; new Function("window", fs.readFileSync(path.join(ROOT, "data/site.js"), "utf8"))(w); return w.SITE; };
+const SHARE_INTRO = loadSite().shareIntro;
+
+const checkConfigMatchesForm = () => {
+  const load = (f) => { const w = {}; new Function("window", fs.readFileSync(path.join(ROOT, f), "utf8"))(w); return w; };
+  const SITE = load("data/site.js").SITE;
+  const cats = SITE.categories.map((c) => (typeof c === "string" ? c : c.name));
+  const fires = SITE.grades.map((g) => g.fire).sort((a, b) => b - a);
+  const form = fs.readFileSync(path.join(ROOT, ".github/ISSUE_TEMPLATE/deal-add.yml"), "utf8");
+  const strip = (v) => v.replace(/^[^\p{L}\p{N}]+/u, "").trim();
+  const formCats = [...form.matchAll(/^        - (.+)$/gm)].map((m) => m[1].trim())
+    .filter((v) => !/🔥/.test(v)).map(strip);
+  const formFires = [...form.matchAll(/"(.+?🔥+.*?)"/g)].map((m) => (m[1].match(/🔥/g) || []).length);
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  assert(same(formCats, cats), `이슈 폼의 카테고리가 설정과 같음 (폼 ${formCats} / 설정 ${cats})`);
+  assert(same(formFires, fires), `이슈 폼의 🔥 개수가 설정과 같음 (폼 ${formFires} / 설정 ${fires})`);
+  // 올라와 있는 딜이 전부 지금 등급표·카테고리 안에 있는지
+  const deals = load("data/deals.js").DEALS.filter((d) => !d.ended);
+  const strayG = deals.filter((d) => d.grade !== undefined && !fires.includes(d.grade));
+  assert(!strayG.length, `모든 딜의 grade 가 등급표 안에 있음 (밖: ${strayG.map((d) => d.title).join(", ")})`);
+  const strayC = deals.filter((d) => d.category && !cats.includes(d.category));
+  assert(!strayC.length, `모든 딜의 category 가 설정 안에 있음 (밖: ${strayC.map((d) => d.category).join(", ")})`);
+};
+
 const run = async () => {
+  checkConfigMatchesForm();
   const exe = chromePath();
   if (exe) console.log("크롬: " + exe);
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
@@ -167,6 +206,12 @@ const body = async (browser) => {
   {
     const og = await page.locator('meta[property="og:image"]').getAttribute("content");
     assert(/^https?:\/\/.+\/assets\/og\.png$/.test(og), `og:image 가 절대주소 (${og})`);
+    const ou = await page.locator('meta[property="og:url"]').getAttribute("content");
+    assert(/^https?:\/\/.+index\.html$/.test(ou), `og:url 이 절대주소 (${ou})`);
+    // 주소만 맞고 파일이 없으면 카톡 미리보기는 그대로 빕니다
+    const res = await page.request.get(og);
+    assert(res.status() === 200, `og:image 가 실제로 받아짐 (${res.status()})`);
+    assert((res.headers()["content-type"] || "").includes("image"), "og:image 가 이미지로 나감");
   }
   {
     // 정렬 — 드롭다운이 칩을 한 줄 더 늘리지 않고 목록 위 한 줄만 씁니다
@@ -181,14 +226,42 @@ const body = async (browser) => {
     await page.selectOption("#sort", "new");
   }
   {
+    // 마감 딜 — 잠깐 남지만 맨 아래로 내려가고, 공유 버튼은 달리지 않습니다
+    const p2 = await open("/index.html", { deals: ENDED_FIXTURE });
+    const titles = await p2.locator(".deal-title").allTextContents();
+    assert(titles.length === 2, `오래전 마감한 딜은 사라짐 (남은 ${titles.length}개)`);
+    assert(titles.includes("방금 마감한 딜"), "방금 마감한 딜은 잠깐 남음");
+    assert(await p2.locator(".tag-ended").count() === 1, "마감 딜에 마감 표시");
+    assert(titles[titles.length - 1] === "방금 마감한 딜", `마감 딜은 맨 아래 (지금 순서: ${titles.join(" / ")})`);
+    await p2.selectOption("#sort", "cheap");
+    const cheap = await p2.locator(".deal-title").allTextContents();
+    assert(cheap[cheap.length - 1] === "방금 마감한 딜", `가격 낮은순에서도 마감 딜은 맨 아래 (${cheap.join(" / ")})`);
+    assert(await p2.locator(".deal.is-ended .share").count() === 0, "마감 딜에는 공유 버튼이 없음");
+    assert(await p2.locator(".deal:not(.is-ended) .share").count() === 1, "살아 있는 딜에는 공유 버튼이 있음");
+    await p2.context().close();
+  }
+
+  {
     // 공유 — 기본 공유창이 없는 브라우저에서는 문구를 복사합니다
     await page.locator(".share").first().click();
     // 공유는 비동기라(기본 공유창 → 실패하면 복사) 알림이 한 박자 뒤에 뜹니다
     await page.waitForSelector(".toast.is-on", { timeout: 4000 });
     assert(true, "공유를 누르면 알림이 뜸");
     const built = await page.evaluate(() => kakaoText(window.DEALS[0]));
-    assert(built.includes("수수료를 제공받습니다"), "공유 문구에 수수료 고지가 들어감");
-    assert(built.includes("https://toss.im/_m/a1"), "공유 문구에 내 쉐어링크가 들어감");
+    const want = [
+      SHARE_INTRO,
+      "",
+      "✅ 한돈 냉장 삼겹살 구이용 1kg",
+      " ┗ 무지성급 🔥🔥🔥🔥🔥 14,900원",
+      " ┗ 평소가 24,900원 (40%↓)",
+      " ┗ 이 가격이면 바로 담으세요",
+      "https://toss.im/_m/a1",
+      "",
+      "- 가격·혜택은 게시 당시 기준이며 실시간 변경될 수 있습니다.",
+      "- 안내된 가격과 다를 경우 구매를 권하지 않습니다.",
+    ].join("\n");
+    assert(built === want, "공유 문구가 고지 → 상품 → 안내 순서\n   나온 것:\n" + built + "\n   바란 것:\n" + want);
+    assert(built.startsWith(SHARE_INTRO), "수수료 고지가 맨 앞 — 카톡이 긴 글을 접어도 먼저 보임");
   }
   // menu
   assert(await page.locator("#menu").isHidden(), "menu closed by default");
@@ -239,6 +312,10 @@ const body = async (browser) => {
   assert(await page.locator("#cta").count() === 0, "about: no fixed CTA");
   const aboutText = await text(page);
   assert(!aboutText.includes("연락처") && !aboutText.includes("@gmail"), "about: no contact section");
+  {
+    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    assert(/^https?:\/\/.+\/assets\/og\.png$/.test(og), `about: og:image 도 채워짐 (${og})`);
+  }
   assert(aboutText.includes("수수료") && aboutText.includes("게시 당시"), "about: disclosure and notes kept");
   await noOverflow(page, "about");
   await page.screenshot({ path: S + "/about-phone.png", fullPage: true });
@@ -276,9 +353,10 @@ const body = async (browser) => {
   await page.fill("#f-title", "테스트 상품"); await page.fill("#f-url", "https://toss.im/_m/abc"); await page.fill("#f-price", "9900");
   await page.selectOption("#f-grade", "3");
   assert((await page.locator("#out-code").textContent()).includes("grade: 3,"), "add: code has grade");
-  assert((await page.locator("#out-kakao").textContent()).startsWith("🔥🔥🔥 대박"), "add: kakao text starts with grade");
+  assert((await page.locator("#out-kakao").textContent()).startsWith(SHARE_INTRO), "add: 카톡 문구는 수수료 고지로 시작");
   assert((await page.locator("#preview .grade").textContent()) === "대박🔥🔥🔥", "add: preview badge");
   assert((await page.locator("#preview .deal-link").getAttribute("href")) === "https://toss.im/_m/abc", "add: preview card links to the deal");
+  assert(await page.locator("#preview .share").count() === 0, "add: 미리보기에는 동작하지 않는 공유 버튼을 안 달음");
   await noOverflow(page, "add");
   await page.close();
 
