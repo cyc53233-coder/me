@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "풍연 굳지않는 쑥+백미 절편세트, 50g, 20개",
+    url: "https://toss.im/_m/hnKRF4Pz",
+    price: 6500,
+    listPrice: 20000,
+    image: "https://shopping.toss.im/live/taca/ai/ZjMxZmVl/ZTVoNWpkWTVacm41azhmTVRreDdNN0o1dExIazVOd3VtTVl5azNPeGEyMD0.png",
+    category: "간식·음료",
+    note: "1개 325원 · 총 1kg · 굳지않는 떡 · 무료배송",
+    postedAt: "2026-09-20T18:20+09:00",
+    grade: 1,
+  },
+  {
     title: "을지로 연탄불고기식 돼지불고기, 250g, 4개",
     url: "https://toss.im/_m/rL8T9U4r",
     price: 7990,
