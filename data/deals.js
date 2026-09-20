@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "맥스 앤 맥스 전자레인지 라면 용기, 아이보리 1L 1개 + 올리브그린 1L 1개 + 뚜껑, 2개",
+    url: "https://toss.im/_m/li4uEhtj",
+    price: 3990,
+    listPrice: 18900,
+    image: "https://shopping.toss.im/live/temp/2026-03-06/4d9c7749-b71a-4815-9622-50747aeb997a.jpeg",
+    category: "생활용품·기타",
+    note: "전자레인지용기·찜기 1위 · 1개당 1,995원",
+    postedAt: "2026-09-20T17:04+09:00",
+    grade: 2,
+  },
+  {
     title: "롯데웰푸드 구구 크러스트 홈, 660ml, 6개",
     url: "https://toss.im/_m/lH4ogW93",
     price: 23300,
