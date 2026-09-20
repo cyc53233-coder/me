@@ -29,10 +29,8 @@ window.SITE = {
 
   // 딜 등급 — 🔥 개수가 곧 등급입니다. 이슈 폼의 "등급" 항목과 같은 순서로 두세요.
   grades: [
-    { fire: 5, label: "무지성급", hint: "역대 최저가. 고민할 필요 없음" },
-    { fire: 4, label: "초대박", hint: "최저가 확실. 보이면 담기" },
-    { fire: 3, label: "대박", hint: "평소보다 크게 쌈" },
-    { fire: 2, label: "중박", hint: "15~25% 할인" },
+    { fire: 3, label: "무지성급", hint: "역대 최저가. 고민할 필요 없음" },
+    { fire: 2, label: "대박", hint: "평소보다 크게 쌈" },
     { fire: 1, label: "추천", hint: "가격 괜찮고 살 만함" },
   ],
 
