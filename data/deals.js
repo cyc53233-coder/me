@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "제주 맑은콩나물, 무농약, 300g, 1개",
+    url: "https://toss.im/_m/NdsQEWsm",
+    price: 100,
+    listPrice: 1390,
+    image: "https://shopping.toss.im/live/temp/2026-09-03/19b2b5a6-934b-4dd3-bb00-dde44585514e.jpg",
+    category: "고기·메인반찬",
+    note: "오아시스 · 단품 배송비 5,000원, 2만원 이상 사면 무료배송",
+    postedAt: "2026-09-20T17:04+09:00",
+    grade: 1,
+  },
+  {
     title: "맥스 앤 맥스 전자레인지 라면 용기, 아이보리 1L 1개 + 올리브그린 1L 1개 + 뚜껑, 2개",
     url: "https://toss.im/_m/li4uEhtj",
     price: 3990,
