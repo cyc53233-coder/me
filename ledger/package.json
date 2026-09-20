@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node build-artifact.mjs",
     "check": "node build-artifact.mjs --check",
-    "test": "node test/calc.mjs && node test/sms.mjs && node build-artifact.mjs && node test/page.mjs",
+    "test": "node test/calc.mjs && node test/sms.mjs && node test/pantry.mjs && node build-artifact.mjs && node test/page.mjs",
     "shot": "node test/shot.mjs"
   },
   "devDependencies": {

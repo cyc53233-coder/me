@@ -22,7 +22,7 @@
     font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     font-size:15px; line-height:1.55; margin:0;
   }
-  .wrap{max-width:680px; margin:0 auto; padding:20px 16px 56px; display:flex; flex-direction:column; gap:16px}
+  .wrap{max-width:680px; margin:0 auto; padding:20px 16px 96px; display:flex; flex-direction:column; gap:16px}
 
   h1,h2,.serif{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-weight:400; letter-spacing:.01em}
   h1{font-size:30px; margin:0; text-wrap:balance; word-break:keep-all}
@@ -244,6 +244,19 @@
     font-family:'IBM Plex Mono',ui-monospace,monospace}
   .amt-preview.bad{color:var(--expense)}
 
+  /* ---------- 보관함 ---------- */
+  .tbadge{display:inline-block; min-width:17px; margin-left:4px; padding:0 4px; border-radius:99px;
+    background:var(--expense); color:#FFFFFF; font-size:11px; font-weight:700; line-height:17px; text-align:center}
+  .pchip{flex:none; font-size:11px; border-radius:5px; padding:1px 7px; white-space:nowrap;
+    background:var(--track); color:var(--muted); border:1px solid var(--line)}
+  .pchip.soon{background:var(--yellow-soft); color:var(--tag-ink); border-color:var(--yellow-line)}
+  .pchip.over{background:#FFECEC; color:#8E1F1F; border-color:#E9A8A8}
+  .pguess{flex:none; font-size:10px; color:var(--muted); border:1px dashed var(--line); border-radius:5px; padding:0 5px}
+  .row.done .rmain{opacity:.55; text-decoration:line-through}
+  .peat{flex:none; background:var(--paper); border:1px solid var(--input-line); border-radius:99px;
+    padding:3px 10px; font-size:12px; cursor:pointer; color:var(--ink)}
+  .peat:hover{background:var(--track)}
+
   /* ---------- CSV 가져오기 시트 ---------- */
   #csvSheet{display:none; position:fixed; inset:0; z-index:52}
   #csvSheet.show{display:block}
@@ -274,6 +287,9 @@
   .mrow input[type="checkbox"]{width:20px; height:20px}
   .mrow input.mname{font-size:13px; padding:6px 8px}
   .mrow input.mamt{font-family:'IBM Plex Mono',ui-monospace,monospace; text-align:right; padding:6px 8px}
+  .msub{grid-column:1 / -1; display:flex; align-items:center; gap:8px; padding:2px 0 4px 26px}
+  .mpklabel{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); white-space:nowrap}
+  .msub input[type="date"]{flex:1; min-width:0; font-size:12px; padding:5px 8px}
   #multiActions{display:flex; gap:8px; margin-top:6px}
   #multiActions button{flex:1}
 
@@ -334,6 +350,12 @@
     <button class="ghost mini" id="shareWhy">자세히</button>
   </div>
 
+  <!-- 유통기한 배너 -->
+  <div class="banner" id="pantryBanner" role="status">
+    <span class="grow" id="pantryBannerText"></span>
+    <button class="ghost mini" id="pantryGo">보관함 열기</button>
+  </div>
+
   <!-- 고정지출 배너 -->
   <div class="banner" id="recBanner" role="status">
     <span class="grow" id="recBannerText"></span>
@@ -353,6 +375,7 @@
     <button role="tab" id="tb-daily" aria-selected="true" aria-controls="tab-daily">일일</button>
     <button role="tab" id="tb-cal" aria-selected="false" aria-controls="tab-cal">달력</button>
     <button role="tab" id="tb-income" aria-selected="false" aria-controls="tab-income">입금</button>
+    <button role="tab" id="tb-pantry" aria-selected="false" aria-controls="tab-pantry">보관함<span id="pantryBadge" class="tbadge" hidden></span></button>
     <button role="tab" id="tb-stats" aria-selected="false" aria-controls="tab-stats">분석</button>
   </div>
   <div class="strip" aria-label="이번 달 요약">
@@ -443,6 +466,36 @@
     <div class="sumline"><span>이번 달 입금 합계</span><b class="num" id="incSum">0원</b></div>
   </section>
   </div>
+  <div id="tab-pantry" role="tabpanel" aria-labelledby="tb-pantry" hidden>
+    <section class="card" aria-label="보관함">
+      <h2 class="serif">보관함 <span class="spacer"></span><button class="ghost mini" id="pantryAddBtn">직접 담기</button></h2>
+      <p class="rules-hint">영수증으로 담은 것과 직접 담은 것이 임박한 순서로 보여요. 먹었으면 눌러서 치우세요.<br>
+        이 페이지가 닫혀 있을 땐 알림을 보낼 수 없어서, <b>열었을 때</b> 위쪽 배너로 알려 드려요.</p>
+
+      <details class="adder" id="pantryAdder">
+        <summary>직접 담기</summary>
+        <div class="formbody">
+          <div class="frow"><label class="f">이름<input id="pName" placeholder="예: 서울우유 900ml"></label></div>
+          <div class="frow">
+            <label class="f">유통기한<input id="pExpire" type="date"></label>
+            <label class="f">수량<input id="pQty" placeholder="예: 1개"></label>
+          </div>
+          <div class="frow"><label class="f">메모<input id="pMemo" placeholder="예: 냉장 문쪽"></label></div>
+          <div style="display:flex; gap:8px">
+            <button class="primary" id="pSave">보관함에 담기</button>
+            <button class="ghost" id="pCancel" hidden>고치기 취소</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="rows" id="pantryRows"></div>
+      <details id="pantryDone" style="margin-top:10px">
+        <summary class="rules-hint" style="cursor:pointer">치운 것 보기</summary>
+        <div class="rows" id="pantryDoneRows"></div>
+      </details>
+    </section>
+  </div>
+
   <div id="tab-stats" role="tabpanel" aria-labelledby="tb-stats" hidden>
   <section class="card" aria-label="이번 달 분석">
     <div class="sumline" style="margin:0 0 14px; padding-top:0; border:none"><span>기록한 돈 합계 (전체 기간)</span><b class="num" id="tBal">0원</b></div>
@@ -753,7 +806,8 @@ function newLid(){
 }
 
 const state = {
-  entries: new Map(),          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
+  entries: new Map(),
+  pantry: new Map(),          // 보관함 (유통기한 관리)          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
   rules: "",                   // 비어 있으면 예시 규칙 표시
   members: ["나", "다니"],
   recurring: [],               // {id, day, amount, category, memo, who}
@@ -772,6 +826,7 @@ function loadLocal(){
     if (!raw) return;
     const d = JSON.parse(raw);
     if (Array.isArray(d.entries)) state.entries = new Map(d.entries.map(e => [e.id, e]));
+    if (Array.isArray(d.pantry)) state.pantry = new Map(d.pantry.map(e => [e.id, e]));
     if (typeof d.rules === "string") state.rules = d.rules;
     if (Array.isArray(d.members) && d.members.length === 2) state.members = d.members.map(String);
     if (Array.isArray(d.recurring)) state.recurring = d.recurring;
@@ -782,6 +837,7 @@ function saveLocal(){
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       entries: [...state.entries.entries()].map(([id, e]) => ({...e, id})),
+      pantry: [...state.pantry.entries()].map(([id, e]) => ({...e, id})),
       rules: state.rules, members: state.members, recurring: state.recurring,
     }));
   } catch(e){}
@@ -798,6 +854,20 @@ async function updateEntry(id, e){
 async function deleteEntry(id){
   if (db) { await db.collection("entries").doc(id).delete(); }
   else { state.entries.delete(id); saveLocal(); renderAll(); }
+}
+
+/* 보관함은 지출과 별개 컬렉션 — 지출을 지워도 냉장고 목록은 남고, 먹고 치워도 금액은 남는다. */
+async function addPantry(x){
+  if (db) { await db.collection("pantry").add(x); }
+  else { state.pantry.set(newId(), x); saveLocal(); renderAll(); }
+}
+async function updatePantry(id, x){
+  if (db) { await db.collection("pantry").doc(id).set(x); }
+  else { state.pantry.set(id, x); saveLocal(); renderAll(); }
+}
+async function deletePantry(id){
+  if (db) { await db.collection("pantry").doc(id).delete(); }
+  else { state.pantry.delete(id); saveLocal(); renderAll(); }
 }
 async function saveRules(text){
   state.rules = text;
@@ -825,7 +895,7 @@ function dbWriteFailed(err){
 }
 
 /* ================= 탭 ================= */
-const TABS = ["daily", "cal", "income", "stats"];
+const TABS = ["daily", "cal", "income", "pantry", "stats"];
 function showTab(name){
   if (!TABS.includes(name)) name = "daily";
   TABS.forEach(t => {
@@ -840,6 +910,7 @@ function showTab(name){
 function renderAll(){
   renderRules(); renderMonth(); renderTiles(); renderCalendar(); renderIncome(); renderExpense();
   renderCharts(); renderSettings(); renderLog(); renderRecBanner();
+  renderPantry(); renderPantryBanner();
 }
 
 /* 달력 칸에 들어갈 짧은 금액 — 45,900 → "4.6만" */
@@ -1364,6 +1435,199 @@ function parseItems(text){
 }
 /*SMS_PARSE_END*/
 
+/* ================= 유통기한 ================= */
+/*EXPIRY_START*/
+/** 텍스트에 적힌 실제 유통기한을 찾는다. 없으면 null — 지어내지 않는다. */
+function parseExpiryDate(text){
+  const t = String(text || "");
+  const pats = [
+    /(?:유통|소비|품질유지)\s*기한\D{0,4}(\d{2,4})[.\-\/년]\s*(\d{1,2})[.\-\/월]\s*(\d{1,2})/,
+    /(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})\s*(?:까지|한)/,
+    /(?:유통|소비)\s*기한\D{0,4}(\d{4})(\d{2})(\d{2})/,
+  ];
+  for (const re of pats) {
+    const m = t.match(re);
+    if (!m) continue;
+    let y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    if (y < 100) y += 2000;
+    if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) continue;
+    const dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) continue;   // 2월 30일 등
+    return y + "-" + pad2(mo) + "-" + pad2(d);
+  }
+  return null;
+}
+
+/* 품목 이름 → 대략 며칠. 모르면 null을 돌려준다 —
+   아무 값이나 채우면 멀쩡한 걸 버리거나 상한 걸 먹게 된다. */
+const SHELF_DAYS = [
+  [3,  /회$|생선|活|생연어|굴|조개|새우살|다짐육|간고기/],
+  [5,  /우유|생크림|두부|콩나물|숙주|딸기|바나나|샐러드|쌈채소|상추|시금치|부추/],
+  [7,  /요거트|요구르트|치즈|베이컨|햄|소시지|닭고기|돼지고기|소고기|삼겹|목살|계란말이|빵|식빵|떡$|떡볶이떡|버섯|애호박|오이|토마토/],
+  [14, /김치|어묵|맛살|양배추|브로콜리|파프리카|당근|양파|감자|고구마|사과|배$|귤|오렌지|포도/],
+  [21, /계란|달걀|마요네즈|케첩|잼|버터|마가린/],
+  [180,/냉동|만두|아이스크림|튀김가루|부침가루|밀가루|시리얼/],
+  [365,/라면|국수|파스타|스파게티|통조림|참치캔|햇반|즉석밥|간장|된장|고추장|식초|설탕|소금|올리브유|식용유|꿀|커피|차$|티백/],
+];
+function guessShelfDays(name){
+  const n = String(name || "").trim();
+  if (!n) return null;
+  for (const [days, re] of SHELF_DAYS) if (re.test(n)) return days;
+  return null;
+}
+/** 남은 날 수. 오늘이면 0, 지났으면 음수. */
+function dday(expireAt, today){
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(expireAt || ""))) return null;
+  const base = String(today || "").length === 10 ? today : todayStr();
+  const a = new Date(expireAt + "T00:00:00"), b = new Date(base + "T00:00:00");
+  return Math.round((a - b) / 86400000);
+}
+function ddayLabel(n){
+  if (n === null) return "기한 없음";
+  if (n === 0) return "오늘까지";
+  return n > 0 ? "D-" + n : Math.abs(n) + "일 지남";
+}
+/** 유통기한을 어디서 얻었는지까지 돌려준다 — 추정은 추정이라고 표시해야 한다. */
+function decideExpiry(name, text, buyAt){
+  const found = parseExpiryDate(text);
+  if (found) return { expireAt: found, guessed: false };
+  const days = guessShelfDays(name);
+  if (days === null) return { expireAt: "", guessed: false };
+  const base = new Date((buyAt || todayStr()) + "T00:00:00");
+  base.setDate(base.getDate() + days);
+  return { expireAt: base.getFullYear() + "-" + pad2(base.getMonth() + 1) + "-" + pad2(base.getDate()), guessed: true };
+}
+const SOON_DAYS = 3;
+/*EXPIRY_END*/
+
+/* ================= 보관함 화면 ================= */
+let editingPantry = null;
+
+function pantryList(done){
+  return [...state.pantry.entries()].map(([id, x]) => ({ ...x, id }))
+    .filter(x => (done ? !!x.doneAt : !x.doneAt))
+    .sort((a, b) => {
+      const da = dday(a.expireAt), db_ = dday(b.expireAt);
+      if (da === null && db_ === null) return (b.createdAt || 0) - (a.createdAt || 0);
+      if (da === null) return 1;            // 기한 없는 것은 뒤로
+      if (db_ === null) return -1;
+      return da - db_;                      // 임박한 순
+    });
+}
+const pantryUrgent = () => pantryList(false).filter(x => { const d = dday(x.expireAt); return d !== null && d <= SOON_DAYS; });
+
+function pantryRow(x, done){
+  const d = dday(x.expireAt);
+  const row = el("div", "row entry" + (done ? " done" : ""));
+  const main = el("div", "rmain"), sub = el("div", "rsub");
+  main.append(el("span", "memo", x.name || "—"));
+  if (x.qty) main.append(el("span", "who", x.qty));
+  const chip = el("span", "pchip" + (d === null ? "" : d < 0 ? " over" : d <= SOON_DAYS ? " soon" : ""), ddayLabel(d));
+  main.append(chip);
+  sub.append(el("span", "who", (x.buyAt ? x.buyAt.slice(5).replace("-", ".") + " 구입" : "") + (x.expireAt ? " · " + x.expireAt.slice(5).replace("-", ".") + "까지" : "")));
+  if (x.guessed && x.expireAt) sub.append(el("span", "pguess", "기한 추정"));
+  if (x.memo) sub.append(el("span", "who", x.memo));
+  sub.append(el("span", "who", ""));                       // 오른쪽 밀기
+  sub.querySelector(".who:last-child").style.flex = "1";
+
+  if (!done) {
+    const eat = el("button", "peat", "다 먹었어요");
+    eat.type = "button";
+    eat.setAttribute("aria-label", (x.name || "품목") + " 치우기");
+    eat.addEventListener("click", async ev => {
+      ev.stopPropagation();
+      const before = { ...x }; delete before.id;
+      try { await updatePantry(x.id, { ...before, doneAt: Date.now() }); }
+      catch (err) { return dbWriteFailed(err); }
+      toast("치웠어요", "되돌리기", async () => {
+        try { await updatePantry(x.id, before); } catch (err) { dbWriteFailed(err); }
+      });
+    });
+    sub.append(eat);
+    row.classList.add("editable");
+    row.setAttribute("role", "button"); row.tabIndex = 0;
+    row.setAttribute("aria-label", (x.name || "품목") + " " + ddayLabel(d) + " — 누르면 고칠 수 있어요");
+    const open = ev => { if (ev.target.closest(".peat") || ev.target.closest(".del")) return; startPantryEdit(x); };
+    row.addEventListener("click", open);
+    row.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); startPantryEdit(x); } });
+  } else {
+    const back = el("button", "peat", "되돌리기");
+    back.type = "button";
+    back.addEventListener("click", async () => {
+      const b = { ...x }; delete b.id; delete b.doneAt;
+      try { await updatePantry(x.id, b); toast("보관함으로 되돌렸어요"); } catch (err) { dbWriteFailed(err); }
+    });
+    sub.append(back);
+  }
+
+  const del = el("button", "del", "×");
+  del.setAttribute("aria-label", (x.name || "품목") + " 목록에서 삭제");
+  del.addEventListener("click", async ev => {
+    ev.stopPropagation();
+    if (!del.classList.contains("arm")) {
+      del.classList.add("arm"); del.textContent = "지우기";
+      setTimeout(() => { del.classList.remove("arm"); del.textContent = "×"; }, 2600);
+      return;
+    }
+    const backup = { ...x }; delete backup.id;
+    try { await deletePantry(x.id); } catch (err) { return dbWriteFailed(err); }
+    toast("지웠어요", "되돌리기", async () => {
+      try { await addPantry(backup); } catch (err) { dbWriteFailed(err); }
+    });
+  });
+  sub.append(del);
+  row.append(main, sub);
+  return row;
+}
+
+function renderPantry(){
+  const box = $("#pantryRows"), doneBox = $("#pantryDoneRows");
+  if (!box) return;
+  const live = pantryList(false), done = pantryList(true);
+  box.textContent = "";
+  if (!live.length) box.append(el("div", "empty", "보관함이 비었어요. 영수증을 올리거나 직접 담아 보세요."));
+  else live.forEach(x => box.append(pantryRow(x, false)));
+  doneBox.textContent = "";
+  if (!done.length) doneBox.append(el("div", "empty", "치운 것이 없어요."));
+  else done.slice(0, 50).forEach(x => doneBox.append(pantryRow(x, true)));
+}
+
+function renderPantryBanner(){
+  const urgent = pantryUrgent();
+  const over = urgent.filter(x => dday(x.expireAt) < 0).length;
+  const soon = urgent.length - over;
+  const b = $("#pantryBanner");
+  if (!b) return;
+  b.classList.toggle("show", urgent.length > 0);
+  if (urgent.length) {
+    const parts = [];
+    if (soon) parts.push(SOON_DAYS + "일 안에 먹어야 할 게 " + soon + "개");
+    if (over) parts.push("기한 지난 게 " + over + "개");
+    $("#pantryBannerText").textContent = parts.join(" · ");
+  }
+  const badge = $("#pantryBadge");
+  badge.hidden = urgent.length === 0;
+  badge.textContent = String(urgent.length);
+}
+
+function startPantryEdit(x){
+  editingPantry = x.id;
+  $("#pantryAdder").open = true;
+  $("#pName").value = x.name || "";
+  $("#pExpire").value = x.expireAt || "";
+  $("#pQty").value = x.qty || "";
+  $("#pMemo").value = x.memo || "";
+  $("#pSave").textContent = "고친 내용 저장";
+  $("#pCancel").hidden = false;
+  $("#pantryAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+}
+function cancelPantryEdit(){
+  editingPantry = null;
+  ["#pName", "#pExpire", "#pQty", "#pMemo"].forEach(sel => { $(sel).value = ""; });
+  $("#pSave").textContent = "보관함에 담기";
+  $("#pCancel").hidden = true;
+}
+
 /* ================= CSV 가져오기 ================= */
 /*CSV_START*/
 /** 앱 내보내기 형식(날짜,구분,카테고리,내용,누가,금액)을 읽는다.
@@ -1525,18 +1789,35 @@ function openMultiSheet(items, ctx, text){
   multiCtx = ctx;
   const box = $("#multiRows");
   box.textContent = "";
+  const buyAt = ctx.date || todayStr();
   items.forEach((it, i) => {
     const r = el("div", "mrow");
-    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = true; cb.setAttribute("aria-label", (it.name || "품목") + " 포함");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.className = "mpick"; cb.checked = true; cb.setAttribute("aria-label", (it.name || "품목") + " 포함");
     const nm = document.createElement("input"); nm.className = "mname"; nm.value = it.name || ""; nm.placeholder = "품목 " + (i + 1);
     const am = document.createElement("input"); am.className = "mamt"; am.inputMode = "numeric"; am.value = it.amount.toLocaleString("ko-KR");
     bindAmtField(am);
     r.append(cb, nm, am);
+
+    // 보관함 줄 — 유통기한을 알 만한 것만 기본으로 켠다
+    const decided = decideExpiry(it.name, text || "", buyAt);
+    const sub = el("div", "msub");
+    const pk = document.createElement("input"); pk.type = "checkbox"; pk.className = "mpk";
+    pk.checked = !!decided.expireAt;
+    pk.setAttribute("aria-label", (it.name || "품목") + " 보관함에 담기");
+    const lb = el("label", "mpklabel", "보관함");
+    lb.prepend(pk);
+    const ex = document.createElement("input"); ex.type = "date"; ex.className = "mexp"; ex.value = decided.expireAt;
+    ex.setAttribute("aria-label", (it.name || "품목") + " 유통기한");
+    ex.addEventListener("change", () => { r.dataset.guessed = ""; r.querySelector(".mguess")?.remove(); });
+    sub.append(lb, ex);
+    if (decided.guessed) { r.dataset.guessed = "1"; sub.append(el("span", "pguess mguess", "추정")); }
+    r.append(sub);
     box.append(r);
   });
   $("#multiDate").value = ctx.date || todayStr();
   $("#multiStore").value = guessStore(text || "");
-  $("#multiHint").textContent = items.length + "개 품목이 보여요. 체크된 것만 등록돼요. 이름이나 금액이 틀리면 고쳐 주세요.";
+  $("#multiHint").textContent = items.length + "개 품목이 보여요. 체크된 것만 등록돼요. 이름·금액이 틀리면 고치고, "
+    + "유통기한을 챙길 것은 '보관함'을 켜 두세요 — '추정'이라고 적힌 날짜는 이름으로 짐작한 값이라 꼭 확인해 주세요.";
   $("#multiSheet").classList.add("show");
   $("#multiSheet").setAttribute("aria-hidden", "false");
   $("#multiRows input.mname").focus();
@@ -1548,8 +1829,14 @@ function closeMultiSheet(){
 }
 function multiPicked(){
   return [...$("#multiRows").querySelectorAll(".mrow")]
-    .filter(r => r.querySelector("input[type=checkbox]").checked)
-    .map(r => ({ name: r.querySelector(".mname").value.trim(), amount: evalAmount(r.querySelector(".mamt").value) || 0 }))
+    .filter(r => r.querySelector(".mpick").checked)
+    .map(r => ({
+      name: r.querySelector(".mname").value.trim(),
+      amount: evalAmount(r.querySelector(".mamt").value) || 0,
+      toPantry: !!(r.querySelector(".mpk") && r.querySelector(".mpk").checked),
+      expireAt: (r.querySelector(".mexp") && r.querySelector(".mexp").value) || "",
+      guessed: r.dataset.guessed === "1",
+    }))
     .filter(x => x.amount > 0);
 }
 async function multiSubmit(mode){
@@ -1577,10 +1864,25 @@ async function multiSubmit(mode){
       }
       toast(n + "건을 각각 등록했어요");
     }
+    // 지출과 별개로 보관함에도 담는다 — 여기 실패는 지출 등록을 되돌리지 않고 따로 알린다
+    const forPantry = base.type === "expense" ? picked.filter(x => x.toPantry) : [];
+    let stored = 0, pantryErr = null;
+    for (const x of forPantry) {
+      try {
+        await addPantry({
+          name: x.name || "품목", qty: "", memo: store, category: "",
+          buyAt: date, expireAt: x.expireAt || "", guessed: !!(x.guessed && x.expireAt),
+          who, createdAt: Date.now() + stored,
+        });
+        stored++;
+      } catch (err) { pantryErr = err; break; }
+    }
     closeMultiSheet();
     state.month = date.slice(0, 7); if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
     showTab(base.type === "income" ? "income" : "daily");
     renderAll();
+    if (pantryErr) toast("보관함에는 " + stored + "개만 담겼어요 — 나머지는 다시 담아 주세요");
+    else if (stored) toast("보관함에도 " + stored + "개 담았어요");
   } catch (err) { dbWriteFailed(err); }
   finally { btns.forEach(b => b.disabled = false); }
 }
@@ -2062,6 +2364,34 @@ function bindEvents(){
   $("#multiBackdrop").addEventListener("click", closeMultiSheet);
   document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#multiSheet").classList.contains("show")) closeMultiSheet(); });
 
+  // 보관함
+  $("#pantryGo").addEventListener("click", () => { showTab("pantry"); $("#tab-pantry").scrollIntoView({ block: "start", behavior: "smooth" }); });
+  $("#pantryAddBtn").addEventListener("click", () => {
+    cancelPantryEdit(); $("#pantryAdder").open = true; setTimeout(() => $("#pName").focus(), 200);
+  });
+  $("#pCancel").addEventListener("click", cancelPantryEdit);
+  $("#pSave").addEventListener("click", async () => {
+    const name = $("#pName").value.trim();
+    if (!name) { toast("이름을 적어 주세요"); $("#pName").focus(); return; }
+    const btn = $("#pSave"), was = btn.textContent;
+    const id = editingPantry;
+    const prev = id ? state.pantry.get(id) : null;
+    const item = {
+      name, expireAt: $("#pExpire").value || "", guessed: false,
+      qty: $("#pQty").value.trim(), memo: $("#pMemo").value.trim(),
+      buyAt: (prev && prev.buyAt) || todayStr(), who: (prev && prev.who) || segValue($("#expWho")),
+      category: (prev && prev.category) || "", createdAt: (prev && prev.createdAt) || Date.now(),
+    };
+    if (prev && prev.doneAt) item.doneAt = prev.doneAt;
+    btn.disabled = true; btn.textContent = "저장 중…";
+    try { if (id) await updatePantry(id, item); else await addPantry(item); }
+    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
+    btn.disabled = false;
+    cancelPantryEdit();
+    showTab("pantry"); renderAll();
+    toast(id ? "고쳤어요" : "보관함에 담았어요");
+  });
+
   // 계산기 패드
   buildCalcPad();
   $("#calcApply").addEventListener("click", calcApply);
@@ -2084,12 +2414,17 @@ function connectSharedStore(adapter, mode){
     rules: state.rules, members: state.members, recurring: state.recurring,
   };
   state.entries = new Map();   // 공유 데이터만 사용 (기기 데이터와 섞지 않음)
+  state.pantry = new Map();
   state.rules = ""; state.recurring = [];
   setConn(mode);
   db.collection("entries").onSnapshot(snap => {
     state.entries = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
     renderAll(); renderMigBanner();
   }, () => toast("공유 저장소 연결이 끊겼어요 — 새로고침해 주세요"));
+  db.collection("pantry").onSnapshot(snap => {
+    state.pantry = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
+    renderPantry(); renderPantryBanner();
+  }, () => {});
   db.doc("meta/rules").onSnapshot(snap => {
     state.rules = snap.exists ? String(snap.data().text || "") : "";
     renderRules();
