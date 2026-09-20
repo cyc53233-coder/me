@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "제주청정우유, 900ml, 1개",
+    url: "https://toss.im/_m/1OKB8MTe",
+    price: 1000,
+    listPrice: 3400,
+    image: "https://shopping.toss.im/live/temp/2026-09-09/e63a62ab-a12f-4bd9-b6d7-9c316e00b5cf.jpg",
+    category: "간식·음료",
+    note: "오아시스 · 평점 4.8(465) · 하루 1개까지 · 단품 배송비 5,000원, 2만원 이상 사면 무료배송",
+    postedAt: "2026-09-20T18:45+09:00",
+    grade: 1,
+  },
+  {
     title: "마스트로이안니 포마스 올리브오일, 1L, 1병",
     url: "https://toss.im/_m/1nWiJYk2",
     price: 9900,
