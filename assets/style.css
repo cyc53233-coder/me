@@ -139,6 +139,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: 0 2px 8px rgba(27, 92, 240, 0.3);
 }
 
+/* 카테고리는 개수가 늘어도 한 줄을 지키도록 옆으로 밀립니다 */
+.chips-cat {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips-cat::-webkit-scrollbar { display: none; }
+.chips-cat .chip { min-height: 44px; }
+
 /* ── 카톡 인앱 브라우저 안내 ─────────────────────────────── */
 .kakao-notice {
   display: flex;

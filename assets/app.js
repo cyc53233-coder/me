@@ -203,8 +203,13 @@ function initDealList() {
   );
   if (!GRADES.length) gradeBox.hidden = true;
 
+  // 설정해 둔 카테고리는 딜이 없어도 늘 보이고, 목록에만 있는 카테고리는 뒤에 붙입니다
   const catBox = document.getElementById("chips");
-  const cats = ["전체", ...new Set(all.map((d) => d.category).filter(Boolean))];
+  const configured = Array.isArray(SITE.categories) ? SITE.categories : [];
+  const extra = [...new Set(all.map((d) => d.category).filter(Boolean))].filter(
+    (c) => !configured.includes(c)
+  );
+  const cats = ["전체", ...configured, ...extra];
   catBox.innerHTML = chipsHTML(cats.map((c) => ({ value: c, label: c })), "cat", "전체");
   if (cats.length < 2) catBox.hidden = true;
 
