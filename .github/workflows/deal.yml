@@ -36,18 +36,41 @@ jobs:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: node scripts/add-deal.mjs
 
+      # 딜 두 개를 잇따라 올리면 둘 다 목록 맨 위에 끼워 넣으려 해서 같은 줄에서 부딪힙니다.
+      # 그래서 합치려 들지 않고, 최신 상태로 되감은 뒤 처음부터 다시 적용하고 밉니다.
       - name: 사이트에 올리기
         if: steps.apply.outputs.changed == 'true'
         env:
           BRANCH: ${{ github.event.repository.default_branch }}
+          MODE: ${{ contains(github.event.issue.body, '### 마감할 딜') && 'end' || 'add' }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/deals.js
-          git commit -m "$(cat .deal-commit-message)"
-          git pull --rebase origin "$BRANCH"
-          git push origin "HEAD:$BRANCH"
+          pushed=no
+          for attempt in 1 2 3 4 5; do
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            node scripts/add-deal.mjs
+            git add data/deals.js
+            git commit -m "$(cat .deal-commit-message)"
+            if git push origin "HEAD:$BRANCH"; then pushed=yes; break; fi
+            echo "다른 등록과 겹쳤습니다. 최신 목록으로 다시 적용합니다 ($attempt/5)"
+            sleep $((attempt * 3))
+          done
+          if [ "$pushed" != yes ]; then
+            # 답글은 이 단계 전에 "올렸습니다"로 쓰여 있습니다. 거짓말이 나가지 않게 덮어씁니다.
+            {
+              echo "❌ **올리지 못했습니다.**"
+              echo
+              echo "다른 등록과 계속 겹쳐서 저장소에 쓰지 못했습니다."
+              echo "이 이슈를 닫았다가 다시 열면 그대로 다시 시도합니다."
+            } > .deal-comment.md
+            exit 1
+          fi
 
       - name: 이슈에 답글
         if: always()
