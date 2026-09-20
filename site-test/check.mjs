@@ -65,8 +65,10 @@ const run = async () => {
     await page.route("**/data/deals.js", (route) =>
       route.fulfill({ body: deals || FIXTURE, headers: { "content-type": "text/javascript" } })
     );
-    if (chat) await page.route("**/data/site.js", async (route) => {
-      const res = await route.fetch(); const body = (await res.text()).replace('openChatUrl: ""', `openChatUrl: "${chat}"`);
+    // chat 을 주면(빈 문자열 포함) 설정의 초대 링크를 그 값으로 바꿔 끼웁니다
+    if (chat !== undefined) await page.route("**/data/site.js", async (route) => {
+      const res = await route.fetch();
+      const body = (await res.text()).replace(/openChatUrl:\s*"[^"]*"/, `openChatUrl: "${chat}"`);
       await route.fulfill({ response: res, body, headers: { "content-type": "text/javascript" } });
     });
     await page.goto(BASE + path, { waitUntil: "load" });
@@ -76,8 +78,8 @@ const run = async () => {
   const text = async (page) => (await page.locator("body").innerText());
 
   // 1. index, plain browser, no open chat url
-  let page = await open("index.html");
-  assert((await page.title()).startsWith("오늘의 핫딜"), "title uses site name");
+  let page = await open("index.html", { chat: "" });
+  assert((await page.title()).startsWith("핫딜 주워담기"), "title uses site name");
   assert((await page.locator(".notice-bar").textContent()).startsWith("* 쉐어링크"), "top bar shows the short disclosure");
   assert((await page.locator(".intro h1").textContent()) === "방금 올라온 핫딜", "title band restored");
   assert((await page.locator(".notice-bar").boundingBox()).height < 32, "disclosure bar fits one line");
@@ -139,10 +141,10 @@ const run = async () => {
   await page.close();
 
   // 2. index with open chat url + KakaoTalk in-app UA
-  page = await open("index.html", { chat: "https://open.kakao.com/o/gTESTxyz", ua: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36 KAKAOTALK/10.9.0" });
+  page = await open("index.html", { ua: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36 KAKAOTALK/10.9.0" });
   assert(await page.locator("#cta a").isVisible(), "CTA visible with openChatUrl");
-  assert((await page.locator("#cta a").textContent()) === "🔥 실시간 핫딜알림방 입장하기", "CTA label");
-  assert((await page.locator("#cta a").getAttribute("href")) === "https://open.kakao.com/o/gTESTxyz", "CTA href");
+  assert((await page.locator("#cta a").textContent()) === "🔥 핫딜 주워담기 입장하기", "CTA label");
+  assert((await page.locator("#cta a").getAttribute("href")) === "https://open.kakao.com/o/gtI7swOi", "설정의 초대 링크가 그대로 버튼에 걸림");
   assert(await page.locator("#kakao-notice").isVisible(), "kakao notice visible in KakaoTalk");
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const cta = await page.locator("#cta a").boundingBox();
@@ -154,10 +156,11 @@ const run = async () => {
   await page.close();
 
   // 3. about
-  page = await open("about.html", { chat: "https://open.kakao.com/o/gTESTxyz" });
+  page = await open("about.html");
   assert(await page.locator("[data-site-grades] li").count() === 3, "about: 3 grade rows");
   assert(await page.locator("#등급").count() === 1, "about: grade anchor for the menu link");
   assert(await page.locator("[data-site-openchat] a.btn-cta").isVisible(), "about: open chat button");
+  assert((await page.locator("[data-site-openchat] a").getAttribute("href")) === "https://open.kakao.com/o/gtI7swOi", "about: 같은 초대 링크");
   assert(await page.locator("#cta").count() === 0, "about: no fixed CTA");
   const aboutText = await text(page);
   assert(!aboutText.includes("연락처") && !aboutText.includes("@gmail"), "about: no contact section");
@@ -165,12 +168,12 @@ const run = async () => {
   await noOverflow(page, "about");
   await page.screenshot({ path: S + "/about-phone.png", fullPage: true });
   await page.close();
-  page = await open("about.html");
+  page = await open("about.html", { chat: "" });
   assert((await page.locator("[data-site-openchat]").textContent()).includes("준비"), "about: placeholder when no chat url");
   await page.close();
 
   // 3-1. 사진이 붙은 카드
-  page = await open("index.html", { deals: PHOTO_FIXTURE });
+  page = await open("index.html", { chat: "", deals: PHOTO_FIXTURE });
   assert(await page.locator(".deal").count() === 3, "photo fixture: 3 cards");
   {
     const tall = page.locator(".deal").nth(0), wide = page.locator(".deal").nth(1), none = page.locator(".deal").nth(2);
