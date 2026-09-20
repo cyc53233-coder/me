@@ -106,7 +106,7 @@
 
 | 주소 | 누가 올리나 |
 |---|---|
-| https://todays-hotdeal.cyc53233.workers.dev | **Cloudflare Workers** — 대시보드가 이 저장소를 직접 지켜보다가 `npx wrangler deploy` 실행 |
+| https://todays-hotdeal.pickuping.workers.dev | **Cloudflare Workers** — 대시보드가 이 저장소를 직접 지켜보다가 `npx wrangler deploy` 실행 |
 | https://cyc53233-coder.github.io/me/ | GitHub Pages — 저장소 설정에 켜져 있음 |
 
 카톡 방에는 짧은 **Workers 주소**를 올리는 편이 깔끔합니다. 고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요.

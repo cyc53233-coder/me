@@ -7,11 +7,15 @@
 | 무엇 | 어디로 | 무엇이 트리거하나 |
 |---|---|---|
 | 저장소 루트 정적 사이트 | `cyc53233-coder.github.io/me/` | `main` 푸시 → GitHub Pages 자동 |
-| 저장소 루트 정적 사이트 (같은 내용) | `todays-hotdeal.cyc53233.workers.dev` | `main` 푸시 → **Cloudflare 대시보드가 저장소를 직접 감시**(Workers Builds) → `npx wrangler deploy` (`wrangler.jsonc` · `.assetsignore`) |
+| 저장소 루트 정적 사이트 (같은 내용) | `todays-hotdeal.pickuping.workers.dev` | `main` 푸시 → **Cloudflare 대시보드가 저장소를 직접 감시**(Workers Builds) → `npx wrangler deploy` (`wrangler.jsonc` · `.assetsignore`) |
 | **가계부** `ledger/` | 같은 Pages 주소의 `/me/ledger/` | 위와 동일 |
 | 가계부 (선택) | `dani-yongcheol.web.app` | `main`의 `ledger/**` 푸시 → `firebase-hosting.yml` |
 
 **Workers 배포는 `.github/workflows/cloudflare.yml`이 하지 않는다.** 2026-09-20에 Cloudflare 대시보드로 저장소를 직접 연결했고(프로젝트 `todays-hotdeal` · Deploy command `npx wrangler deploy` · Root `/` · 작업 브랜치 빌드 꺼짐), 그쪽이 `main`을 감시해 배포한다. 그래서 `cloudflare.yml`은 시크릿이 없는 채로 **매 `main` 푸시마다 "건너뜀"으로 초록 종료한다 — 알려진 정상 상태다.** 시크릿을 넣으면 두 경로가 같은 워커에 배포하므로 넣지 말 것. 대시보드 프로젝트 이름과 `wrangler.jsonc`의 `name`이 다르면 배포가 이름 불일치로 실패한다.
+
+**계정 서브도메인은 `pickuping`이다** (2026-09-20에 `cyc53233`에서 바꿨다). 워커 이름 `todays-hotdeal`은 `wrangler.jsonc`의 `name`과 Cloudflare 프로젝트 이름이 **같아야** 하고, 서브도메인을 또 바꾸면 위 표의 주소와 README 를 같이 고칠 것.
+
+**「딜 등록 · 마감」 워크플로가 빨갛게 끝나는 것은 대개 고장이 아니다.** 가격을 안 적었거나 링크를 못 찾은 이슈는 `scripts/add-deal.mjs`가 답글을 남기고 exit 1 로 끝내며, 그래야 이슈가 닫히지 않고 고쳐서 다시 열 수 있다. 실행 로그보다 **이슈 답글**을 먼저 볼 것 — 답글이 링크에서 무엇을 읽었는지(상품명·사진·가격, 또는 차단 사유)까지 알려 준다.
 
 **Firebase Hosting 워크플로는 저장소 시크릿 `FIREBASE_SERVICE_ACCOUNT`가 없으면 실패한다.** 없는 상태에서도 GitHub Pages 배포는 정상이므로, 그 주소로 쓰는 한 이 실패는 무시해도 되는 알려진 상태다 — 실패를 볼 때마다 새로 진단하지 말 것.
 
