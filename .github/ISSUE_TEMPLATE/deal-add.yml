@@ -43,15 +43,11 @@ body:
     id: category
     attributes:
       label: 카테고리
+      description: data/site.js 의 categories 와 같게 두세요. 애매하면 생활용품·기타.
       options:
         - 고기·메인반찬
         - 간식·음료
-        - 과일·채소
         - 생활용품·기타
-        - 가전·디지털
-        - 패션·뷰티
-        - 반려동물
-        - 육아
   - type: input
     id: name
     attributes:

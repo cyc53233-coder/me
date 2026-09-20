@@ -71,11 +71,7 @@
       <div class="field">
         <label for="f-cat">카테고리</label>
         <input id="f-cat" placeholder="고기·메인반찬" list="cats">
-        <datalist id="cats">
-          <option>고기·메인반찬</option><option>간식·음료</option><option>과일·채소</option>
-          <option>생활용품·기타</option><option>가전·디지털</option><option>패션·뷰티</option>
-          <option>반려동물</option><option>육아</option>
-        </datalist>
+        <datalist id="cats"></datalist>
       </div>
       <div class="field">
         <label for="f-image">이미지 주소</label>
@@ -125,6 +121,13 @@ function nowStamp() {
 }
 
 let stamp = nowStamp();
+
+/* 카테고리 선택지도 data/site.js 에서 가져옵니다 */
+for (const c of SITE.categories || []) {
+  const opt = document.createElement("option");
+  opt.value = c;
+  document.getElementById("cats").appendChild(opt);
+}
 
 /* 등급 선택지는 data/site.js 의 grades 에서 가져옵니다 */
 for (const g of GRADES) {
