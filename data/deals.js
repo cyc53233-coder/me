@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "푸드센터 소갈비살, 200g, 5팩",
+    url: "https://toss.im/_m/PtX4XOAy",
+    price: 29900,
+    listPrice: 100000,
+    image: "https://shopping.toss.im/live/temp/2025-07-21/93a16065-9d8e-4a9a-83c8-c07c8cca1f2d.png",
+    category: "고기·메인반찬",
+    note: "100g당 2,990원 · 총 1kg · 무료배송 · 평점 4.1로 낮은 편이니 후기 보고 판단하세요",
+    postedAt: "2026-09-20T18:21+09:00",
+    grade: 1,
+  },
+  {
     title: "맥스앤맥스 퍼플톡톡 밀폐용기 20종세트, 350mm 5개, 450mm 5개, 500ml 5개, 600ml 5개, 1세트",
     url: "https://toss.im/_m/HG56Kn3c",
     price: 5530,
