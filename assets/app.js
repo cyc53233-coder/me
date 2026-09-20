@@ -1,6 +1,8 @@
 /* 핫딜 사이트 공용 스크립트 — data/site.js, data/deals.js 를 읽어 화면을 그립니다. */
 
 const SITE = window.SITE || {};
+const GRADES = Array.isArray(SITE.grades) ? SITE.grades : [];
+const MAX_DEALS = Number(SITE.maxDeals) > 0 ? Number(SITE.maxDeals) : 50;
 const MALLS = {
   toss: { label: "토스", emoji: "💎" },
   coupang: { label: "쿠팡", emoji: "🚀" },
@@ -48,17 +50,34 @@ function timeAgo(iso) {
   return new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
 }
 
+/* ── 등급 — 🔥 개수가 곧 등급입니다 (data/site.js 의 grades) ── */
+const fires = (n) => "🔥".repeat(Math.max(0, Math.min(5, Number(n) || 0)));
+
+function gradeOf(deal) {
+  const n = Number(deal.grade) || (deal.hot ? 3 : 0); // 옛 형식 hot: true 는 대박으로 봅니다
+  return GRADES.find((g) => g.fire === n) || null;
+}
+
+const gradeText = (g) => (g ? `${g.label} ${fires(g.fire)}` : "");
+
 /* 카톡방에 그대로 붙여넣는 문구 */
 function kakaoText(deal) {
+  const g = gradeOf(deal);
   const mall = mallOf(deal);
-  const lines = [];
-  lines.push(`${mallEmoji(mall)} ${mall ? `[${mallLabel(mall)}] ` : ""}${deal.title}`);
-  lines.push(` ┗ ${deal.hot ? "대박 🔥🔥🔥 " : ""}${won(deal.price)}`);
   const rate = discountRate(deal);
-  if (deal.listPrice) lines.push(` ┗ 평소가 ${won(deal.listPrice)}${rate ? ` (${rate}% 싸요)` : ""}`);
-  if (deal.note) lines.push(` ┗ ${deal.note}`);
-  lines.push(deal.url);
-  if (SITE.shareDisclosure) lines.push("", SITE.shareDisclosure);
+  const lines = [];
+  if (g) lines.push(`${fires(g.fire)} ${g.label}`);
+  lines.push(`${mallEmoji(mall)} ${mall ? `[${mallLabel(mall)}] ` : ""}${deal.title}`);
+  lines.push(
+    `💰 ${won(deal.price)}` +
+      (deal.listPrice ? ` (평소 ${won(deal.listPrice)}${rate ? `, ${rate}%↓` : ""})` : "")
+  );
+  if (deal.note) lines.push(`📝 ${deal.note}`);
+  lines.push(`👉 ${deal.url}`);
+  const notes = (SITE.shareNotes || []).map((n) => `- ${n}`);
+  if (notes.length || SITE.shareDisclosure) lines.push("");
+  lines.push(...notes);
+  if (SITE.shareDisclosure) lines.push(SITE.shareDisclosure);
   return lines.join("\n");
 }
 
@@ -106,37 +125,40 @@ function toast(msg) {
 function dealCardHTML(deal) {
   const rate = discountRate(deal);
   const mall = mallOf(deal);
-  const badges = [
-    rate ? `<span class="badge badge-off">${rate}%</span>` : "",
-    deal.hot && !deal.ended ? `<span class="badge badge-hot">🔥 대박</span>` : "",
-    mall ? `<span class="badge badge-mall">${esc(mallLabel(mall))}</span>` : "",
-    deal.ended ? `<span class="badge badge-ended">마감</span>` : "",
-    deal.sample ? `<span class="badge badge-sample">샘플</span>` : "",
+  const g = gradeOf(deal);
+  const tags = [
+    g ? `<span class="grade grade-${g.fire}">${esc(gradeText(g))}</span>` : "",
+    deal.ended ? `<span class="tag tag-ended">마감</span>` : "",
+    deal.sample ? `<span class="tag tag-sample">샘플</span>` : "",
+    mall ? `<span class="tag">${esc(mallLabel(mall))}</span>` : "",
   ].join("");
 
   const thumb = deal.image
-    ? `<img src="${esc(deal.image)}" alt="" loading="lazy">`
-    : `<div class="thumb-fallback">${mall ? mallEmoji(mall) : "🛍️"}</div>`;
+    ? `<div class="thumb"><img src="${esc(deal.image)}" alt="" loading="lazy"></div>`
+    : "";
 
   const buy = deal.sample
     ? `<button class="btn" disabled>샘플 딜</button>`
     : deal.ended
     ? `<button class="btn" disabled>마감된 딜</button>`
     : `<a class="btn" href="${esc(deal.url)}" target="_blank" rel="nofollow sponsored noopener">
-         최저가 보러가기</a>`;
+         구매하러 가기</a>`;
 
   return `
     <article class="deal ${deal.ended ? "is-ended" : ""} ${deal.sample ? "is-sample" : ""}">
-      <div class="thumb ${deal.image ? "" : "is-empty"}">${thumb}<div class="badges">${badges}</div></div>
-      <div class="deal-body">
-        ${deal.category ? `<div class="deal-cat">${esc(deal.category)}</div>` : ""}
-        <h2 class="deal-title">${esc(deal.title)}</h2>
-        ${deal.note ? `<p class="deal-note">${esc(deal.note)}</p>` : ""}
-        <div class="deal-price">
-          <span class="price-now">${won(deal.price)}</span>
-          ${deal.listPrice ? `<span class="price-was">${won(deal.listPrice)}</span>` : ""}
+      <div class="deal-top">${tags}<span class="deal-time">${esc(timeAgo(deal.postedAt))}</span></div>
+      <div class="deal-main">
+        ${thumb}
+        <div class="deal-body">
+          ${deal.category ? `<div class="deal-cat">${esc(deal.category)}</div>` : ""}
+          <h2 class="deal-title">${esc(deal.title)}</h2>
+          <div class="deal-price">
+            <span class="price-now">${won(deal.price)}</span>
+            ${deal.listPrice ? `<span class="price-was">${won(deal.listPrice)}</span>` : ""}
+            ${rate ? `<span class="price-off">${rate}%↓</span>` : ""}
+          </div>
+          ${deal.note ? `<p class="deal-note">${esc(deal.note)}</p>` : ""}
         </div>
-        <div class="deal-meta">${esc(timeAgo(deal.postedAt))}</div>
       </div>
       <div class="deal-actions">
         ${buy}
@@ -145,47 +167,67 @@ function dealCardHTML(deal) {
     </article>`;
 }
 
-/* 이미지가 깨진 딜은 기본 아이콘으로 되돌립니다 (error 는 캡처 단계에서만 잡힙니다) */
+/* 이미지가 깨진 딜은 썸네일 칸을 통째로 뺍니다 (error 는 캡처 단계에서만 잡힙니다) */
 document.addEventListener(
   "error",
   (e) => {
     const img = e.target;
     if (!img || img.tagName !== "IMG") return;
     const thumb = img.closest(".thumb");
-    if (!thumb) return;
-    img.remove();
-    thumb.classList.add("is-empty");
-    if (!thumb.querySelector(".thumb-fallback")) {
-      const div = document.createElement("div");
-      div.className = "thumb-fallback";
-      div.textContent = "🛍️";
-      thumb.prepend(div);
-    }
+    if (thumb) thumb.remove();
   },
   true
 );
 
 /* ── 목록 화면 ────────────────────────────────────────────── */
+function chipsHTML(items, key, pressed) {
+  return items
+    .map(
+      (it) =>
+        `<button class="chip" aria-pressed="${it.value === pressed}" data-${key}="${esc(it.value)}"` +
+        (it.hint ? ` title="${esc(it.hint)}"` : "") +
+        `>${esc(it.label)}</button>`
+    )
+    .join("");
+}
+
+function bindChips(box, onPick) {
+  box.addEventListener("click", (e) => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    box.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === btn)));
+    onPick(btn);
+  });
+}
+
 function initDealList() {
   const grid = document.getElementById("grid");
   if (!grid) return;
 
   const all = (window.DEALS || []).slice();
-  const state = { q: "", cat: "전체", sort: "new", showEnded: false };
+  const state = { q: "", cat: "전체", grade: 0, sort: "new", showEnded: false };
+
+  const gradeBox = document.getElementById("grade-chips");
+  gradeBox.innerHTML = chipsHTML(
+    [
+      { value: "0", label: "전체" },
+      ...GRADES.map((g) => ({ value: String(g.fire), label: gradeText(g), hint: g.hint })),
+    ],
+    "grade",
+    "0"
+  );
+  if (!GRADES.length) gradeBox.hidden = true;
 
   const catBox = document.getElementById("chips");
-  const cats = ["전체", ...[...new Set(all.map((d) => d.category).filter(Boolean))]];
-  catBox.innerHTML = cats
-    .map(
-      (c) =>
-        `<button class="chip" aria-pressed="${c === "전체"}" data-cat="${esc(c)}">${esc(c)}</button>`
-    )
-    .join("");
+  const cats = ["전체", ...new Set(all.map((d) => d.category).filter(Boolean))];
+  catBox.innerHTML = chipsHTML(cats.map((c) => ({ value: c, label: c })), "cat", "전체");
+  if (cats.length < 2) catBox.hidden = true;
 
   function visible() {
     const q = state.q.trim().toLowerCase();
     return all
       .filter((d) => (state.showEnded ? true : !d.ended))
+      .filter((d) => !state.grade || (gradeOf(d) || {}).fire === state.grade)
       .filter((d) => state.cat === "전체" || d.category === state.cat)
       .filter(
         (d) =>
@@ -198,15 +240,17 @@ function initDealList() {
         state.sort === "off"
           ? discountRate(b) - discountRate(a)
           : new Date(b.postedAt || 0) - new Date(a.postedAt || 0)
-      );
+      )
+      .slice(0, MAX_DEALS);
   }
 
   function render() {
     const list = visible();
     grid.innerHTML = list.length
       ? list.map(dealCardHTML).join("")
-      : `<div class="empty" style="grid-column:1/-1">
-           <div class="empty-emoji">🕳️</div>찾는 딜이 없어요</div>`;
+      : `<div class="empty"><div class="empty-emoji">🕳️</div>${
+          all.length ? "찾는 딜이 없어요" : "아직 올라온 딜이 없어요"
+        }</div>`;
     grid.querySelectorAll(".js-copy").forEach((btn, i) => {
       btn.addEventListener("click", async () => {
         const ok = await copyText(kakaoText(list[i]));
@@ -221,28 +265,28 @@ function initDealList() {
         }
       });
     });
-    const live = all.filter((d) => !d.ended).length;
-    document.getElementById("stat-live").textContent = live;
-    document.getElementById("stat-total").textContent = all.length;
+    document.getElementById("caption").textContent = `${
+      state.sort === "new" ? "최신 등록순" : "할인율순"
+    } · 최대 ${MAX_DEALS}개`;
+    document.getElementById("stat-live").textContent = all.filter((d) => !d.ended).length;
   }
 
   document.getElementById("q").addEventListener("input", (e) => {
     state.q = e.target.value;
     render();
   });
-  catBox.addEventListener("click", (e) => {
-    const btn = e.target.closest(".chip");
-    if (!btn) return;
+  bindChips(gradeBox, (btn) => {
+    state.grade = Number(btn.dataset.grade) || 0;
+    render();
+  });
+  bindChips(catBox, (btn) => {
     state.cat = btn.dataset.cat;
-    catBox.querySelectorAll(".chip").forEach((c) =>
-      c.setAttribute("aria-pressed", String(c === btn))
-    );
     render();
   });
   const sortBtn = document.getElementById("sort");
   sortBtn.addEventListener("click", () => {
     state.sort = state.sort === "new" ? "off" : "new";
-    sortBtn.textContent = state.sort === "new" ? "최신순" : "할인율순";
+    sortBtn.textContent = state.sort === "new" ? "할인율순으로" : "최신순으로";
     render();
   });
   const endedBtn = document.getElementById("ended");
@@ -255,6 +299,34 @@ function initDealList() {
   render();
 }
 
+/* ── 오픈채팅 입장 버튼 (화면 아래 고정) ─────────────────────── */
+function initOpenChat() {
+  const bar = document.getElementById("cta");
+  if (!bar) return;
+  if (!SITE.openChatUrl) return bar.remove();
+  const a = bar.querySelector("a");
+  a.href = SITE.openChatUrl;
+  a.textContent = SITE.openChatLabel || "오픈채팅방 입장하기";
+  document.body.classList.add("has-cta");
+}
+
+/* ── 카톡 안에서 열렸을 때 안내 ──────────────────────────────
+   카톡 인앱 브라우저는 다른 앱(토스·쿠팡) 열기와 복사가 막힐 때가 있습니다.
+   kakaotalk://web/openExternal 은 카톡이 지원하는 "외부 브라우저로 열기" 주소입니다. */
+function initKakaoNotice() {
+  const box = document.getElementById("kakao-notice");
+  if (!box) return;
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  if (!/KAKAOTALK/i.test(ua)) return;
+  box.hidden = false;
+  const btn = box.querySelector("button");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+    });
+  }
+}
+
 /* ── 공통 채우기 ──────────────────────────────────────────── */
 function initChrome() {
   document.querySelectorAll("[data-site-name]").forEach((el) => (el.textContent = SITE.name || ""));
@@ -263,6 +335,9 @@ function initChrome() {
   document
     .querySelectorAll("[data-site-disclosure]")
     .forEach((el) => (el.textContent = SITE.disclosure || ""));
+  document.querySelectorAll("[data-site-notes]").forEach((el) => {
+    el.innerHTML = (SITE.shareNotes || []).map((n) => `<li>${esc(n)}</li>`).join("");
+  });
   if (SITE.name) document.title = document.title.replace("{site}", SITE.name);
   document.querySelectorAll("[data-issue-link]").forEach((el) => {
     if (!SITE.repo) return el.remove();
@@ -280,22 +355,29 @@ function initAbout() {
   if (contact && SITE.contact) {
     contact.innerHTML = `<a href="mailto:${esc(SITE.contact)}">${esc(SITE.contact)}</a>`;
   }
-  const box = document.querySelector("[data-site-channels]");
-  if (box) {
-    const rows = (SITE.channels || []).filter((c) => c.url);
-    box.innerHTML = rows.length
-      ? rows
-          .map(
-            (c) =>
-              `<li><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)}</a></li>`
-          )
-          .join("")
-      : `<li>이 사이트에서만 운영합니다.</li>`;
+  const grades = document.querySelector("[data-site-grades]");
+  if (grades) {
+    grades.innerHTML = GRADES.map(
+      (g) =>
+        `<li><span class="grade grade-${g.fire}">${esc(gradeText(g))}</span>` +
+        (g.hint ? ` <span class="grade-hint">${esc(g.hint)}</span>` : "") +
+        `</li>`
+    ).join("");
+  }
+  const chat = document.querySelector("[data-site-openchat]");
+  if (chat) {
+    chat.innerHTML = SITE.openChatUrl
+      ? `<a class="btn btn-kakao" href="${esc(SITE.openChatUrl)}" target="_blank" rel="noopener">${esc(
+          SITE.openChatLabel || "오픈채팅방 입장하기"
+        )}</a>`
+      : `<p>오픈채팅방을 준비하고 있습니다. 열리면 이 자리에 입장 링크가 걸립니다.</p>`;
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   initChrome();
+  initKakaoNotice();
   initDealList();
+  initOpenChat();
   initAbout();
 });

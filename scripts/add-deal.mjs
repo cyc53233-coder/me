@@ -33,6 +33,8 @@ const field = (form, name) => (form.get(name) || "").trim();
 const checked = (form, name, label) =>
   new RegExp(`- \\[x\\] .*${label}`, "i").test(form.get(name) || "");
 const toNumber = (v) => Number(String(v).replace(/[^\d]/g, "")) || 0;
+/* 등급 드롭다운은 "대박 🔥🔥🔥" 처럼 오므로 🔥 개수만 셉니다 */
+const fireCount = (v) => (String(v || "").match(/🔥/g) || []).length;
 
 /* ── 링크에서 상품 정보 긁어오기 (실패해도 진행) ──────────── */
 const unescapeHtml = (s) =>
@@ -130,7 +132,7 @@ async function addDeal(form) {
     category: field(form, "카테고리") || undefined,
     note: field(form, "한 줄 메모") || undefined,
     postedAt: nowKST(),
-    hot: checked(form, "표시", "대박") || undefined,
+    grade: fireCount(field(form, "등급")) || (checked(form, "표시", "대박") ? 3 : 0) || undefined,
   };
 
   const deals = readDeals();

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{site} — 딜 올리기</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
@@ -18,7 +18,6 @@
       <span data-site-name>핫딜</span>
     </a>
     <nav class="top-nav">
-      <a href="./">딜</a>
       <a href="about.html">채널 소개</a>
       <a href="add.html" aria-current="page">딜 올리기</a>
     </nav>
@@ -43,7 +42,7 @@
     <div class="form">
       <div class="field">
         <label for="f-title">상품명</label>
-        <input id="f-title" placeholder="하림펫푸드 밥이보약 DOG, 3.4kg, 1개">
+        <input id="f-title" placeholder="한돈 냉장 삼겹살 구이용 1kg">
       </div>
       <div class="field">
         <label for="f-url">내 링크</label>
@@ -53,14 +52,18 @@
       <div class="field-row">
         <div class="field">
           <label for="f-price">지금 가격</label>
-          <input id="f-price" placeholder="19,900" inputmode="numeric">
+          <input id="f-price" placeholder="14,900" inputmode="numeric">
         </div>
         <div class="field">
           <label for="f-list">평소 가격</label>
-          <input id="f-list" placeholder="34,000" inputmode="numeric">
+          <input id="f-list" placeholder="24,900" inputmode="numeric">
         </div>
       </div>
       <div class="field-row">
+        <div class="field">
+          <label for="f-grade">등급</label>
+          <select id="f-grade"><option value="0">등급 없음</option></select>
+        </div>
         <div class="field">
           <label for="f-mall">판매처</label>
           <select id="f-mall">
@@ -72,25 +75,23 @@
             <option value="gmarket">지마켓</option>
           </select>
         </div>
-        <div class="field">
-          <label for="f-cat">카테고리</label>
-          <input id="f-cat" placeholder="식품" list="cats">
-          <datalist id="cats">
-            <option>식품</option><option>생활</option><option>가전</option>
-            <option>패션</option><option>반려동물</option><option>육아</option>
-          </datalist>
-        </div>
+      </div>
+      <div class="field">
+        <label for="f-cat">카테고리</label>
+        <input id="f-cat" placeholder="고기·메인반찬" list="cats">
+        <datalist id="cats">
+          <option>고기·메인반찬</option><option>간식·음료</option><option>과일·채소</option>
+          <option>생활용품·기타</option><option>가전·디지털</option><option>패션·뷰티</option>
+          <option>반려동물</option><option>육아</option>
+        </datalist>
       </div>
       <div class="field">
         <label for="f-image">이미지 주소</label>
-        <input id="f-image" placeholder="비워두면 기본 아이콘이 들어갑니다" inputmode="url">
+        <input id="f-image" placeholder="비워두면 이미지 없이 올라갑니다" inputmode="url">
       </div>
       <div class="field">
         <label for="f-note">한 줄 메모</label>
-        <input id="f-note" placeholder="평소가 3.4만대, 관절 사료 이 가격 잘 없어요">
-      </div>
-      <div class="field">
-        <label><input type="checkbox" id="f-hot" style="width:auto;margin-right:8px"> 🔥 대박 딜로 표시</label>
+        <input id="f-note" placeholder="냉장 삼겹 1kg 이 가격이면 바로 담으세요">
       </div>
     </div>
 
@@ -135,6 +136,14 @@ function nowStamp() {
 
 let stamp = nowStamp();
 
+/* 등급 선택지는 data/site.js 의 grades 에서 가져옵니다 */
+for (const g of GRADES) {
+  const opt = document.createElement("option");
+  opt.value = String(g.fire);
+  opt.textContent = gradeText(g);
+  $("f-grade").appendChild(opt);
+}
+
 function current() {
   return {
     title: $("f-title").value.trim() || "상품명을 입력하세요",
@@ -146,7 +155,7 @@ function current() {
     category: $("f-cat").value.trim(),
     note: $("f-note").value.trim(),
     postedAt: stamp,
-    hot: $("f-hot").checked,
+    grade: Number($("f-grade").value) || 0,
   };
 }
 
@@ -163,7 +172,7 @@ function codeFor(d) {
   if (d.category) lines.push(`    category: ${jsStr(d.category)},`);
   if (d.note) lines.push(`    note: ${jsStr(d.note)},`);
   lines.push(`    postedAt: ${jsStr(d.postedAt)},`);
-  if (d.hot) lines.push("    hot: true,");
+  if (d.grade) lines.push(`    grade: ${d.grade},`);
   lines.push("  },");
   return lines.join("\n");
 }
