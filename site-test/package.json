@@ -4,8 +4,9 @@
   "description": "핫딜 사이트 브라우저 검사 (배포물이 아님 — .assetsignore 로 업로드에서 빠집니다)",
   "type": "module",
   "scripts": {
-    "test": "node check.mjs",
-    "og": "node og.mjs"
+    "test": "node data-audit.mjs && node check.mjs",
+    "og": "node og.mjs",
+    "data": "node data-audit.mjs"
   },
   "devDependencies": {
     "playwright": "^1.62.1"

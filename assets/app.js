@@ -69,24 +69,24 @@ const gradeText = (g) => (g ? `${g.label} ${fires(g.fire)}` : "");
 const catOf = (c) =>
   typeof c === "string" ? { name: c, icon: "" } : { name: c.name || "", icon: c.icon || "" };
 
-/* 카톡방에 그대로 붙여넣는 문구 */
+/* 카톡방에 그대로 붙여넣는 문구.
+   고지 → 상품 → 안내 순서입니다. 고지를 맨 위에 두는 것은 공정위 표시가
+   스크롤 없이 먼저 보여야 하기 때문이고, 카톡은 긴 글을 접어 버립니다. */
 function kakaoText(deal) {
   const g = gradeOf(deal);
-  const mall = mallOf(deal);
   const rate = discountRate(deal);
   const lines = [];
-  if (g) lines.push(`${fires(g.fire)} ${g.label}`);
-  lines.push(`${mallEmoji(mall)} ${mall ? `[${mallLabel(mall)}] ` : ""}${deal.title}`);
-  lines.push(
-    `💰 ${won(deal.price)}` +
-      (deal.listPrice ? ` (평소 ${won(deal.listPrice)}${rate ? `, ${rate}%↓` : ""})` : "")
-  );
-  if (deal.note) lines.push(`📝 ${deal.note}`);
-  lines.push(`👉 ${deal.url}`);
+  const intro = SITE.shareIntro || SITE.disclosure;
+  if (intro) lines.push(intro, "");
+  lines.push(`✅ ${deal.title}`);
+  lines.push(` ┗ ${g ? `${g.label} ${fires(g.fire)} ` : ""}${won(deal.price)}`);
+  if (deal.listPrice) {
+    lines.push(` ┗ 평소가 ${won(deal.listPrice)}${rate ? ` (${rate}%↓)` : ""}`);
+  }
+  if (deal.note) lines.push(` ┗ ${deal.note}`);
+  lines.push(deal.url);
   const notes = (SITE.shareNotes || []).map((n) => `- ${n}`);
-  if (notes.length || SITE.shareDisclosure) lines.push("");
-  lines.push(...notes);
-  if (SITE.shareDisclosure) lines.push(SITE.shareDisclosure);
+  if (notes.length) lines.push("", ...notes);
   return lines.join("\n");
 }
 
@@ -135,6 +135,9 @@ function toast(msg) {
    <a> 로 카드를 통째로 감싸는 대신, 카드를 꽉 덮는 <a> 를 맨 뒤에 깔고
    공유 버튼만 그 위로 띄웁니다. <a> 안에 <button> 을 넣을 수는 없습니다. */
 function dealCardHTML(deal, i) {
+  // i 가 없으면(관리자 미리보기) 공유 버튼을 달지 않습니다 —
+  // 목록 밖에서는 누를 대상을 찾지 못해 아무 일도 안 일어납니다.
+  const shareable = Number.isInteger(i);
   const g = gradeOf(deal);
   const rate = discountRate(deal);
   const thumb = deal.image
@@ -162,10 +165,14 @@ function dealCardHTML(deal, i) {
       </div>`;
   if (deal.sample) return `<div class="deal is-sample">${body}</div>`;
   const cls = "deal" + (deal.ended ? " is-ended" : "");
+  // 마감된 딜에는 공유 버튼을 달지 않습니다 — 죽은 딜을 카톡방에 뿌리면
+  // "평소보다 확실히 싼 것만 올린다" 는 약속이 그 자리에서 깨집니다.
   return (
     `<div class="${cls}">${body}` +
-    `<button type="button" class="share" data-share="${i}" aria-label="공유하기">` +
-    `<span aria-hidden="true">↗</span><span class="share-text">공유</span></button>` +
+    (deal.ended || !shareable
+      ? ""
+      : `<button type="button" class="share" data-share="${i}" aria-label="공유하기">` +
+        `<span aria-hidden="true">↗</span><span class="share-text">공유</span></button>`) +
     `<a class="deal-link" href="${esc(deal.url)}" target="_blank" rel="nofollow sponsored noopener"` +
     ` aria-label="${esc(deal.title)} 보러 가기"></a></div>`
   );
@@ -215,7 +222,12 @@ const SORTS = [
   { value: "rate", label: "할인율순", cmp: (a, b) => discountRate(b) - discountRate(a) },
   { value: "cheap", label: "가격 낮은순", cmp: (a, b) => (a.price || 0) - (b.price || 0) },
 ];
-const sortBy = (key) => (SORTS.find((s) => s.value === key) || SORTS[0]).cmp;
+/* 어떤 정렬을 골라도 마감된 딜은 맨 아래로 내립니다. 잠깐 남겨 두는 이유는
+   "놓쳤구나" 를 보여 주려는 것이지, 죽은 딜을 첫 카드로 내밀려는 게 아닙니다. */
+const sortBy = (key) => {
+  const cmp = (SORTS.find((s) => s.value === key) || SORTS[0]).cmp;
+  return (a, b) => (a.ended ? 1 : 0) - (b.ended ? 1 : 0) || cmp(a, b);
+};
 
 /* 마감된 딜도 잠깐은 남깁니다 — 놓친 딜이 보여야 알림방에 들어올 이유가 생깁니다.
    언제 마감됐는지 모르는 예전 딜(endedAt 이 없는 것)은 그대로 숨깁니다. */
@@ -429,6 +441,8 @@ function initChrome() {
   // 카톡·인스타는 og:image 가 절대주소여야 미리보기를 그립니다.
   const og = document.querySelector('meta[property="og:image"]');
   if (og && SITE.ogImage) og.setAttribute("content", new URL(SITE.ogImage, location.href).href);
+  const ogUrl = document.querySelector('meta[property="og:url"]');
+  if (ogUrl) ogUrl.setAttribute("content", location.href.split("#")[0]);
   document.querySelectorAll("[data-issue-link]").forEach((el) => {
     if (!SITE.repo) return el.remove();
     el.href = `https://github.com/${SITE.repo}/issues/new?template=${el.dataset.issueLink}`;
