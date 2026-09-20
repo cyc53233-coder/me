@@ -122,10 +122,11 @@ function nowStamp() {
 
 let stamp = nowStamp();
 
-/* 카테고리 선택지도 data/site.js 에서 가져옵니다 */
+/* 카테고리 선택지도 data/site.js 에서 가져옵니다.
+   설정은 {name, icon} 이지만 저장되는 값은 이름만입니다 (catOf 는 app.js). */
 for (const c of SITE.categories || []) {
   const opt = document.createElement("option");
-  opt.value = c;
+  opt.value = catOf(c).name;
   document.getElementById("cats").appendChild(opt);
 }
 

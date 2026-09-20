@@ -36,18 +36,19 @@ body:
       label: 등급
       description: 🔥 개수가 등급입니다. 애매하면 비워 두세요.
       options:
-        - "무지성급 🔥🔥🔥 (역대 최저가)"
-        - "대박 🔥🔥 (평소보다 크게 쌈)"
+        - "무지성급 🔥🔥🔥🔥🔥 (역대 최저가)"
+        - "대박 🔥🔥🔥 (평소보다 크게 쌈)"
         - "추천 🔥 (살 만한 가격)"
   - type: dropdown
     id: category
     attributes:
       label: 카테고리
-      description: data/site.js 의 categories 와 같게 두세요. 애매하면 생활용품·기타.
+      description: data/site.js 의 categories 와 같게 두세요. 애매하면 🧻 생활용품.
       options:
-        - 고기·메인반찬
-        - 간식·음료
-        - 생활용품·기타
+        - 🥬 신선식품
+        - 🍪 간식·음료
+        - 🧻 생활용품
+        - 📦 기타
   - type: input
     id: name
     attributes:

@@ -22,14 +22,26 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const BASE = `http://127.0.0.1:${server.address().port}/`;
 const FIXTURE = `window.DEALS = [
   { title: "한돈 냉장 삼겹살 구이용 1kg", url: "https://toss.im/_m/a1", price: 14900, listPrice: 24900,
-    mall: "toss", image: "", category: "고기·메인반찬", note: "이 가격이면 바로 담으세요",
-    postedAt: "${new Date(Date.now() - 7 * 3600e3).toISOString()}", grade: 3 },
+    mall: "toss", image: "", category: "신선식품", note: "이 가격이면 바로 담으세요",
+    postedAt: "${new Date(Date.now() - 7 * 3600e3).toISOString()}", grade: 5 },
   { title: "오리온 초코파이 39g × 24개입", url: "https://link.coupang.com/a/b2", price: 5980, listPrice: 8900,
     mall: "coupang", image: "", category: "간식·음료",
     postedAt: "${new Date(Date.now() - 18 * 3600e3).toISOString()}", grade: 1 },
   { title: "삼다수 무라벨 2L, 24병", url: "https://toss.im/_m/c3", price: 13000, listPrice: 17900,
-    mall: "toss", image: "", category: "생활용품·기타",
-    postedAt: "${new Date(Date.now() - 3 * 86400e3).toISOString()}", grade: 2, ended: true },
+    mall: "toss", image: "", category: "생활용품",
+    postedAt: "${new Date(Date.now() - 3 * 86400e3).toISOString()}", grade: 3, ended: true },
+];`;
+
+// 방금 마감한 딜은 잠깐 "마감" 으로 남고, 오래전 마감한 딜은 사라집니다
+const ENDED_FIXTURE = `window.DEALS = [
+  { title: "살아 있는 딜", url: "https://toss.im/_m/e1", price: 1000, mall: "toss", category: "간식·음료",
+    postedAt: "${new Date(Date.now() - 3600e3).toISOString()}", grade: 3 },
+  { title: "방금 마감한 딜", url: "https://toss.im/_m/e2", price: 2000, mall: "toss", category: "간식·음료",
+    postedAt: "${new Date(Date.now() - 5 * 3600e3).toISOString()}", grade: 3,
+    ended: true, endedAt: "${new Date(Date.now() - 3600e3).toISOString()}" },
+  { title: "오래전 마감한 딜", url: "https://toss.im/_m/e3", price: 3000, mall: "toss", category: "간식·음료",
+    postedAt: "${new Date(Date.now() - 20 * 86400e3).toISOString()}", grade: 1,
+    ended: true, endedAt: "${new Date(Date.now() - 10 * 86400e3).toISOString()}" },
 ];`;
 
 // 쇼핑몰 사진은 비율이 제각각이라, 세로로 긴 것과 가로로 넓은 것을 둘 다 물려 봅니다
@@ -40,13 +52,13 @@ const WIDE = "data:image/svg+xml;utf8," + encodeURIComponent(
 const PHOTO_FIXTURE = `window.DEALS = [
   { title: "세로로 긴 사진 상품", url: "https://toss.im/_m/p1", price: 9900, listPrice: 19900,
     mall: "toss", image: "${TALL}", category: "간식·음료",
-    postedAt: "${new Date(Date.now() - 3600e3).toISOString()}", grade: 3 },
+    postedAt: "${new Date(Date.now() - 3600e3).toISOString()}", grade: 5 },
   { title: "가로로 넓은 사진 상품, 이름이 길어서 두 줄까지 넘어가는 경우를 같이 봅니다", url: "https://toss.im/_m/p2",
-    price: 4500, mall: "toss", image: "${WIDE}", category: "고기·메인반찬",
+    price: 4500, mall: "toss", image: "${WIDE}", category: "신선식품",
     postedAt: "${new Date(Date.now() - 2 * 3600e3).toISOString()}", grade: 1 },
   { title: "사진을 못 읽은 상품", url: "https://link.coupang.com/a/p3", price: 12900,
-    mall: "coupang", image: "", category: "생활용품·기타",
-    postedAt: "${new Date(Date.now() - 3 * 3600e3).toISOString()}", grade: 2 },
+    mall: "coupang", image: "", category: "생활용품",
+    postedAt: "${new Date(Date.now() - 3 * 3600e3).toISOString()}", grade: 3 },
 ];`;
 
 const assert = (c, m) => { if (!c) throw new Error("FAIL: " + m); console.log("ok  " + m); };
@@ -67,6 +79,16 @@ const run = async () => {
   const exe = chromePath();
   if (exe) console.log("크롬: " + exe);
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+  // 단언이 깨져도 브라우저는 닫아야 합니다. 안 그러면 node 가 끝나지 않고
+  // 실패가 "멈춤" 으로 보여 원인을 못 찾습니다.
+  try {
+    return await body(browser);
+  } finally {
+    await browser.close();
+  }
+};
+
+const body = async (browser) => {
   const errors = [];
   async function open(path, { ua, chat, deals } = {}) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, userAgent: ua, locale: "ko-KR" });
@@ -100,33 +122,74 @@ const run = async () => {
     const ys = await page.locator("#grade-chips .chip").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
     assert(new Set(ys).size === 1, `grade chips sit on one line (tops: ${ys.join(",")})`);
   }
-  assert((await page.locator("#grade-chips .chip").nth(1).locator("span").allTextContents()).join("|") === "무지성급|🔥🔥🔥", "grade chip is two lines: label / fires");
-  assert(await page.locator("#chips .chip").count() === 4, "category chips: 전체 + 3 configured, shown even with no deal in them");
+  assert((await page.locator("#grade-chips .chip").nth(1).locator("span").allTextContents()).join("|") === "무지성급|🔥🔥🔥🔥🔥", "grade chip is two lines: label / fires");
+  assert(await page.locator("#chips .chip").count() === 5, "카테고리 칩: 전체 + 설정한 4개, 딜이 없어도 보임");
   {
     const ys = await page.locator("#chips .chip").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
     assert(new Set(ys).size === 1, `category chips sit on one line (tops: ${ys.join(",")})`);
   }
   assert(await page.locator(".deal").count() === 2, "ended deal is not shown at all");
-  assert(await page.locator("#q, #sort, #ended, .js-copy").count() === 0, "no search, sort, ended toggle or copy button");
+  assert(await page.locator("#q, #ended, .js-copy").count() === 0, "no search, ended toggle or copy button");
   const first = page.locator(".deal").first();
   assert(/시간 전$/.test((await first.locator(".deal-time").textContent()).trim()), "card shows how long ago it went up");
-  assert((await first.locator(".grade").textContent()) === "무지성급🔥🔥🔥", "grade label next to the price");
-  assert((await first.getAttribute("href")) === "https://toss.im/_m/a1", "card links straight to the deal");
+  assert((await first.locator(".grade").textContent()) === "무지성급🔥🔥🔥🔥🔥", "등급이 가격 옆에 붙음");
+  assert((await first.locator(".deal-link").getAttribute("href")) === "https://toss.im/_m/a1", "card links straight to the deal");
+  {
+    // 링크가 카드를 통째로 덮는지 — 공유 버튼이 생겨도 "카드 전체가 링크" 는 지켜져야 합니다
+    // 테두리 1px 은 링크 바깥이라 양쪽 2px 까지는 덮은 것으로 봅니다
+    const card = await first.boundingBox(), link = await first.locator(".deal-link").boundingBox();
+    const gap = Math.max(
+      Math.abs(card.x - link.x), Math.abs(card.y - link.y),
+      Math.abs(card.width - link.width), Math.abs(card.height - link.height)
+    );
+    assert(gap <= 2, `링크가 카드 전체를 덮음 (최대 어긋남 ${gap}px)`);
+  }
   assert((await first.locator(".price-now").textContent()) === "14,900원", "price");
-  assert((await first.locator(".price-was").textContent()) === "평소가 24,900원", "usual price line");
+  assert((await first.locator(".price-was").textContent()).startsWith("평소가 24,900원"), "usual price line");
+  assert((await first.locator(".rate").textContent()) === "40%↓", "할인율이 평소가 옆에 붙음");
   assert(await first.locator(".price-was").evaluate((el) => getComputedStyle(el).textDecorationLine.includes("line-through")), "usual price struck through");
-  assert(await first.locator(".chevron").count() === 1, "chevron on the right");
+  assert(await first.locator(".share").count() === 1, "공유 버튼이 카드마다 하나");
   assert(await first.locator(".thumb-empty").count() === 1, "mall icon stands in when a photo could not be read");
   const thumbBox = await first.locator(".thumb").boundingBox();
   assert(Math.round(thumbBox.width) === 88 && Math.round(thumbBox.height) === 88, "thumb is 88×88");
   const gb = await first.locator(".grade").boundingBox(), pb = await first.locator(".price-now").boundingBox();
   assert(Math.abs(gb.y - pb.y) < 12, `grade and price share one line (grade y=${Math.round(gb.y)}, price y=${Math.round(pb.y)})`);
-  const real = await page.evaluate(() => dealCardHTML({ title: "실제 딜", url: "https://toss.im/_m/abc", price: 1000, grade: 2, postedAt: new Date().toISOString() }));
-  assert(/^<a class="deal" href="https:\/\/toss\.im\/_m\/abc" target="_blank" rel="nofollow sponsored noopener">/.test(real.trim()), "real deal renders as a whole-card affiliate link");
-  assert((await page.locator("#caption").textContent()) === "최신 등록순 · 최대 50개", "caption under the list");
+  const real = await page.evaluate(() => dealCardHTML({ title: "실제 딜", url: "https://toss.im/_m/abc", price: 1000, grade: 2, postedAt: new Date().toISOString() }, 0));
+  assert(/<a class="deal-link" href="https:\/\/toss\.im\/_m\/abc" target="_blank" rel="nofollow sponsored noopener"/.test(real), "실제 딜은 제휴 링크로 그려짐");
+  assert((await page.locator("#count").textContent()) === "2개", "목록 개수 표시");
   assert(await page.locator("#cta").count() === 0, "CTA removed when openChatUrl empty");
   assert(await page.locator("#kakao-notice").isHidden(), "kakao notice hidden in normal browser");
   assert(!(await text(page)).includes("@gmail"), "no contact on the list page");
+
+  // ── 한 줄 메모 · 정렬 · 공유 · 미리보기 사진 ──────────────────
+  assert((await first.locator(".deal-note").textContent()) === "이 가격이면 바로 담으세요", "한 줄 메모가 카드에 보임");
+  assert(await page.locator(".deal").nth(1).locator(".deal-note").count() === 0, "메모 없는 딜은 그 줄이 아예 없음");
+  {
+    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    assert(/^https?:\/\/.+\/assets\/og\.png$/.test(og), `og:image 가 절대주소 (${og})`);
+  }
+  {
+    // 정렬 — 드롭다운이 칩을 한 줄 더 늘리지 않고 목록 위 한 줄만 씁니다
+    assert((await page.locator("#sort option").allTextContents()).join(",") === "최신순,등급순,할인율순,가격 낮은순", "정렬 항목 4개");
+    const titles = () => page.locator(".deal-title").allTextContents();
+    await page.selectOption("#sort", "cheap");
+    assert((await titles())[0].startsWith("오리온"), "가격 낮은순 → 5,980원이 먼저");
+    await page.selectOption("#sort", "rate");
+    assert((await titles())[0].startsWith("한돈"), "할인율순 → 40% 가 먼저");
+    await page.selectOption("#sort", "grade");
+    assert((await titles())[0].startsWith("한돈"), "등급순 → 무지성급이 먼저");
+    await page.selectOption("#sort", "new");
+  }
+  {
+    // 공유 — 기본 공유창이 없는 브라우저에서는 문구를 복사합니다
+    await page.locator(".share").first().click();
+    // 공유는 비동기라(기본 공유창 → 실패하면 복사) 알림이 한 박자 뒤에 뜹니다
+    await page.waitForSelector(".toast.is-on", { timeout: 4000 });
+    assert(true, "공유를 누르면 알림이 뜸");
+    const built = await page.evaluate(() => kakaoText(window.DEALS[0]));
+    assert(built.includes("수수료를 제공받습니다"), "공유 문구에 수수료 고지가 들어감");
+    assert(built.includes("https://toss.im/_m/a1"), "공유 문구에 내 쉐어링크가 들어감");
+  }
   // menu
   assert(await page.locator("#menu").isHidden(), "menu closed by default");
   await page.click("#menu-btn");
@@ -143,10 +206,10 @@ const run = async () => {
   assert(await page.locator(".deal").count() === 2, "전체 → back to 2");
   await page.locator("#chips .chip", { hasText: "간식·음료" }).click();
   assert(await page.locator(".deal").count() === 1, "category filter → 1 card");
-  await page.locator("#chips .chip", { hasText: "고기·메인반찬" }).click();
+  await page.locator("#chips .chip", { hasText: "신선식품" }).click();
   assert(await page.locator(".deal").count() === 1, "another category filter → 1 card");
   await page.locator("#grade-chips .chip", { hasText: "무지성급" }).click();
-  assert(await page.locator(".deal").count() === 1, "고기·메인반찬 + 무지성급 both match the same deal");
+  assert(await page.locator(".deal").count() === 1, "신선식품 + 무지성급 both match the same deal");
   // 겹치는 딜이 없는 조합에서만 빈 화면이 나와야 합니다
   await page.locator("#chips .chip", { hasText: "간식·음료" }).click();
   assert((await page.locator(".empty").textContent()).includes("조건에 맞는"), "empty state for an impossible combo");
@@ -211,15 +274,14 @@ const run = async () => {
   page = await open("add.html");
   assert(await page.locator("#f-grade option").count() === 4, "add: grade select options");
   await page.fill("#f-title", "테스트 상품"); await page.fill("#f-url", "https://toss.im/_m/abc"); await page.fill("#f-price", "9900");
-  await page.selectOption("#f-grade", "2");
-  assert((await page.locator("#out-code").textContent()).includes("grade: 2,"), "add: code has grade");
-  assert((await page.locator("#out-kakao").textContent()).startsWith("🔥🔥 대박"), "add: kakao text starts with grade");
-  assert((await page.locator("#preview .grade").textContent()) === "대박🔥🔥", "add: preview badge");
-  assert((await page.locator("#preview a.deal").getAttribute("href")) === "https://toss.im/_m/abc", "add: preview card links to the deal");
+  await page.selectOption("#f-grade", "3");
+  assert((await page.locator("#out-code").textContent()).includes("grade: 3,"), "add: code has grade");
+  assert((await page.locator("#out-kakao").textContent()).startsWith("🔥🔥🔥 대박"), "add: kakao text starts with grade");
+  assert((await page.locator("#preview .grade").textContent()) === "대박🔥🔥🔥", "add: preview badge");
+  assert((await page.locator("#preview .deal-link").getAttribute("href")) === "https://toss.im/_m/abc", "add: preview card links to the deal");
   await noOverflow(page, "add");
   await page.close();
 
-  await browser.close();
   if (errors.length) { console.error(errors.join("\n")); throw new Error("페이지 오류"); }
   console.log("ALL OK");
 };
