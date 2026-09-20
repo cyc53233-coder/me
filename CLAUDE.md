@@ -26,6 +26,11 @@
 칩이 한 줄인지, 카드 전체가 링크인지, 입장 버튼이 푸터를 가리지 않는지, 가로 넘침이 없는지를 본다.
 처음이면 `npm install` 먼저. 이 폴더는 `.assetsignore` 로 배포에서 빠진다.
 
+`npm install` 로 받은 playwright 가 이 컨테이너에 미리 깔린 크롬과 빌드가 어긋나
+`Executable doesn't exist` 로 죽는 일이 있다. 검사 스크립트가 그때 `PLAYWRIGHT_BROWSERS_PATH`
+의 크롬으로 알아서 넘어가니 **`npx playwright install` 을 돌리지 말 것** — 어느 크롬을 골랐는지
+첫 줄에 찍어 준다. 다른 크롬을 쓰려면 `CHROMIUM_PATH` 로 짚어 준다.
+
 검사는 **자체 딜 픽스처를 `data/deals.js` 자리에 물린다.** 실제 딜이 올라와도 검사가 깨지지 않고,
 배포되는 데이터에 검사용 가짜 딜을 넣을 이유도 없다.
 

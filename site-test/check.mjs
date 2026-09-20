@@ -51,10 +51,22 @@ const PHOTO_FIXTURE = `window.DEALS = [
 
 const assert = (c, m) => { if (!c) throw new Error("FAIL: " + m); console.log("ok  " + m); };
 
+// 어느 크롬으로 열지 — playwright 가 받아 둔 것이 우선입니다.
+// 그게 없으면 (미리 크롬이 깔린 컨테이너에서 playwright 만 새로 받았을 때가 그렇습니다)
+// PLAYWRIGHT_BROWSERS_PATH 의 크롬으로 넘어갑니다. CHROMIUM_PATH 로 직접 짚어 줄 수도 있습니다.
+const chromePath = () => {
+  if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
+  let bundled = "";
+  try { bundled = chromium.executablePath(); } catch {}
+  if (bundled && fs.existsSync(bundled)) return "";
+  const preinstalled = path.join(process.env.PLAYWRIGHT_BROWSERS_PATH || "", "chromium");
+  return process.env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync(preinstalled) ? preinstalled : "";
+};
+
 const run = async () => {
-  const browser = await chromium.launch(
-    process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
-  );
+  const exe = chromePath();
+  if (exe) console.log("크롬: " + exe);
+  const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const errors = [];
   async function open(path, { ua, chat, deals } = {}) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, userAgent: ua, locale: "ko-KR" });
