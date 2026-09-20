@@ -1,0 +1,12 @@
+{
+  "name": "hotdeal-site-test",
+  "private": true,
+  "description": "핫딜 사이트 브라우저 검사 (배포물이 아님 — .assetsignore 로 업로드에서 빠집니다)",
+  "type": "module",
+  "scripts": {
+    "test": "node check.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}
