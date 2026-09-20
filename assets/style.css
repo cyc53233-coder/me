@@ -1,22 +1,21 @@
 /* ── tokens ───────────────────────────────────────────────── */
 :root {
-  --bg: #0f1115;
-  --bg-soft: #171a21;
-  --card: #1b1f27;
-  --card-hover: #212632;
-  --line: #2a303c;
-  --text: #eef1f6;
-  --muted: #9aa4b5;
-  --dim: #6b7484;
+  --bg: #ffffff;
+  --bg-soft: #f6f6f6;
+  --card: #ffffff;
+  --card-hover: #fafafa;
+  --line: #e8e8e8;
+  --text: #111111;
+  --muted: #767676;
+  --dim: #9a9a9a;
+  --red: #e52d27;        /* 쿠팡 빨강 — 구매 버튼 · 할인율 · 선택된 칩 */
+  --red-soft: #fff1f0;
   --blue: #3182f6;
-  --blue-soft: #1f4d94;
-  --violet: #a78bfa;
-  --red: #ff5b5b;
-  --green: #2ac769;
+  --green: #1a9d4b;
   --kakao: #fee500;
-  --radius: 16px;
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  color-scheme: dark;
+  --radius: 12px;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +45,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ── 맨 위 고지 띠 ───────────────────────────────────────── */
 .notice-bar {
-  background: #1c2230;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
@@ -60,7 +60,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(15, 17, 21, 0.86);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
@@ -77,6 +77,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-weight: 800;
   font-size: 17px;
   letter-spacing: -0.02em;
+  color: var(--red);
 }
 .brand-emoji { font-size: 19px; }
 .top-nav { margin-left: auto; display: flex; gap: 4px; }
@@ -98,8 +99,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   margin: 12px 0 0;
   padding: 11px 13px;
   border-radius: 12px;
-  background: #3a2f10;
-  color: #f0c674;
+  background: #fff8d6;
+  border: 1px solid #f3e3a1;
+  color: #5c4a00;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -118,10 +120,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ── hero ─────────────────────────────────────────────────── */
 .hero {
-  padding: 26px 0 16px;
-  background:
-    radial-gradient(900px 260px at 20% -40%, rgba(255, 91, 61, 0.22), transparent 70%),
-    radial-gradient(700px 220px at 85% -30%, rgba(49, 130, 246, 0.2), transparent 70%);
+  padding: 24px 0 14px;
 }
 .hero h1 {
   margin: 0 0 6px;
@@ -161,10 +160,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   height: 44px;
   margin-top: 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--card);
+  border-radius: 10px;
+  background: var(--bg-soft);
 }
-.search:focus-within { border-color: var(--blue-soft); }
+.search:focus-within { border-color: var(--red); background: #fff; }
 .search input {
   flex: 1;
   min-width: 0;
@@ -191,16 +190,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 7px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--card);
-  color: var(--muted);
+  background: #fff;
+  color: #333;
   font-size: 13.5px;
   font-weight: 600;
   white-space: nowrap;
 }
 .chip[aria-pressed="true"] {
-  background: var(--text);
-  border-color: var(--text);
-  color: #12151b;
+  background: var(--red-soft);
+  border-color: var(--red);
+  color: var(--red);
 }
 
 .row {
@@ -235,7 +234,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--card);
   transition: background 0.15s, border-color 0.15s;
 }
-.deal:hover { background: var(--card-hover); border-color: #38414f; }
+.deal:hover { background: var(--card-hover); border-color: #d8d8d8; }
 .deal.is-ended { opacity: 0.55; }
 .deal.is-sample { border-style: dashed; }
 
@@ -265,8 +264,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 11.5px;
   font-weight: 700;
 }
-.tag-ended { background: #333a47; }
-.tag-sample { background: #3a2f10; color: #f0c674; border-color: transparent; }
+.tag-ended { background: #e5e5e5; color: #555; }
+.tag-sample { background: #fff3cd; color: #8a6d00; border-color: transparent; }
 
 .deal-main { display: flex; gap: 12px; align-items: flex-start; }
 .thumb {
@@ -275,11 +274,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   height: 84px;
   border-radius: 12px;
   overflow: hidden;
-  background: linear-gradient(140deg, #232936, #171b23);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .deal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.deal-cat { font-size: 12px; font-weight: 700; color: var(--violet); }
+.deal-cat { font-size: 12px; font-weight: 700; color: var(--muted); }
 .deal-title {
   margin: 0;
   font-size: 15px;
@@ -294,7 +294,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .deal-note { margin: 0; font-size: 12.5px; color: var(--muted); }
 .deal-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .price-now { font-size: 21px; font-weight: 800; letter-spacing: -0.03em; }
-.price-was { font-size: 13px; color: var(--dim); text-decoration: line-through; }
+.price-was { font-size: 13px; color: #b0b0b0; text-decoration: line-through; }
 .price-off { font-size: 13px; font-weight: 800; color: var(--red); }
 
 .deal-actions { display: flex; gap: 8px; }
@@ -302,8 +302,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   flex: 1;
   height: 42px;
   border: 0;
-  border-radius: 12px;
-  background: var(--blue);
+  border-radius: 10px;
+  background: var(--red);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -313,13 +313,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   gap: 6px;
 }
 .btn:hover { filter: brightness(1.08); }
-.btn:disabled { background: #333a47; color: var(--dim); cursor: not-allowed; }
+.btn:disabled { background: #e5e5e5; color: #9a9a9a; cursor: not-allowed; }
 .btn-ghost {
   flex: none;
   width: 46px;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
-  color: var(--muted);
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  color: #444;
   font-size: 16px;
 }
 .btn-ghost:hover { color: var(--text); }
@@ -334,7 +334,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   bottom: 0;
   z-index: 30;
   padding: 14px 16px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, rgba(15, 17, 21, 0.96) 60%, rgba(15, 17, 21, 0));
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.97) 60%, rgba(255, 255, 255, 0));
   pointer-events: none;
 }
 .cta a {
@@ -361,8 +361,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 footer {
   border-top: 1px solid var(--line);
+  background: var(--bg-soft);
   padding: 22px 0 36px;
-  color: var(--dim);
+  color: var(--muted);
   font-size: 12.5px;
 }
 footer p { margin: 0 0 8px; }
@@ -376,8 +377,8 @@ footer a { color: var(--muted); text-decoration: underline; }
   transform: translate(-50%, 20px);
   padding: 12px 18px;
   border-radius: 12px;
-  background: #eef1f6;
-  color: #12151b;
+  background: #222;
+  color: #fff;
   font-size: 13.5px;
   font-weight: 700;
   box-shadow: var(--shadow);
@@ -402,6 +403,7 @@ body.has-cta .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
   padding: 2px 6px;
   border-radius: 6px;
   background: var(--bg-soft);
+  border: 1px solid var(--line);
   font-size: 13px;
   color: var(--text);
 }
@@ -419,21 +421,21 @@ body.has-cta .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--card);
+  border-radius: 10px;
+  background: #fff;
   color: var(--text);
   font: inherit;
   outline: 0;
 }
-.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--blue-soft); }
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--red); }
 .field-row { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
 .out {
   margin: 0;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #12151b;
-  color: #cfd6e4;
+  background: var(--bg-soft);
+  color: #333;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12.5px;
   line-height: 1.6;
