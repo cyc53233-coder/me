@@ -2,26 +2,32 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{site} — 오늘의 핫딜</title>
-<meta name="description" content="매일 찾은 최저가 핫딜만 모아둔 곳. 가격이 확실히 떨어졌을 때만 올립니다.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d2a66">
+<title>{site} — 오늘 핫딜 모아보기</title>
+<meta name="description" content="평소보다 확실히 싼 것만 골라 올리는 핫딜 모음. 실시간 알림은 오픈채팅방에서.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="오늘의 핫딜">
-<meta property="og:description" content="매일 찾은 최저가 핫딜만 모아둔 곳.">
+<meta property="og:title" content="오늘 핫딜 모아보기">
+<meta property="og:description" content="평소보다 확실히 싼 것만 골라 올립니다. 실시간 알림은 오픈채팅방에서.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
+<div class="notice-bar"><div class="wrap" data-site-share-disclosure></div></div>
+
 <header class="top">
   <div class="wrap top-inner">
     <a class="brand" href="./">
-      <span class="brand-emoji" data-site-emoji>🔥</span>
-      <span data-site-name>핫딜</span>
+      <span class="logo" data-site-emoji>🔥</span>
+      <span class="brand-text">
+        <small data-site-name>핫딜</small>
+        <b>오늘 핫딜 모아보기</b>
+      </span>
     </a>
-    <nav class="top-nav">
-      <a href="./" aria-current="page">딜</a>
+    <button class="menu-btn" id="menu-btn" type="button" aria-label="메뉴" aria-expanded="false">≡</button>
+    <nav class="menu" id="menu" hidden>
       <a href="about.html">채널 소개</a>
       <a href="add.html">딜 올리기</a>
     </nav>
@@ -29,46 +35,35 @@
 </header>
 
 <main>
-  <section class="hero">
-    <div class="wrap">
-      <h1>오늘의 핫딜</h1>
-      <p data-site-tagline></p>
-      <div class="hero-stats">
-        <span><b id="stat-live">0</b>개 진행 중</span>
-        <span><b id="stat-total">0</b>개 누적</span>
-      </div>
-      <p class="disclosure">
-        <span>ℹ️</span>
-        <span data-site-disclosure></span>
-      </p>
-    </div>
-  </section>
-
-  <section class="wrap controls">
-    <div class="search">
-      <span>🔎</span>
-      <input id="q" type="search" placeholder="상품 이름으로 찾기" autocomplete="off">
-    </div>
-    <div class="chips" id="chips"></div>
-    <div class="row">
-      <button class="linkish" id="sort">최신순</button>
-      <span>·</span>
-      <button class="linkish" id="ended">마감 포함</button>
-    </div>
+  <section class="wrap intro">
+    <h1>방금 올라온 핫딜</h1>
+    <p data-site-tagline></p>
   </section>
 
   <section class="wrap">
+    <div class="chips chips-grade" id="grade-chips"></div>
+    <div class="chips chips-cat" id="chips"></div>
+  </section>
+
+  <div class="wrap">
+    <div class="kakao-notice" id="kakao-notice" hidden>
+      <span>ⓘ</span>
+      <span>카카오톡 안에서 상품이 열리지 않으면 메뉴(점 3개)에서 <b>다른 브라우저로 열기</b>를 선택해 주세요.</span>
+      <button type="button">열기</button>
+    </div>
+  </div>
+
+  <section class="wrap">
     <div class="grid" id="grid"></div>
+    <p class="caption" id="caption"></p>
   </section>
 </main>
 
 <footer>
-  <div class="wrap">
-    <p data-site-disclosure></p>
-    <p>가격과 재고는 수시로 바뀝니다. 구매 전 판매 페이지에서 최종 가격을 확인해 주세요.</p>
-    <p>© <span data-site-name></span> · <a href="about.html">채널 소개</a></p>
-  </div>
+  <div class="wrap"><ul data-site-notes></ul></div>
 </footer>
+
+<div class="cta" id="cta"><a href="#" target="_blank" rel="noopener"></a></div>
 
 <script src="data/site.js"></script>
 <script src="data/deals.js"></script>

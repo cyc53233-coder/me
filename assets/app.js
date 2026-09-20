@@ -1,6 +1,8 @@
 /* 핫딜 사이트 공용 스크립트 — data/site.js, data/deals.js 를 읽어 화면을 그립니다. */
 
 const SITE = window.SITE || {};
+const GRADES = Array.isArray(SITE.grades) ? SITE.grades : [];
+const MAX_DEALS = Number(SITE.maxDeals) > 0 ? Number(SITE.maxDeals) : 50;
 const MALLS = {
   toss: { label: "토스", emoji: "💎" },
   coupang: { label: "쿠팡", emoji: "🚀" },
@@ -48,21 +50,38 @@ function timeAgo(iso) {
   return new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
 }
 
+/* ── 등급 — 🔥 개수가 곧 등급입니다 (data/site.js 의 grades) ── */
+const fires = (n) => "🔥".repeat(Math.max(0, Math.min(5, Number(n) || 0)));
+
+function gradeOf(deal) {
+  const n = Number(deal.grade) || (deal.hot ? 3 : 0); // 옛 형식 hot: true 는 대박으로 봅니다
+  return GRADES.find((g) => g.fire === n) || null;
+}
+
+const gradeText = (g) => (g ? `${g.label} ${fires(g.fire)}` : "");
+
 /* 카톡방에 그대로 붙여넣는 문구 */
 function kakaoText(deal) {
+  const g = gradeOf(deal);
   const mall = mallOf(deal);
-  const lines = [];
-  lines.push(`${mallEmoji(mall)} ${mall ? `[${mallLabel(mall)}] ` : ""}${deal.title}`);
-  lines.push(` ┗ ${deal.hot ? "대박 🔥🔥🔥 " : ""}${won(deal.price)}`);
   const rate = discountRate(deal);
-  if (deal.listPrice) lines.push(` ┗ 평소가 ${won(deal.listPrice)}${rate ? ` (${rate}% 싸요)` : ""}`);
-  if (deal.note) lines.push(` ┗ ${deal.note}`);
-  lines.push(deal.url);
-  if (SITE.shareDisclosure) lines.push("", SITE.shareDisclosure);
+  const lines = [];
+  if (g) lines.push(`${fires(g.fire)} ${g.label}`);
+  lines.push(`${mallEmoji(mall)} ${mall ? `[${mallLabel(mall)}] ` : ""}${deal.title}`);
+  lines.push(
+    `💰 ${won(deal.price)}` +
+      (deal.listPrice ? ` (평소 ${won(deal.listPrice)}${rate ? `, ${rate}%↓` : ""})` : "")
+  );
+  if (deal.note) lines.push(`📝 ${deal.note}`);
+  lines.push(`👉 ${deal.url}`);
+  const notes = (SITE.shareNotes || []).map((n) => `- ${n}`);
+  if (notes.length || SITE.shareDisclosure) lines.push("");
+  lines.push(...notes);
+  if (SITE.shareDisclosure) lines.push(SITE.shareDisclosure);
   return lines.join("\n");
 }
 
-/* 클립보드 — https 가 아니어도 동작하도록 폴백을 둡니다 */
+/* 클립보드 — https 가 아니어도 동작하도록 폴백을 둡니다 (딜 올리기 페이지에서 씁니다) */
 async function copyText(text) {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -102,157 +121,162 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("is-on"), 1800);
 }
 
-/* ── 카드 ─────────────────────────────────────────────────── */
+/* ── 카드 — 카드 전체가 상품 링크입니다 ───────────────────── */
 function dealCardHTML(deal) {
-  const rate = discountRate(deal);
-  const mall = mallOf(deal);
-  const badges = [
-    rate ? `<span class="badge badge-off">${rate}%</span>` : "",
-    deal.hot && !deal.ended ? `<span class="badge badge-hot">🔥 대박</span>` : "",
-    mall ? `<span class="badge badge-mall">${esc(mallLabel(mall))}</span>` : "",
-    deal.ended ? `<span class="badge badge-ended">마감</span>` : "",
-    deal.sample ? `<span class="badge badge-sample">샘플</span>` : "",
-  ].join("");
-
+  const g = gradeOf(deal);
   const thumb = deal.image
-    ? `<img src="${esc(deal.image)}" alt="" loading="lazy">`
-    : `<div class="thumb-fallback">${mall ? mallEmoji(mall) : "🛍️"}</div>`;
-
-  const buy = deal.sample
-    ? `<button class="btn" disabled>샘플 딜</button>`
-    : deal.ended
-    ? `<button class="btn" disabled>마감된 딜</button>`
-    : `<a class="btn" href="${esc(deal.url)}" target="_blank" rel="nofollow sponsored noopener">
-         최저가 보러가기</a>`;
-
-  return `
-    <article class="deal ${deal.ended ? "is-ended" : ""} ${deal.sample ? "is-sample" : ""}">
-      <div class="thumb ${deal.image ? "" : "is-empty"}">${thumb}<div class="badges">${badges}</div></div>
+    ? `<img class="thumb" src="${esc(deal.image)}" alt="" loading="lazy">`
+    : `<div class="thumb thumb-empty">${mallEmoji(mallOf(deal))}</div>`;
+  const inner = `
+      ${thumb}
       <div class="deal-body">
-        ${deal.category ? `<div class="deal-cat">${esc(deal.category)}</div>` : ""}
+        <div class="deal-time">${esc(timeAgo(deal.postedAt))}${deal.sample ? " · 샘플" : ""}</div>
         <h2 class="deal-title">${esc(deal.title)}</h2>
-        ${deal.note ? `<p class="deal-note">${esc(deal.note)}</p>` : ""}
         <div class="deal-price">
+          ${g ? `<span class="grade">${esc(g.label)}${fires(g.fire)}</span>` : ""}
           <span class="price-now">${won(deal.price)}</span>
-          ${deal.listPrice ? `<span class="price-was">${won(deal.listPrice)}</span>` : ""}
         </div>
-        <div class="deal-meta">${esc(timeAgo(deal.postedAt))}</div>
+        ${deal.listPrice ? `<div class="price-was">평소가 ${won(deal.listPrice)}</div>` : ""}
       </div>
-      <div class="deal-actions">
-        ${buy}
-        <button class="btn btn-ghost js-copy" title="카톡용 문구 복사" aria-label="카톡용 문구 복사">💬</button>
-      </div>
-    </article>`;
+      <span class="chevron" aria-hidden="true">›</span>`;
+  return deal.sample
+    ? `<div class="deal is-sample">${inner}</div>`
+    : `<a class="deal" href="${esc(deal.url)}" target="_blank" rel="nofollow sponsored noopener">${inner}</a>`;
 }
 
-/* 이미지가 깨진 딜은 기본 아이콘으로 되돌립니다 (error 는 캡처 단계에서만 잡힙니다) */
+/* 이미지가 깨지면 기본 아이콘 칸으로 바꿉니다 (error 는 캡처 단계에서만 잡힙니다) */
 document.addEventListener(
   "error",
   (e) => {
     const img = e.target;
-    if (!img || img.tagName !== "IMG") return;
-    const thumb = img.closest(".thumb");
-    if (!thumb) return;
-    img.remove();
-    thumb.classList.add("is-empty");
-    if (!thumb.querySelector(".thumb-fallback")) {
-      const div = document.createElement("div");
-      div.className = "thumb-fallback";
-      div.textContent = "🛍️";
-      thumb.prepend(div);
-    }
+    if (!img || img.tagName !== "IMG" || !img.classList.contains("thumb")) return;
+    const div = document.createElement("div");
+    div.className = "thumb thumb-empty";
+    div.textContent = "🛍️";
+    img.replaceWith(div);
   },
   true
 );
 
 /* ── 목록 화면 ────────────────────────────────────────────── */
+function chipsHTML(items, key, pressed) {
+  return items
+    .map(
+      (it) =>
+        `<button type="button" class="chip" aria-pressed="${it.value === pressed}" data-${key}="${esc(it.value)}"` +
+        (it.hint ? ` title="${esc(it.hint)}"` : "") +
+        `><span>${esc(it.label)}</span>${it.sub ? `<span class="chip-sub">${esc(it.sub)}</span>` : ""}</button>`
+    )
+    .join("");
+}
+
+function bindChips(box, onPick) {
+  box.addEventListener("click", (e) => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    box.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === btn)));
+    onPick(btn);
+  });
+}
+
 function initDealList() {
   const grid = document.getElementById("grid");
   if (!grid) return;
 
-  const all = (window.DEALS || []).slice();
-  const state = { q: "", cat: "전체", sort: "new", showEnded: false };
+  // 마감된 딜은 파일에는 남지만 화면에는 안 나옵니다
+  const all = (window.DEALS || []).filter((d) => !d.ended);
+  const state = { cat: "전체", grade: 0 };
+
+  const gradeBox = document.getElementById("grade-chips");
+  gradeBox.innerHTML = chipsHTML(
+    [
+      { value: "0", label: "전체" },
+      ...GRADES.map((g) => ({ value: String(g.fire), label: g.label, sub: fires(g.fire), hint: g.hint })),
+    ],
+    "grade",
+    "0"
+  );
+  if (!GRADES.length) gradeBox.hidden = true;
 
   const catBox = document.getElementById("chips");
-  const cats = ["전체", ...[...new Set(all.map((d) => d.category).filter(Boolean))]];
-  catBox.innerHTML = cats
-    .map(
-      (c) =>
-        `<button class="chip" aria-pressed="${c === "전체"}" data-cat="${esc(c)}">${esc(c)}</button>`
-    )
-    .join("");
+  const cats = ["전체", ...new Set(all.map((d) => d.category).filter(Boolean))];
+  catBox.innerHTML = chipsHTML(cats.map((c) => ({ value: c, label: c })), "cat", "전체");
+  if (cats.length < 2) catBox.hidden = true;
 
   function visible() {
-    const q = state.q.trim().toLowerCase();
     return all
-      .filter((d) => (state.showEnded ? true : !d.ended))
+      .filter((d) => !state.grade || (gradeOf(d) || {}).fire === state.grade)
       .filter((d) => state.cat === "전체" || d.category === state.cat)
-      .filter(
-        (d) =>
-          !q ||
-          (d.title || "").toLowerCase().includes(q) ||
-          (d.note || "").toLowerCase().includes(q) ||
-          (d.category || "").toLowerCase().includes(q)
-      )
-      .sort((a, b) =>
-        state.sort === "off"
-          ? discountRate(b) - discountRate(a)
-          : new Date(b.postedAt || 0) - new Date(a.postedAt || 0)
-      );
+      .sort((a, b) => new Date(b.postedAt || 0) - new Date(a.postedAt || 0))
+      .slice(0, MAX_DEALS);
   }
 
   function render() {
     const list = visible();
     grid.innerHTML = list.length
       ? list.map(dealCardHTML).join("")
-      : `<div class="empty" style="grid-column:1/-1">
-           <div class="empty-emoji">🕳️</div>찾는 딜이 없어요</div>`;
-    grid.querySelectorAll(".js-copy").forEach((btn, i) => {
-      btn.addEventListener("click", async () => {
-        const ok = await copyText(kakaoText(list[i]));
-        toast(ok ? "카톡용 문구를 복사했어요" : "복사에 실패했어요");
-        if (ok) {
-          btn.classList.add("is-done");
-          btn.textContent = "✓";
-          setTimeout(() => {
-            btn.classList.remove("is-done");
-            btn.textContent = "💬";
-          }, 1600);
-        }
-      });
-    });
-    const live = all.filter((d) => !d.ended).length;
-    document.getElementById("stat-live").textContent = live;
-    document.getElementById("stat-total").textContent = all.length;
+      : `<div class="empty"><div class="empty-emoji">🕳️</div>${
+          all.length ? "이 조건에 맞는 딜이 없어요" : "아직 올라온 딜이 없어요"
+        }</div>`;
+    document.getElementById("caption").textContent = `최신 등록순 · 최대 ${MAX_DEALS}개`;
   }
 
-  document.getElementById("q").addEventListener("input", (e) => {
-    state.q = e.target.value;
+  bindChips(gradeBox, (btn) => {
+    state.grade = Number(btn.dataset.grade) || 0;
     render();
   });
-  catBox.addEventListener("click", (e) => {
-    const btn = e.target.closest(".chip");
-    if (!btn) return;
+  bindChips(catBox, (btn) => {
     state.cat = btn.dataset.cat;
-    catBox.querySelectorAll(".chip").forEach((c) =>
-      c.setAttribute("aria-pressed", String(c === btn))
-    );
-    render();
-  });
-  const sortBtn = document.getElementById("sort");
-  sortBtn.addEventListener("click", () => {
-    state.sort = state.sort === "new" ? "off" : "new";
-    sortBtn.textContent = state.sort === "new" ? "최신순" : "할인율순";
-    render();
-  });
-  const endedBtn = document.getElementById("ended");
-  endedBtn.addEventListener("click", () => {
-    state.showEnded = !state.showEnded;
-    endedBtn.textContent = state.showEnded ? "마감 포함 ✓" : "마감 포함";
     render();
   });
 
   render();
+}
+
+/* ── 오픈채팅 입장 버튼 (화면 아래 고정) ─────────────────────── */
+function initOpenChat() {
+  const bar = document.getElementById("cta");
+  if (!bar) return;
+  if (!SITE.openChatUrl) return bar.remove();
+  const a = bar.querySelector("a");
+  a.href = SITE.openChatUrl;
+  a.textContent = SITE.openChatLabel || "오픈채팅방 입장하기";
+  document.body.classList.add("has-cta");
+}
+
+/* ── 카톡 안에서 열렸을 때 안내 ──────────────────────────────
+   카톡 인앱 브라우저는 다른 앱(토스·쿠팡) 열기와 복사가 막힐 때가 있습니다.
+   kakaotalk://web/openExternal 은 카톡이 지원하는 "외부 브라우저로 열기" 주소입니다. */
+function initKakaoNotice() {
+  const box = document.getElementById("kakao-notice");
+  if (!box) return;
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  if (!/KAKAOTALK/i.test(ua)) return;
+  box.hidden = false;
+  const btn = box.querySelector("button");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+    });
+  }
+}
+
+/* ── 헤더 ≡ 메뉴 ──────────────────────────────────────────── */
+function initMenu() {
+  const btn = document.getElementById("menu-btn");
+  const menu = document.getElementById("menu");
+  if (!btn || !menu) return;
+  const set = (open) => {
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    set(menu.hidden);
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.hidden && !menu.contains(e.target)) set(false);
+  });
 }
 
 /* ── 공통 채우기 ──────────────────────────────────────────── */
@@ -263,6 +287,12 @@ function initChrome() {
   document
     .querySelectorAll("[data-site-disclosure]")
     .forEach((el) => (el.textContent = SITE.disclosure || ""));
+  document
+    .querySelectorAll("[data-site-share-disclosure]")
+    .forEach((el) => (el.textContent = SITE.shareDisclosure || SITE.disclosure || ""));
+  document.querySelectorAll("[data-site-notes]").forEach((el) => {
+    el.innerHTML = (SITE.shareNotes || []).map((n) => `<li>${esc(n)}</li>`).join("");
+  });
   if (SITE.name) document.title = document.title.replace("{site}", SITE.name);
   document.querySelectorAll("[data-issue-link]").forEach((el) => {
     if (!SITE.repo) return el.remove();
@@ -276,26 +306,30 @@ function initAbout() {
   if (intro && Array.isArray(SITE.intro)) {
     intro.innerHTML = SITE.intro.map((p) => `<p>${esc(p)}</p>`).join("");
   }
-  const contact = document.querySelector("[data-site-contact]");
-  if (contact && SITE.contact) {
-    contact.innerHTML = `<a href="mailto:${esc(SITE.contact)}">${esc(SITE.contact)}</a>`;
+  const grades = document.querySelector("[data-site-grades]");
+  if (grades) {
+    grades.innerHTML = GRADES.map(
+      (g) =>
+        `<li><span class="grade">${esc(g.label)}${fires(g.fire)}</span>` +
+        (g.hint ? ` <span class="grade-hint">${esc(g.hint)}</span>` : "") +
+        `</li>`
+    ).join("");
   }
-  const box = document.querySelector("[data-site-channels]");
-  if (box) {
-    const rows = (SITE.channels || []).filter((c) => c.url);
-    box.innerHTML = rows.length
-      ? rows
-          .map(
-            (c) =>
-              `<li><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)}</a></li>`
-          )
-          .join("")
-      : `<li>이 사이트에서만 운영합니다.</li>`;
+  const chat = document.querySelector("[data-site-openchat]");
+  if (chat) {
+    chat.innerHTML = SITE.openChatUrl
+      ? `<a class="btn btn-cta" href="${esc(SITE.openChatUrl)}" target="_blank" rel="noopener">${esc(
+          SITE.openChatLabel || "오픈채팅방 입장하기"
+        )}</a>`
+      : `<p>오픈채팅방을 준비하고 있습니다. 열리면 이 자리에 입장 링크가 걸립니다.</p>`;
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   initChrome();
+  initMenu();
+  initKakaoNotice();
   initDealList();
+  initOpenChat();
   initAbout();
 });

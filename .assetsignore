@@ -1,0 +1,17 @@
+# Workers 에 올리지 않는 것 — 핫딜 사이트(HTML · assets · data)만 나갑니다
+.git
+.github
+node_modules
+ledger
+v2
+pricewatch
+scripts
+*.md
+*.mjs
+*.json
+*.jsonc
+.firebaserc
+.gitignore
+.assetsignore
+.wrangler
+.nojekyll

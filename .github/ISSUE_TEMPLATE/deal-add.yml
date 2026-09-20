@@ -15,7 +15,7 @@ body:
     id: price
     attributes:
       label: 지금 가격
-      placeholder: "19900"
+      placeholder: "14900"
     validations:
       required: true
   - type: input
@@ -23,9 +23,33 @@ body:
     attributes:
       label: 평소 가격
       description: 적으면 할인율이 자동으로 계산됩니다.
-      placeholder: "34000"
+      placeholder: "24900"
+  - type: dropdown
+    id: grade
+    attributes:
+      label: 등급
+      description: 🔥 개수가 등급입니다. 애매하면 비워 두세요.
+      options:
+        - "무지성급 🔥🔥🔥🔥🔥"
+        - "초대박 🔥🔥🔥🔥"
+        - "대박 🔥🔥🔥"
+        - "중박 🔥🔥 (15~25% 할인)"
+        - "추천 🔥"
+  - type: dropdown
+    id: category
+    attributes:
+      label: 카테고리
+      options:
+        - 고기·메인반찬
+        - 간식·음료
+        - 과일·채소
+        - 생활용품·기타
+        - 가전·디지털
+        - 패션·뷰티
+        - 반려동물
+        - 육아
   - type: input
-    id: title
+    id: name
     attributes:
       label: 상품명
       description: 비워두면 링크에서 자동으로 가져옵니다. 못 가져오면 답글로 알려 드려요.
@@ -34,26 +58,8 @@ body:
     attributes:
       label: 이미지 주소
       description: 비워두면 링크에서 자동으로 가져옵니다.
-  - type: dropdown
-    id: category
-    attributes:
-      label: 카테고리
-      options:
-        - 식품
-        - 생활
-        - 가전
-        - 패션
-        - 반려동물
-        - 육아
-        - 기타
   - type: input
     id: note
     attributes:
       label: 한 줄 메모
-      placeholder: 평소 3만원대, 이 가격 잘 없어요
-  - type: checkboxes
-    id: flags
-    attributes:
-      label: 표시
-      options:
-        - label: 🔥 대박 딜로 표시
+      placeholder: 냉장 삼겹 1kg 이 가격이면 바로 담으세요

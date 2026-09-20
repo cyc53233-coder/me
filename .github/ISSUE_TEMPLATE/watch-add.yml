@@ -1,0 +1,18 @@
+name: 가격 감시 추가
+description: 가격이 떨어지면 알림 받을 상품을 등록합니다.
+title: "감시: "
+labels: ["pricewatch"]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: 상품 주소
+      description: 상품 페이지 주소를 그대로 붙여넣으세요.
+      placeholder: https://
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: 이름
+      description: 비워두면 상품 페이지에서 가져옵니다.

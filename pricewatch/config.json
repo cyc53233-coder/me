@@ -1,0 +1,17 @@
+{
+  "_": "가격 추적기 설정. 감시할 상품은 watch 목록에 넣습니다 (이슈 폼으로 넣으면 자동으로 여기 들어옵니다).",
+  "check": {
+    "_": "한 번 돌 때의 예의. 상품 하나당 요청 하나이고, 사이 간격을 둡니다.",
+    "maxChecks": 60,
+    "requestDelayMs": 1500
+  },
+  "alert": {
+    "_": "언제 '싸졌다'고 볼지. 기준가는 그 상품 자신의 최근 가격 중앙값입니다.",
+    "baselineDays": 30,
+    "dropPercent": 15,
+    "minDays": 2,
+    "cooldownDays": 3,
+    "maxPoints": 200
+  },
+  "watch": []
+}

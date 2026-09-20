@@ -1,0 +1,11 @@
+// Cloudflare Workers 배포 설정 — 핫딜 사이트를 <name>.<계정>.workers.dev 주소로 내보냅니다.
+// 워커 코드는 없고 정적 파일만 올립니다. 무엇을 올리지 않을지는 .assetsignore 가 정합니다.
+{
+  "name": "todays-hotdeal",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}
