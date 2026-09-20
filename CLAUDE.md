@@ -7,8 +7,11 @@
 | 무엇 | 어디로 | 무엇이 트리거하나 |
 |---|---|---|
 | 저장소 루트 정적 사이트 | `cyc53233-coder.github.io/me/` | `main` 푸시 → GitHub Pages 자동 |
+| 저장소 루트 정적 사이트 (같은 내용) | `todays-hotdeal.<계정>.workers.dev` | `main`의 사이트 파일 푸시 → `cloudflare.yml` → `wrangler deploy` (`wrangler.jsonc` · `.assetsignore`) |
 | **가계부** `ledger/` | 같은 Pages 주소의 `/me/ledger/` | 위와 동일 |
 | 가계부 (선택) | `dani-yongcheol.web.app` | `main`의 `ledger/**` 푸시 → `firebase-hosting.yml` |
+
+**Cloudflare 워크플로는 시크릿 `CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID`가 없으면 실패하지 않고 "건너뜀"으로 끝난다** — 연결 전까지 정상 상태다.
 
 **Firebase Hosting 워크플로는 저장소 시크릿 `FIREBASE_SERVICE_ACCOUNT`가 없으면 실패한다.** 없는 상태에서도 GitHub Pages 배포는 정상이므로, 그 주소로 쓰는 한 이 실패는 무시해도 되는 알려진 상태다 — 실패를 볼 때마다 새로 진단하지 말 것.
 

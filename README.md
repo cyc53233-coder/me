@@ -96,17 +96,41 @@
   [카카오 OG 캐시 초기화 도구](https://developers.kakao.com/tool/clear/og)에 주소를 넣거나,
   링크 뒤에 `?v=2` 처럼 번호를 붙여 새 주소로 공유하면 됩니다.
 
-## 5. 인터넷에 올리기 (GitHub Pages, 무료)
+## 5. 인터넷에 올리기 — 두 주소 중 아무거나
 
-`main`에 머지하면 자동으로 `https://cyc53233-coder.github.io/me/` 에 올라갑니다
-(저장소 → Settings → Pages, Source `main` / `(root)`). 고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요.
+`main`에 머지하면 두 곳에 자동으로 올라갑니다. 둘 다 무료이고 내용은 같습니다.
 
-주소를 바꾸고 싶으면 저장소 이름을 바꾸거나(`me` → `hotdeal`), 도메인을 샀다면
-Pages 설정의 Custom domain에 연결하면 됩니다.
+| 주소 | 어떻게 | 준비 |
+|---|---|---|
+| `https://cyc53233-coder.github.io/me/` | GitHub Pages | 이미 켜져 있음 |
+| `https://todays-hotdeal.<내 계정>.workers.dev` | Cloudflare Workers (`wrangler.jsonc`) | 아래 한 번 연결 |
+
+고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요. 카톡 방에는 짧은 Workers 주소를 올리는 편이 깔끔합니다.
+
+### Cloudflare Workers 연결 (처음 한 번)
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com)에 가입하고 로그인합니다 (무료 플랜이면 됩니다).
+2. **API 토큰 만들기** — 오른쪽 위 프로필 → My Profile → API Tokens → Create Token →
+   템플릿 **Edit Cloudflare Workers** → Continue → Create Token → 토큰 복사 (한 번만 보여 줍니다).
+3. **계정 ID 복사** — 대시보드 왼쪽 메뉴 Workers & Pages 를 열면 오른쪽에 **Account ID** 가 있습니다.
+4. GitHub 저장소 → Settings → Secrets and variables → **Actions** → New repository secret 두 개:
+   - `CLOUDFLARE_API_TOKEN` = 2번 토큰
+   - `CLOUDFLARE_ACCOUNT_ID` = 3번 계정 ID
+5. 저장소 → Actions → **「Cloudflare Workers 배포」** → Run workflow. 끝나면 실행 로그 끝에 주소가 찍힙니다.
+   그 뒤로는 `main`에 사이트 파일이 바뀔 때마다 알아서 올라갑니다 (이슈로 딜을 올려도 마찬가지).
+
+시크릿이 없으면 워크플로는 실패하지 않고 "건너뜀"으로 끝납니다. 주소를 바꾸고 싶으면 `wrangler.jsonc`의
+`name` 을 바꾸면 되고, 산 도메인이 있으면 대시보드 → 그 워커 → Settings → Domains & Routes 에서 붙입니다.
+
+대시보드에서 직접 연결하는 방법도 있습니다: Workers & Pages → Create → **Import a repository** → 이 저장소 선택 →
+Deploy command `npx wrangler deploy` → Save and Deploy. 이 경우 4번 시크릿은 필요 없고, 워크플로는 건너뜀으로 끝납니다.
+
+무엇이 올라가는지는 `.assetsignore` 가 정합니다 — 사이트 파일(HTML · `assets/` · `data/`)만 나가고
+가계부(`ledger/`), `v2/`, 스크립트, 워크플로는 올라가지 않습니다.
 
 ## 6. 쉐어링크 활동 채널로 등록하기
 
-토스 앱 → 쉐어링크 → **활동 채널을 알려주세요** 화면에서 5번의 주소를 넣고
+토스 앱 → 쉐어링크 → **활동 채널을 알려주세요** 화면에서 5번의 주소 중 하나를 넣고
 `채널 추가` → `제출`을 누릅니다.
 
 인증은 "이 사람이 실제로 상품을 소개하는 채널을 운영하는가"를 보므로, 제출 전에

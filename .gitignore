@@ -5,3 +5,4 @@ ledger/artifact.html
 ledger/node_modules/
 .pricewatch-issue.md
 .pricewatch-comment.md
+.wrangler/
