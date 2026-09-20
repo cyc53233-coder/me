@@ -11,7 +11,7 @@ jobs:
     if: >-
       github.event.issue.user.login == github.repository_owner &&
       github.event.issue.state == 'open' &&
-      (contains(github.event.issue.body, '### 쉐어링크 주소') ||
+      (contains(github.event.issue.body, '### 붙여넣기') ||
        contains(github.event.issue.body, '### 마감할 딜'))
     runs-on: ubuntu-latest
     permissions:

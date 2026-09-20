@@ -22,45 +22,46 @@
     <a class="brand" href="./">
       <span class="logo" data-site-emoji>🔥</span>
       <span class="brand-text">
-        <small data-site-name>핫딜</small>
+        <small>실시간 핫딜</small>
         <b>오늘 핫딜 모아보기</b>
       </span>
     </a>
-    <button class="menu-btn" id="menu-btn" type="button" aria-label="메뉴" aria-expanded="false">≡</button>
+    <button class="menu-btn" id="menu-btn" type="button" aria-label="메뉴" aria-expanded="false">☰</button>
     <nav class="menu" id="menu" hidden>
       <a href="about.html">채널 소개</a>
-      <a href="add.html">딜 올리기</a>
+      <a href="about.html#등급">등급 안내</a>
     </nav>
   </div>
 </header>
 
 <main>
-  <section class="wrap intro">
-    <h1>방금 올라온 핫딜</h1>
-    <p data-site-tagline></p>
+  <section class="intro">
+    <div class="wrap">
+      <h1>방금 올라온 핫딜</h1>
+      <p data-site-tagline></p>
+    </div>
   </section>
 
   <section class="wrap">
     <div class="chips chips-grade" id="grade-chips"></div>
     <div class="chips chips-cat" id="chips"></div>
-  </section>
 
-  <div class="wrap">
     <div class="kakao-notice" id="kakao-notice" hidden>
       <span>ⓘ</span>
       <span>카카오톡 안에서 상품이 열리지 않으면 메뉴(점 3개)에서 <b>다른 브라우저로 열기</b>를 선택해 주세요.</span>
       <button type="button">열기</button>
     </div>
-  </div>
 
-  <section class="wrap">
     <div class="grid" id="grid"></div>
     <p class="caption" id="caption"></p>
   </section>
 </main>
 
 <footer>
-  <div class="wrap"><ul data-site-notes></ul></div>
+  <div class="wrap">
+    <ul data-site-notes></ul>
+    <p><a href="about.html">채널 소개 · 수수료 고지</a></p>
+  </div>
 </footer>
 
 <div class="cta" id="cta"><a href="#" target="_blank" rel="noopener"></a></div>

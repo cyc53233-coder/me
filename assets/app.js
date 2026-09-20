@@ -53,8 +53,13 @@ function timeAgo(iso) {
 /* ── 등급 — 🔥 개수가 곧 등급입니다 (data/site.js 의 grades) ── */
 const fires = (n) => "🔥".repeat(Math.max(0, Math.min(5, Number(n) || 0)));
 
+const TOP_FIRE = GRADES.length ? Math.max(...GRADES.map((g) => g.fire)) : 0;
+
+/* 등급표를 줄이기 전에 올린 딜(예전 5단계, 옛 hot: true)도 배지가 사라지지 않게
+   지금 등급표의 맨 위로 올려 붙입니다. */
 function gradeOf(deal) {
-  const n = Number(deal.grade) || (deal.hot ? 3 : 0); // 옛 형식 hot: true 는 대박으로 봅니다
+  let n = Number(deal.grade) || (deal.hot ? TOP_FIRE : 0);
+  if (n > TOP_FIRE) n = TOP_FIRE;
   return GRADES.find((g) => g.fire === n) || null;
 }
 
@@ -261,7 +266,8 @@ function initKakaoNotice() {
   }
 }
 
-/* ── 헤더 ≡ 메뉴 ──────────────────────────────────────────── */
+/* ── 헤더 ☰ 메뉴 ──────────────────────────────────────────
+   「딜 올리기」는 여기에 넣지 않습니다 — 관리자 전용 도구입니다. */
 function initMenu() {
   const btn = document.getElementById("menu-btn");
   const menu = document.getElementById("menu");
@@ -277,6 +283,7 @@ function initMenu() {
   document.addEventListener("click", (e) => {
     if (!menu.hidden && !menu.contains(e.target)) set(false);
   });
+  menu.addEventListener("click", () => set(false));
 }
 
 /* ── 공통 채우기 ──────────────────────────────────────────── */

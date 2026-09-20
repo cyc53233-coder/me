@@ -41,7 +41,8 @@
 **GitHub 이슈에 쉐어링크만 붙여넣으면** 사이트가 알아서 갱신됩니다.
 
 1. 저장소 → **Issues → New issue → 「딜 올리기」**
-2. 쉐어링크 주소, 지금 가격, **등급**을 고르고 제출 (상품명·이미지는 비워두면 링크에서 자동으로 가져옵니다)
+2. 쿠팡·토스 **공유하기**로 복사한 내용을 그대로 붙여넣고, 지금 가격과 **등급**만 고르면 됩니다
+   (상품명은 붙여넣은 글에서 갈라내고, 사진은 링크에서 읽어 봅니다)
 3. 1분쯤 뒤 `data/deals.js`가 자동으로 커밋되고, 이슈 답글로 **오픈채팅방에 붙여넣을 문구**가 옵니다.
    그 문구를 복사해서 방에 올리면 끝. 이슈는 자동으로 닫힙니다.
 
@@ -51,7 +52,7 @@
 카톡 문구는 이런 모양입니다:
 
 ```
-🔥🔥🔥 대박
+🔥🔥 대박
 💎 [토스] 한돈 냉장 삼겹살 구이용 1kg
 💰 14,900원 (평소 24,900원, 40%↓)
 📝 냉장 삼겹 1kg 이 가격이면 바로 담으세요
@@ -66,8 +67,11 @@
 
 - **저장소 주인이 연 이슈에만 반응합니다.** 공개 저장소라 누구나 이슈를 열 수 있는데,
   이 조건이 없으면 남의 쉐어링크가 내 사이트에 올라갑니다 (`.github/workflows/deal.yml`).
-- 자동으로 가져오는 값은 링크 페이지의 OG 태그입니다. 쇼핑몰이 막아두면 못 가져오는데,
-  그때는 실패로 끝내지 않고 "상품명을 직접 적어 달라"고 답글이 옵니다.
+- **상품 사진은 링크에서 읽어 옵니다.** 판매 페이지의 미리보기 태그(`og:image`·`twitter:image`·
+  `link rel=image_src`·JSON-LD)를 차례로 훑고, 짧은 링크가 중간 페이지를 돌려주면 한 번 더 따라갑니다.
+  그래도 못 읽으면 카드에 판매처 아이콘이 들어갑니다 — 그때는 **이슈에 상품 사진을 그대로 첨부**하세요.
+  붙여넣기 칸에 사진을 끌어다 놓으면 그 사진을 씁니다.
+- 상품명도 못 찾으면 실패로 끝내지 않고 "직접 적어 달라"고 답글이 옵니다.
 - **쉐어링크를 만드는 일 자체는 자동화할 수 없습니다.** 토스는 공개 API가 없어서
   앱에서 상품 공유 → 링크 복사까지는 사람이 해야 합니다. 그 뒤가 전부 자동입니다.
 - **오픈채팅방에 자동으로 쏘는 것도 불가능합니다.** 카카오는 오픈채팅에 봇이 글을 쓰는 공개
@@ -77,11 +81,11 @@
 
 | 등급 | 뜻 |
 |---|---|
-| 🔥🔥🔥🔥🔥 무지성급 | 역대 최저가. 고민할 필요 없음 |
-| 🔥🔥🔥🔥 초대박 | 최저가 확실. 보이면 담기 |
-| 🔥🔥🔥 대박 | 평소보다 크게 쌈 |
-| 🔥🔥 중박 | 15~25% 할인 |
+| 🔥🔥🔥 무지성급 | 역대 최저가. 고민할 필요 없음 |
+| 🔥🔥 대박 | 평소보다 크게 쌈 |
 | 🔥 추천 | 가격 괜찮고 살 만함 |
+
+등급 칩이 한 줄에 들어가도록 세 단계로 둡니다. 늘리면 줄이 넘어갑니다.
 
 이름과 설명은 `data/site.js`의 `grades`에서 바꿉니다. 이슈 폼의 등급 선택지
 (`.github/ISSUE_TEMPLATE/deal-add.yml`)는 🔥 개수만 읽으므로, 이름을 바꾸면 그쪽 글자도 같이 맞춰 두세요.
@@ -96,37 +100,38 @@
   [카카오 OG 캐시 초기화 도구](https://developers.kakao.com/tool/clear/og)에 주소를 넣거나,
   링크 뒤에 `?v=2` 처럼 번호를 붙여 새 주소로 공유하면 됩니다.
 
-## 5. 인터넷에 올리기 — 두 주소 중 아무거나
+## 5. 인터넷에 올라가는 두 주소
 
-`main`에 머지하면 두 곳에 자동으로 올라갑니다. 둘 다 무료이고 내용은 같습니다.
+`main`이 바뀌면 두 곳에 자동으로 올라갑니다. 둘 다 무료이고 내용은 같습니다.
 
-| 주소 | 어떻게 | 준비 |
-|---|---|---|
-| `https://cyc53233-coder.github.io/me/` | GitHub Pages | 이미 켜져 있음 |
-| `https://todays-hotdeal.<내 계정>.workers.dev` | Cloudflare Workers (`wrangler.jsonc`) | 아래 한 번 연결 |
+| 주소 | 누가 올리나 |
+|---|---|
+| https://todays-hotdeal.cyc53233.workers.dev | **Cloudflare Workers** — 대시보드가 이 저장소를 직접 지켜보다가 `npx wrangler deploy` 실행 |
+| https://cyc53233-coder.github.io/me/ | GitHub Pages — 저장소 설정에 켜져 있음 |
 
-고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요. 카톡 방에는 짧은 Workers 주소를 올리는 편이 깔끔합니다.
+카톡 방에는 짧은 **Workers 주소**를 올리는 편이 깔끔합니다. 고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요.
 
-### Cloudflare Workers 연결 (처음 한 번)
+이슈로 딜을 올리면 `data/deals.js`가 `main`에 커밋되고, 두 주소가 1~2분 안에 알아서 갱신됩니다.
+손으로 파일을 올릴 일은 없습니다.
 
-1. [dash.cloudflare.com](https://dash.cloudflare.com)에 가입하고 로그인합니다 (무료 플랜이면 됩니다).
-2. **API 토큰 만들기** — 오른쪽 위 프로필 → My Profile → API Tokens → Create Token →
-   템플릿 **Edit Cloudflare Workers** → Continue → Create Token → 토큰 복사 (한 번만 보여 줍니다).
-3. **계정 ID 복사** — 대시보드 왼쪽 메뉴 Workers & Pages 를 열면 오른쪽에 **Account ID** 가 있습니다.
-4. GitHub 저장소 → Settings → Secrets and variables → **Actions** → New repository secret 두 개:
-   - `CLOUDFLARE_API_TOKEN` = 2번 토큰
-   - `CLOUDFLARE_ACCOUNT_ID` = 3번 계정 ID
-5. 저장소 → Actions → **「Cloudflare Workers 배포」** → Run workflow. 끝나면 실행 로그 끝에 주소가 찍힙니다.
-   그 뒤로는 `main`에 사이트 파일이 바뀔 때마다 알아서 올라갑니다 (이슈로 딜을 올려도 마찬가지).
+### Cloudflare 쪽에서 바꾸고 싶을 때
 
-시크릿이 없으면 워크플로는 실패하지 않고 "건너뜀"으로 끝납니다. 주소를 바꾸고 싶으면 `wrangler.jsonc`의
-`name` 을 바꾸면 되고, 산 도메인이 있으면 대시보드 → 그 워커 → Settings → Domains & Routes 에서 붙입니다.
+dash.cloudflare.com → Compute(Workers) → **todays-hotdeal** 로 들어가면 됩니다.
 
-대시보드에서 직접 연결하는 방법도 있습니다: Workers & Pages → Create → **Import a repository** → 이 저장소 선택 →
-Deploy command `npx wrangler deploy` → Save and Deploy. 이 경우 4번 시크릿은 필요 없고, 워크플로는 건너뜀으로 끝납니다.
+- **배포 기록·실패 로그** — Deployments 탭. 빨간 줄이 있으면 눌러서 로그를 봅니다
+- **주소 바꾸기** — 저장소의 `wrangler.jsonc` 에서 `name` 을 바꾸고, 대시보드 프로젝트 이름도 같게 맞춥니다.
+  둘이 다르면 배포가 이름 불일치로 실패합니다
+- **산 도메인 붙이기** — 그 워커 → Settings → Domains & Routes
 
-무엇이 올라가는지는 `.assetsignore` 가 정합니다 — 사이트 파일(HTML · `assets/` · `data/`)만 나가고
-가계부(`ledger/`), `v2/`, 스크립트, 워크플로는 올라가지 않습니다.
+무엇이 올라가는지는 `.assetsignore` 가 정합니다. 사이트 파일(HTML 3개 · `assets/` · `data/`)만 나가고
+가계부(`ledger/`), `v2/`, `pricewatch/`, 스크립트, 워크플로는 올라가지 않습니다.
+
+### 워크플로 「Cloudflare Workers 배포」는 왜 늘 "건너뜀"인가
+
+`.github/workflows/cloudflare.yml` 은 대시보드를 쓰지 않고 GitHub Actions로 배포하는 **다른 길**입니다.
+지금은 대시보드가 배포를 맡고 있어서, 이 워크플로는 시크릿이 없는 채로 매번 "건너뜀"으로 끝납니다. 정상입니다.
+**시크릿(`CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID`)을 넣지 마세요** — 넣으면 두 곳에서 같은 워커에
+배포하게 됩니다. 대시보드 연결을 끊었을 때만 쓰는 예비 수단입니다.
 
 ## 6. 쉐어링크 활동 채널로 등록하기
 
