@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "맥스앤맥스 퍼플톡톡 밀폐용기 20종세트, 350mm 5개, 450mm 5개, 500ml 5개, 600ml 5개, 1세트",
+    url: "https://toss.im/_m/HG56Kn3c",
+    price: 5530,
+    listPrice: 25900,
+    image: "https://shopping.toss.im/live/temp/2026-06-30/9fba19a7-a34e-4286-94fa-314014fbe288.png",
+    category: "생활용품·기타",
+    note: "밀폐용기·세트 1위 · 20개에 5,530원, 1개당 277원 · 무료배송",
+    postedAt: "2026-09-20T18:21+09:00",
+    grade: 2,
+  },
+  {
     title: "노랑 곱빼기 왕 떡갈비, 160g, 5봉",
     url: "https://toss.im/_m/XImWzv2m",
     price: 7350,
