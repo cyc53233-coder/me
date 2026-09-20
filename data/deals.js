@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "수뜰리에 고농축 주방세제, 레몬버베너향, 2.5L, 4개",
+    url: "https://toss.im/_m/bqFlaI3r",
+    price: 5950,
+    listPrice: 39600,
+    image: "https://shopping.toss.im/live/temp/2026-09-13/c5515028-dee6-4397-98ee-41240dbd3a83.png",
+    category: "생활용품·기타",
+    note: "일반주방세제 2위 · 2.5L 1통당 1,488원 · 총 10L라 오래 씁니다 · 무료배송",
+    postedAt: "2026-09-20T18:19+09:00",
+    grade: 2,
+  },
+  {
     title: "수뜰리에 클린 퍼퓸 포밍 핸드 워시, 일랑일랑향, 510ml, 2개",
     url: "https://toss.im/_m/Tapr9r2B",
     price: 2490,
