@@ -1,0 +1,19 @@
+name: 🏛️ 도구 내리기 (공공 아이디어 허브)
+description: 운영자용. 허브에 올라간 도구를 내립니다. 지우지 않고 기록으로 남깁니다.
+title: "내리기: "
+labels: ["hub"]
+body:
+  - type: input
+    id: key
+    attributes:
+      label: 내릴 도구
+      description: 등록 이슈 번호(#12), 공유 링크, 또는 도구 이름 일부.
+      placeholder: "#12"
+    validations:
+      required: true
+  - type: input
+    id: reason
+    attributes:
+      label: 이유
+      description: 이슈에 기록으로 남습니다. (선택)
+      placeholder: 작성자 요청

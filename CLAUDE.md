@@ -1,6 +1,6 @@
 # cyc53233-coder/me
 
-핫딜 큐레이션 사이트(저장소 루트·`v2/`)와 **생활비 가계부**(`ledger/`)가 한 저장소에 있다. 두 배포 대상이 서로 다른 주소로 나가므로 섞지 않는다.
+핫딜 큐레이션 사이트(저장소 루트·`v2/`), **생활비 가계부**(`ledger/`), **공공 아이디어 허브**(`idea-hub/`)가 한 저장소에 있다. 배포 대상이 서로 다른 주소로 나가므로 섞지 않는다.
 
 ## 배포 지도
 
@@ -9,6 +9,7 @@
 | 저장소 루트 정적 사이트 | `cyc53233-coder.github.io/me/` | `main` 푸시 → GitHub Pages 자동 |
 | 저장소 루트 정적 사이트 (같은 내용) | `todays-hotdeal.<계정>.workers.dev` | `main`의 사이트 파일 푸시 → `cloudflare.yml` → `wrangler deploy` (`wrangler.jsonc` · `.assetsignore`) |
 | **가계부** `ledger/` | 같은 Pages 주소의 `/me/ledger/` | 위와 동일 |
+| **아이디어 허브** `idea-hub/` | 같은 Pages 주소의 `/me/idea-hub/` | 위와 동일. 도구 등록은 이슈 폼 → `hub.yml` 이 `idea-hub/data/tools.js` 에 커밋 (안내: `idea-hub/README.md`) |
 | 가계부 (선택) | `dani-yongcheol.web.app` | `main`의 `ledger/**` 푸시 → `firebase-hosting.yml` |
 
 **Cloudflare 워크플로는 시크릿 `CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID`가 없으면 실패하지 않고 "건너뜀"으로 끝난다** — 연결 전까지 정상 상태다.
