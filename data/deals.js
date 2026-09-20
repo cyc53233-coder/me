@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "에브리워터 무라벨, 500ml, 40개",
+    url: "https://toss.im/_m/fxejB3Ko",
+    price: 4400,
+    listPrice: 19800,
+    image: "https://shopping.toss.im/live/temp/2026-02-17/32d41410-98f1-42d9-a442-9e8820fad904.jpeg",
+    category: "생활용품·기타",
+    note: "국산생수 3위 · 1병당 110원 · 무료배송",
+    postedAt: "2026-09-20T18:09+09:00",
+    grade: 2,
+  },
+  {
     title: "제주 맑은콩나물, 무농약, 300g, 1개",
     url: "https://toss.im/_m/NdsQEWsm",
     price: 100,
