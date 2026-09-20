@@ -264,17 +264,26 @@ function endDeal(form) {
     (d) => (d.url && d.url === key) || (d.title || "").includes(key) || (d.url || "").includes(key)
   );
   if (!hit) fail(`\`${key}\` 에 해당하는 딜을 찾지 못했습니다.`);
-  if (hit.ended) {
-    comment(`ℹ️ **${hit.title}** 은(는) 이미 마감으로 표시돼 있습니다.`);
+
+  // 폼에 "어떻게" 가 없으면(예전 이슈) 마감으로 봅니다.
+  const soldOut = /품절/.test(field(form, "어떻게") || "");
+  const label = soldOut ? "품절" : "마감";
+  if (soldOut ? hit.soldOut : hit.ended) {
+    comment(`ℹ️ **${hit.title}** 은(는) 이미 ${label}으로 표시돼 있습니다.`);
     return { changed: false };
   }
-  hit.ended = true;
-  // 언제 마감됐는지 남겨 둡니다 — 사이트가 마감 딜을 잠깐(site.js 의 endedHours)
-  // "마감" 표시로 남겨야 놓친 사람이 알림방에 들어올 이유가 생깁니다.
-  hit.endedAt = nowKST();
+  // 언제 그렇게 됐는지 남겨 둡니다 — 사이트가 잠깐(site.js 의 endedHours)
+  // 표시로 남겨야 놓친 사람이 알림방에 들어올 이유가 생깁니다.
+  if (soldOut) {
+    hit.soldOut = true;
+    hit.soldOutAt = nowKST();
+  } else {
+    hit.ended = true;
+    hit.endedAt = nowKST();
+  }
   writeDeals(deals);
-  comment(`✅ **${hit.title}** 을(를) 마감으로 바꿨습니다. 목록에서는 "마감 포함"을 켜야 보입니다.`);
-  return { changed: true, message: `딜 마감: ${hit.title}` };
+  comment(`✅ **${hit.title}** 을(를) ${label}으로 바꿨습니다. 목록에서 ${label} 표시로 잠깐 남았다가 빠집니다.`);
+  return { changed: true, message: `딜 ${label}: ${hit.title}` };
 }
 
 /* ── 등록 처리 ────────────────────────────────────────────── */

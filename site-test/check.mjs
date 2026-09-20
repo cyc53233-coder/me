@@ -54,6 +54,9 @@ const ENDED_FIXTURE = `window.DEALS = [
   { title: "오래전 마감한 딜", url: "https://toss.im/_m/e3", price: 3000, mall: "toss", category: "간식·음료",
     postedAt: "${new Date(Date.now() - 20 * 86400e3).toISOString()}", grade: 1,
     ended: true, endedAt: "${new Date(Date.now() - 10 * 86400e3).toISOString()}" },
+  { title: "방금 품절된 딜", url: "https://toss.im/_m/e4", price: 400, mall: "toss", category: "간식·음료",
+    postedAt: "${new Date(Date.now() - 2 * 3600e3).toISOString()}", grade: 5,
+    soldOut: true, soldOutAt: "${new Date(Date.now() - 3600e3).toISOString()}" },
 ];`;
 
 // 쇼핑몰 사진은 비율이 제각각이라, 세로로 긴 것과 가로로 넓은 것을 둘 다 물려 봅니다
@@ -192,7 +195,27 @@ const body = async (browser) => {
   const thumbBox = await first.locator(".thumb").boundingBox();
   assert(Math.round(thumbBox.width) === 88 && Math.round(thumbBox.height) === 88, "thumb is 88×88");
   const gb = await first.locator(".grade").boundingBox(), pb = await first.locator(".price-now").boundingBox();
-  assert(Math.abs(gb.y - pb.y) < 12, `grade and price share one line (grade y=${Math.round(gb.y)}, price y=${Math.round(pb.y)})`);
+  // 예전에는 "등급과 가격이 한 줄" 인지를 봤습니다. 그건 대리 조건이고, 🔥 가 5개가 되면서
+  // 한 줄에 안 들어가게 됐습니다. 진짜 요구는 "가격이 잘리거나 공유 버튼에 겹치지 않는 것" 입니다.
+  {
+    const noClip = await page.locator(".deal").evaluateAll((cards) =>
+      cards.map((c) => {
+        const body = c.querySelector(".deal-body");
+        const row = c.querySelector(".deal-price");
+        const price = c.querySelector(".price-now");
+        const share = c.querySelector(".share");
+        return {
+          t: c.querySelector(".deal-title").textContent.slice(0, 12),
+          over: row.scrollWidth - Math.round(body.getBoundingClientRect().width),
+          hit: share
+            ? Math.round(price.getBoundingClientRect().right - share.getBoundingClientRect().left)
+            : -999,
+        };
+      })
+    );
+    const bad = noClip.filter((c) => c.over > 1 || c.hit > 0);
+    assert(!bad.length, `가격이 잘리거나 공유 버튼에 겹치지 않음 (${bad.map((b) => `${b.t} 넘침${b.over} 겹침${b.hit}`).join(" / ") || "전부 ok"})`);
+  }
   const real = await page.evaluate(() => dealCardHTML({ title: "실제 딜", url: "https://toss.im/_m/abc", price: 1000, grade: 2, postedAt: new Date().toISOString() }, 0));
   assert(/<a class="deal-link" href="https:\/\/toss\.im\/_m\/abc" target="_blank" rel="nofollow sponsored noopener"/.test(real), "실제 딜은 제휴 링크로 그려짐");
   assert((await page.locator("#count").textContent()) === "2개", "목록 개수 표시");
@@ -229,14 +252,18 @@ const body = async (browser) => {
     // 마감 딜 — 잠깐 남지만 맨 아래로 내려가고, 공유 버튼은 달리지 않습니다
     const p2 = await open("/index.html", { deals: ENDED_FIXTURE });
     const titles = await p2.locator(".deal-title").allTextContents();
-    assert(titles.length === 2, `오래전 마감한 딜은 사라짐 (남은 ${titles.length}개)`);
+    assert(titles.length === 3, `오래전 마감한 딜은 사라짐 (남은 ${titles.length}개)`);
     assert(titles.includes("방금 마감한 딜"), "방금 마감한 딜은 잠깐 남음");
-    assert(await p2.locator(".tag-ended").count() === 1, "마감 딜에 마감 표시");
-    assert(titles[titles.length - 1] === "방금 마감한 딜", `마감 딜은 맨 아래 (지금 순서: ${titles.join(" / ")})`);
+    assert(titles.includes("방금 품절된 딜"), "방금 품절된 딜도 잠깐 남음");
+    assert((await p2.locator(".tag-ended").allTextContents()).sort().join("|") === "마감|품절", "마감·품절 배지 글자");
+    assert(await p2.locator(".tag-soldOut").count() === 1, "품절 배지는 색이 다름");
+    assert(titles[0] === "살아 있는 딜", `파는 중인 딜이 맨 위 (지금 순서: ${titles.join(" / ")})`);
+    assert(!titles.slice(1).includes("살아 있는 딜"), "품절·마감은 전부 아래로");
     await p2.selectOption("#sort", "cheap");
     const cheap = await p2.locator(".deal-title").allTextContents();
-    assert(cheap[cheap.length - 1] === "방금 마감한 딜", `가격 낮은순에서도 마감 딜은 맨 아래 (${cheap.join(" / ")})`);
-    assert(await p2.locator(".deal.is-ended .share").count() === 0, "마감 딜에는 공유 버튼이 없음");
+    // 품절 딜이 400원으로 제일 싸지만 그래도 맨 위로 올라오면 안 됩니다
+    assert(cheap[0] === "살아 있는 딜", `가격 낮은순에서도 제일 싼 품절 딜이 위로 안 올라옴 (${cheap.join(" / ")})`);
+    assert(await p2.locator(".deal.is-ended .share").count() === 0, "품절·마감 딜에는 공유 버튼이 없음");
     assert(await p2.locator(".deal:not(.is-ended) .share").count() === 1, "살아 있는 딜에는 공유 버튼이 있음");
     await p2.context().close();
   }
@@ -341,7 +368,8 @@ const body = async (browser) => {
     assert(Math.max(...hs) - Math.min(...hs) <= 30, `카드 높이가 고르게 유지됨 (${hs.join(", ")})`);
     // 두 줄로 잘린 긴 상품명이 가격을 밀어내지 않아야 합니다
     const gb = await wide.locator(".grade").boundingBox(), pb = await wide.locator(".price-now").boundingBox();
-    assert(Math.abs(gb.y - pb.y) < 12, "긴 이름 카드에서도 등급과 가격이 한 줄");
+    // 등급이 가격보다 위에 오되(같은 줄이든 윗줄이든) 순서가 뒤집히지는 않아야 합니다
+    assert(gb.y <= pb.y + 1, `긴 이름 카드에서도 등급이 가격 위 (등급 y=${Math.round(gb.y)}, 가격 y=${Math.round(pb.y)})`);
   }
   await noOverflow(page, "index+photos");
   await page.screenshot({ path: S + "/index-photos.png", fullPage: true });

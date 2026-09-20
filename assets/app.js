@@ -139,6 +139,7 @@ function dealCardHTML(deal, i) {
   // 목록 밖에서는 누를 대상을 찾지 못해 아무 일도 안 일어납니다.
   const shareable = Number.isInteger(i);
   const g = gradeOf(deal);
+  const st = statusOf(deal);
   const rate = discountRate(deal);
   const thumb = deal.image
     ? `<img class="thumb" src="${esc(deal.image)}" alt="" loading="lazy">`
@@ -147,11 +148,15 @@ function dealCardHTML(deal, i) {
       ${thumb}
       <div class="deal-body">
         <div class="deal-time">${
-          deal.ended ? `<span class="tag-ended">마감</span> ` : ""
+          st ? `<span class="tag-ended tag-${esc(st.key)}">${esc(st.label)}</span> ` : ""
+        }${
+          // 등급은 여기, 가격은 아래 줄 — 한 줄에 같이 두면 🔥 5개짜리 등급과 긴 가격이
+          // 폰 폭(카드 안 178px)을 넘겨 가격이 공유 버튼 밑으로 잘립니다.
+          // 품절·마감된 딜은 등급을 뺍니다 — 못 사는 딜의 등급은 의미가 없습니다.
+          g && !st ? `<span class="grade">${esc(g.label)}${fires(g.fire)}</span> · ` : ""
         }${esc(timeAgo(deal.postedAt))}${deal.sample ? " · 샘플" : ""}</div>
         <h2 class="deal-title">${esc(deal.title)}</h2>
         <div class="deal-price">
-          ${g ? `<span class="grade">${esc(g.label)}${fires(g.fire)}</span>` : ""}
           <span class="price-now">${won(deal.price)}</span>
         </div>
         ${
@@ -164,12 +169,12 @@ function dealCardHTML(deal, i) {
         ${deal.note ? `<div class="deal-note">${esc(deal.note)}</div>` : ""}
       </div>`;
   if (deal.sample) return `<div class="deal is-sample">${body}</div>`;
-  const cls = "deal" + (deal.ended ? " is-ended" : "");
-  // 마감된 딜에는 공유 버튼을 달지 않습니다 — 죽은 딜을 카톡방에 뿌리면
+  const cls = "deal" + (st ? " is-ended" : "");
+  // 품절·마감된 딜에는 공유 버튼을 달지 않습니다 — 못 사는 딜을 카톡방에 뿌리면
   // "평소보다 확실히 싼 것만 올린다" 는 약속이 그 자리에서 깨집니다.
   return (
     `<div class="${cls}">${body}` +
-    (deal.ended || !shareable
+    (st || !shareable
       ? ""
       : `<button type="button" class="share" data-share="${i}" aria-label="공유하기">` +
         `<span aria-hidden="true">↗</span><span class="share-text">공유</span></button>`) +
@@ -226,16 +231,25 @@ const SORTS = [
    "놓쳤구나" 를 보여 주려는 것이지, 죽은 딜을 첫 카드로 내밀려는 게 아닙니다. */
 const sortBy = (key) => {
   const cmp = (SORTS.find((s) => s.value === key) || SORTS[0]).cmp;
-  return (a, b) => (a.ended ? 1 : 0) - (b.ended ? 1 : 0) || cmp(a, b);
+  const dead = (d) => (statusOf(d) ? 1 : 0);
+  return (a, b) => dead(a) - dead(b) || cmp(a, b);
 };
 
-/* 마감된 딜도 잠깐은 남깁니다 — 놓친 딜이 보여야 알림방에 들어올 이유가 생깁니다.
-   언제 마감됐는지 모르는 예전 딜(endedAt 이 없는 것)은 그대로 숨깁니다. */
+/* 딜의 상태 — 파는 중 / 품절 / 마감(사라짐) */
+function statusOf(d) {
+  if (d.ended) return { key: "ended", label: "마감", at: d.endedAt };
+  if (d.soldOut) return { key: "soldOut", label: "품절", at: d.soldOutAt };
+  return null;
+}
+
+/* 품절·마감된 딜도 잠깐은 남깁니다 — 놓친 딜이 보여야 알림방에 들어올 이유가 생깁니다.
+   언제 그렇게 됐는지 모르는 예전 딜(시각이 없는 것)은 그대로 숨깁니다. */
 function stillShown(d) {
-  if (!d.ended) return true;
+  const st = statusOf(d);
+  if (!st) return true;
   const hours = Number(SITE.endedHours);
-  if (!(hours > 0) || !d.endedAt) return false;
-  const t = new Date(d.endedAt).getTime();
+  if (!(hours > 0) || !st.at) return false;
+  const t = new Date(st.at).getTime();
   return !Number.isNaN(t) && Date.now() - t < hours * 3600e3;
 }
 
