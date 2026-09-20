@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "마스트로이안니 포마스 올리브오일, 1L, 1병",
+    url: "https://toss.im/_m/1nWiJYk2",
+    price: 9900,
+    listPrice: 22000,
+    image: "https://shopping.toss.im/live/temp/2026-09-09/7e099037-2a91-4af4-b75e-435da6875a86.jpg",
+    category: "생활용품·기타",
+    note: "오아시스 · 포마스(정제) 오일로 엑스트라버진보다 낮은 등급 · 평점 4.7 · 하루 1개 · 단품 배송비 5,000원",
+    postedAt: "2026-09-20T18:45+09:00",
+    grade: 1,
+  },
+  {
     title: "더프리미엄프룻 친환경 무화과, 500g, 1개",
     url: "https://toss.im/_m/3ZQZJvfx",
     price: 10500,
