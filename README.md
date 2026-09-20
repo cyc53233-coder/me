@@ -96,37 +96,38 @@
   [카카오 OG 캐시 초기화 도구](https://developers.kakao.com/tool/clear/og)에 주소를 넣거나,
   링크 뒤에 `?v=2` 처럼 번호를 붙여 새 주소로 공유하면 됩니다.
 
-## 5. 인터넷에 올리기 — 두 주소 중 아무거나
+## 5. 인터넷에 올라가는 두 주소
 
-`main`에 머지하면 두 곳에 자동으로 올라갑니다. 둘 다 무료이고 내용은 같습니다.
+`main`이 바뀌면 두 곳에 자동으로 올라갑니다. 둘 다 무료이고 내용은 같습니다.
 
-| 주소 | 어떻게 | 준비 |
-|---|---|---|
-| `https://cyc53233-coder.github.io/me/` | GitHub Pages | 이미 켜져 있음 |
-| `https://todays-hotdeal.<내 계정>.workers.dev` | Cloudflare Workers (`wrangler.jsonc`) | 아래 한 번 연결 |
+| 주소 | 누가 올리나 |
+|---|---|
+| https://todays-hotdeal.cyc53233.workers.dev | **Cloudflare Workers** — 대시보드가 이 저장소를 직접 지켜보다가 `npx wrangler deploy` 실행 |
+| https://cyc53233-coder.github.io/me/ | GitHub Pages — 저장소 설정에 켜져 있음 |
 
-고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요. 카톡 방에는 짧은 Workers 주소를 올리는 편이 깔끔합니다.
+카톡 방에는 짧은 **Workers 주소**를 올리는 편이 깔끔합니다. 고친 게 안 보이면 **Ctrl+Shift+R** 로 새로고침하세요.
 
-### Cloudflare Workers 연결 (처음 한 번)
+이슈로 딜을 올리면 `data/deals.js`가 `main`에 커밋되고, 두 주소가 1~2분 안에 알아서 갱신됩니다.
+손으로 파일을 올릴 일은 없습니다.
 
-1. [dash.cloudflare.com](https://dash.cloudflare.com)에 가입하고 로그인합니다 (무료 플랜이면 됩니다).
-2. **API 토큰 만들기** — 오른쪽 위 프로필 → My Profile → API Tokens → Create Token →
-   템플릿 **Edit Cloudflare Workers** → Continue → Create Token → 토큰 복사 (한 번만 보여 줍니다).
-3. **계정 ID 복사** — 대시보드 왼쪽 메뉴 Workers & Pages 를 열면 오른쪽에 **Account ID** 가 있습니다.
-4. GitHub 저장소 → Settings → Secrets and variables → **Actions** → New repository secret 두 개:
-   - `CLOUDFLARE_API_TOKEN` = 2번 토큰
-   - `CLOUDFLARE_ACCOUNT_ID` = 3번 계정 ID
-5. 저장소 → Actions → **「Cloudflare Workers 배포」** → Run workflow. 끝나면 실행 로그 끝에 주소가 찍힙니다.
-   그 뒤로는 `main`에 사이트 파일이 바뀔 때마다 알아서 올라갑니다 (이슈로 딜을 올려도 마찬가지).
+### Cloudflare 쪽에서 바꾸고 싶을 때
 
-시크릿이 없으면 워크플로는 실패하지 않고 "건너뜀"으로 끝납니다. 주소를 바꾸고 싶으면 `wrangler.jsonc`의
-`name` 을 바꾸면 되고, 산 도메인이 있으면 대시보드 → 그 워커 → Settings → Domains & Routes 에서 붙입니다.
+dash.cloudflare.com → Compute(Workers) → **todays-hotdeal** 로 들어가면 됩니다.
 
-대시보드에서 직접 연결하는 방법도 있습니다: Workers & Pages → Create → **Import a repository** → 이 저장소 선택 →
-Deploy command `npx wrangler deploy` → Save and Deploy. 이 경우 4번 시크릿은 필요 없고, 워크플로는 건너뜀으로 끝납니다.
+- **배포 기록·실패 로그** — Deployments 탭. 빨간 줄이 있으면 눌러서 로그를 봅니다
+- **주소 바꾸기** — 저장소의 `wrangler.jsonc` 에서 `name` 을 바꾸고, 대시보드 프로젝트 이름도 같게 맞춥니다.
+  둘이 다르면 배포가 이름 불일치로 실패합니다
+- **산 도메인 붙이기** — 그 워커 → Settings → Domains & Routes
 
-무엇이 올라가는지는 `.assetsignore` 가 정합니다 — 사이트 파일(HTML · `assets/` · `data/`)만 나가고
-가계부(`ledger/`), `v2/`, 스크립트, 워크플로는 올라가지 않습니다.
+무엇이 올라가는지는 `.assetsignore` 가 정합니다. 사이트 파일(HTML 3개 · `assets/` · `data/`)만 나가고
+가계부(`ledger/`), `v2/`, `pricewatch/`, 스크립트, 워크플로는 올라가지 않습니다.
+
+### 워크플로 「Cloudflare Workers 배포」는 왜 늘 "건너뜀"인가
+
+`.github/workflows/cloudflare.yml` 은 대시보드를 쓰지 않고 GitHub Actions로 배포하는 **다른 길**입니다.
+지금은 대시보드가 배포를 맡고 있어서, 이 워크플로는 시크릿이 없는 채로 매번 "건너뜀"으로 끝납니다. 정상입니다.
+**시크릿(`CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID`)을 넣지 마세요** — 넣으면 두 곳에서 같은 워커에
+배포하게 됩니다. 대시보드 연결을 끊었을 때만 쓰는 예비 수단입니다.
 
 ## 6. 쉐어링크 활동 채널로 등록하기
 
