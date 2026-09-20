@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "셰프애찬 수제 청양 맵짤이, 매콤알싸한, 225g, 2통",
+    url: "https://toss.im/_m/bCLByjZb",
+    price: 7990,
+    listPrice: 30000,
+    image: "https://shopping.toss.im/live/temp/2026-08-25/2f72eb9e-beb9-440e-b752-44ee3fb0ea19.jpeg",
+    category: "고기·메인반찬",
+    note: "냉장냉동 분식 1위 · 1통당 3,995원 · 무료배송",
+    postedAt: "2026-09-20T18:13+09:00",
+    grade: 2,
+  },
+  {
     title: "에브리워터 무라벨, 500ml, 40개",
     url: "https://toss.im/_m/fxejB3Ko",
     price: 4400,
