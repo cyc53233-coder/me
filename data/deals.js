@@ -16,6 +16,17 @@
 // ─────────────────────────────────────────────────────────────
 window.DEALS = [
   {
+    title: "던킨 제로 아이스티 화이트피치 6개 + 샤인앤라임 6개, 500ml, 1세트",
+    url: "https://toss.im/_m/DmxOW6s8",
+    price: 6600,
+    listPrice: 24000,
+    image: "https://shopping.toss.im/live/temp/2026-08-25/d1cbf35f-74b2-4757-9af7-57b15db20589.png",
+    category: "간식·음료",
+    note: "아이스티음료 1위 · 1개당 550원",
+    postedAt: "2026-09-20T17:01+09:00",
+    grade: 2,
+  },
+  {
     title: "더건강플러스 엑스트라버진 올리브오일, 1L, 1개",
     url: "https://toss.im/_m/JkNGxKlw",
     price: 8900,
