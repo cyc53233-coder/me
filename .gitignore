@@ -6,3 +6,5 @@ ledger/node_modules/
 .pricewatch-issue.md
 .pricewatch-comment.md
 .wrangler/
+site-test/node_modules/
+site-test/shots/

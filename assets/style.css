@@ -197,7 +197,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   height: 88px;
   border-radius: 10px;
   object-fit: contain;
-  background: #fff;
+  /* 비율이 안 맞는 사진은 여백이 생기는데, 그 여백이 카드 배경과 같으면
+     사진이 떠 있는 것처럼 보입니다. 옅은 회색을 깔아 액자처럼 보이게 합니다. */
+  background: var(--bg-soft);
 }
 .thumb-empty {
   display: flex;
