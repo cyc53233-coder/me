@@ -1,0 +1,21 @@
+name: 딜 링크 찍어 보기 (읽기만)
+
+# 토스·쿠팡이 죽은 상품에 무엇을 돌려주는지 확인하는 용도입니다.
+# 아무것도 고치지 않고 로그만 남깁니다 — 여기서 본 신호로 자동 감지 규칙을 만듭니다.
+# 에이전트 환경에서는 쇼핑몰이 막혀 있어(403) 여기서만 돌릴 수 있습니다.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: 링크 찍어 보기
+        run: node scripts/probe-deals.mjs
