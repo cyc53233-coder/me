@@ -16,6 +16,19 @@ const wrapped = `<!doctype html><html><head><meta charset="utf-8"><meta name="vi
 writeFileSync(`${SCRATCH}/wrapped.html`, wrapped);
 
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+
+// 이 테스트는 "9월 20일"을 전제로 쓰였다 — 문자 날짜(08/31)가 이전 달이고, CSV 픽스처가 9월이다.
+// 실제 오늘 날짜에 묶어 두면 달이 바뀌는 날 아무 코드도 안 건드렸는데 빨개진다.
+// 날짜만 옮기고 시간은 **흐르게** 둔다. 얼려 버리면(setFixedTime) Date.now() 가 멈춰 모든 기록의
+// createdAt 이 같아지고, "맨 위 행 = 방금 넣은 것" 이라는 목록 정렬 전제가 깨진다 — 실제 앱에선 안 생기는 상황.
+const FIXED_NOW = new Date("2026-09-20T12:00:00");
+const FIXED_TODAY = "2026-09-20";
+const _newContext = browser.newContext.bind(browser);
+browser.newContext = async (opts) => {
+  const c = await _newContext(opts);
+  await c.clock.install({ time: FIXED_NOW });
+  return c;
+};
 const fails = [];
 const check = (name, cond, extra="") => { console.log((cond ? "PASS " : "FAIL ") + name + (extra ? " — " + extra : "")); if (!cond) fails.push(name); };
 let page;   // goTab 이 현재 페이지를 쓰도록
@@ -95,7 +108,7 @@ async function newPage(scheme, width) {
   // 고정지출 등록 → 배너 → 채우기
   await page.click("#settingsBtn");
   // 아직 나갈 날이 안 된 고정지출은 재촉하지 않아야 한다
-  const todayD = new Date().getDate();
+  const todayD = FIXED_NOW.getDate();
   const futureDay = todayD < 28 ? String(todayD + 1) : null;
   if (futureDay) {
     await page.fill("#recDay", futureDay);
@@ -314,7 +327,7 @@ async function newPage(scheme, width) {
   // 직접 담기 — 오늘 기한이면 배너·배지가 떠야
   await page.click("#pantryAddBtn");
   await page.fill("#pName", "임박 두부");
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = FIXED_TODAY;
   await page.fill("#pExpire", todayIso);
   await page.click("#pSave");
   await page.waitForTimeout(400);
