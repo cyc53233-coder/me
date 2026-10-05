@@ -11,242 +11,116 @@
     --paper:#FFFFFF; --card:#FFFFFF; --ink:#191919; --muted:#767676;
     --line:#E4E4E4; --line-dash:#D8D8D8; --input-line:#CFCFCF;
     --yellow:#FFD23F; --yellow-soft:#FFF6D6; --yellow-line:#F2D34B; --tag-ink:#5F4B00;
-    --income:#1B66C9; --expense:#C92A2A;
+    --income:#1B66C9; --income-soft:#EAF2FC; --expense:#C92A2A;
     --bar:#343A40; --track:#F1F3F5; --good:#2F9E44;
     color-scheme: light;
   }
 
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   body{
     background:var(--paper); color:var(--ink);
     font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     font-size:15px; line-height:1.55; margin:0;
   }
-  .wrap{max-width:680px; margin:0 auto; padding:20px 16px 96px; display:flex; flex-direction:column; gap:16px}
+  .wrap{max-width:680px; margin:0 auto; padding:8px 16px 112px; display:flex; flex-direction:column; gap:12px}
 
   h1,h2,.serif{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-weight:400; letter-spacing:.01em}
-  h1{font-size:30px; margin:0; text-wrap:balance; word-break:keep-all}
+  h1{font-size:24px; margin:0; line-height:1.2; word-break:keep-all}
   h2{font-size:19px; margin:0; word-break:keep-all}
   .num{font-family:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace}
+  .hint{color:var(--muted); font-size:12px; margin:0}
 
-  /* ---------- header ---------- */
-  header .top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px}
-  .subtitle{color:var(--muted); font-size:13px; margin-top:2px}
-  .conn{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); white-space:nowrap; padding-top:6px}
+  /* ---------- 머리: 이름 · 연결 상태 · 메뉴 ---------- */
+  .apphead{display:flex; align-items:center; gap:10px; padding-top:4px}
+  .apphead h1{flex:1; min-width:0}
+  .conn{display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); white-space:nowrap}
   .conn .dot{width:8px; height:8px; border-radius:50%; background:#C4C4C4; flex:none}
   .conn.on .dot{background:var(--good)}
+  .iconbtn{flex:none; width:44px; height:44px; display:grid; place-items:center; background:var(--paper);
+    border:1px solid var(--line); border-radius:10px; font-size:19px; line-height:1; cursor:pointer; color:var(--ink)}
+  .iconbtn:hover{background:var(--track)}
+  .iconbtn.sm{width:36px; height:36px; font-size:15px}
 
-  /* barcode motif under the header */
-  .band{height:24px; margin:0 2px;
-    background:
-      repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px),
-      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 7px),
-      repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 13px)}
-
-  /* ---------- cards ---------- */
-  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px}
-  .card > h2{display:flex; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:12px}
-  .card > h2 .spacer{flex:1}
-
-  /* ---------- rules ---------- */
-  #rulesCard{border:2px solid var(--ink)}
-  #rulesCard > h2{border-bottom:2px solid var(--ink)}
-  #rulesList{margin:0; padding:0; list-style:none; display:flex; flex-direction:column}
-  #rulesList li{display:flex; gap:10px; align-items:baseline; padding:8px 2px; border-bottom:1px dashed var(--line-dash)}
-  #rulesList li:last-child{border-bottom:none}
-  #rulesList .no{background:var(--yellow); color:var(--ink); font-weight:600; font-size:12px; flex:none;
-    min-width:1.7em; text-align:center; border-radius:5px; padding:1px 4px}
-  .rules-hint{color:var(--muted); font-size:12px; margin-top:8px}
-  #rulesEdit textarea{width:100%; min-height:110px; resize:vertical}
-
-  /* ---------- 상단 고정 영역: 월 이동 · 탭 · 요약 ---------- */
-  .topbar{position:sticky; top:0; z-index:30; background:var(--paper); margin:0 -16px; padding:6px 16px 0;
-    border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:6px}
-  .tabbar{display:flex; border-bottom:2px solid var(--line)}
-  .tabbar button{flex:1; background:none; border:none; padding:10px 4px; font-size:15px; color:var(--muted);
-    cursor:pointer; margin-bottom:-2px; border-bottom:2px solid transparent}
-  .tabbar button[aria-selected="true"]{color:var(--ink); font-weight:700; border-bottom-color:var(--ink)}
-  .strip{display:grid; grid-template-columns:repeat(3,1fr); text-align:center; padding:4px 0 8px}
+  /* ---------- 상단 고정: 탭 · 월 · 요약 ---------- */
+  .topbar{position:sticky; top:0; z-index:30; background:var(--paper); margin:0 -16px; padding:0 16px;
+    border-bottom:1px solid var(--line)}
+  .tabbar{display:flex}
+  .tabbar button{flex:1; background:none; border:none; padding:11px 4px 9px; cursor:pointer; color:var(--muted);
+    font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-size:18px; border-bottom:3px solid transparent}
+  .tabbar button[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ink)}
+  .tbadge{display:inline-block; min-width:18px; margin-left:5px; padding:0 5px; border-radius:99px; vertical-align:2px;
+    background:var(--expense); color:#FFFFFF; font-family:'IBM Plex Sans KR',sans-serif; font-size:11px; font-weight:700; line-height:18px; text-align:center}
+  .ledgerbar{border-top:1px solid var(--line); padding:4px 0 8px}
+  .monthnav{display:flex; align-items:center; justify-content:center; gap:2px}
+  .monthnav .mlabel{font-family:'Do Hyeon',sans-serif; font-size:20px; min-width:7.5em; text-align:center}
+  .navbtn{background:none; border:none; width:40px; height:36px; border-radius:8px; font-size:14px; color:var(--muted); cursor:pointer}
+  .navbtn:hover{background:var(--track); color:var(--ink)}
+  .strip{display:grid; grid-template-columns:repeat(3,1fr); text-align:center}
   .strip .sl{display:block; font-size:11px; color:var(--muted)}
   .strip b{font-size:15px; font-weight:600}
   .strip .pos{color:var(--income)} .strip .neg{color:var(--expense)}
-  [role="tabpanel"][hidden]{display:none}
-  /* 일일 탭의 날짜 그룹 머리 */
-  .dayhead{display:flex; align-items:baseline; gap:8px; padding:12px 2px 4px; margin-top:6px; border-bottom:2px solid var(--ink)}
-  .dayhead:first-child{margin-top:0}
-  .dayhead .dd{font-size:20px; font-weight:700; font-family:'IBM Plex Mono',ui-monospace,monospace}
-  .dayhead .dw{font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:1px 6px}
-  .dayhead .dsum{margin-left:auto; font-size:13px; color:var(--expense); font-weight:600}
-  .dayhead.sun .dd{color:var(--expense)} .dayhead.sat .dd{color:var(--income)}
+  [role="tabpanel"]{display:flex; flex-direction:column; gap:12px}
 
-  /* ---------- month nav & tiles ---------- */
-  .monthnav{display:flex; align-items:center; justify-content:center; gap:4px}
-  .monthnav .mlabel{font-family:'Do Hyeon',sans-serif; font-size:22px; min-width:8em; text-align:center}
-  .monthnav .tothis{font-size:12px}
-
-  .tiles{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
-  @media(min-width:560px){.tiles{grid-template-columns:repeat(4,1fr)}}
-  .tile{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px}
-  .tile.hl{background:var(--yellow); border-color:var(--yellow)}
-  .tile .tl{font-size:12px; color:var(--muted)}
-  .tile.hl .tl{color:var(--ink)}
-  .tile .tv{font-size:17px; font-weight:600; margin-top:2px; word-break:keep-all}
-  .tile .tv.pos{color:var(--income)} .tile .tv.neg{color:var(--expense)} .tile .tv.bal{color:var(--ink)}
-
-  /* ---------- banner ---------- */
+  /* ---------- 배너 (공유 꺼짐 · 고정지출 · 이사 · 유통기한) ---------- */
   .banner{display:none; align-items:center; gap:10px; background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:10px; padding:10px 12px; font-size:13px}
   .banner.show{display:flex}
   .banner.warnbar{background:#FFF1F1; border-color:var(--expense); color:#7A1E1E}
   .banner .grow{flex:1}
 
-  /* ---------- forms ---------- */
-  details.adder{border:1px dashed var(--input-line); border-radius:10px; padding:0 10px; margin-bottom:12px}
-  details.adder summary{cursor:pointer; padding:9px 2px; color:var(--ink); font-weight:500; list-style:none; user-select:none}
-  details.adder summary::before{content:"+ "; font-weight:700}
-  details.adder[open] summary::before{content:"− "}
-  details.adder .formbody{display:flex; flex-direction:column; gap:8px; padding:2px 2px 12px}
-
-  .frow{display:flex; gap:8px; flex-wrap:wrap}
-  .frow > *{flex:1; min-width:0}
-  label.f{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted)}
-  input,select,textarea,button{font:inherit; color:var(--ink)}
-  input,select,textarea{
-    background:var(--paper); border:1px solid var(--input-line); border-radius:8px; padding:8px 10px; width:100%;
-  }
-  input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{
-    outline:2px solid var(--ink); outline-offset:1px;
-  }
-  input.amt{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:17px; text-align:right}
-
-  .seg{display:flex; gap:0; border:1px solid var(--input-line); border-radius:8px; overflow:hidden}
-  .seg button{flex:1; background:var(--paper); border:none; padding:8px 4px; cursor:pointer; color:var(--muted); border-right:1px solid var(--input-line); white-space:nowrap}
-  .seg button:last-child{border-right:none}
-  .seg button[aria-pressed="true"]{background:var(--yellow); color:var(--ink); font-weight:600}
-
-  button.primary{background:var(--yellow); color:var(--ink); border:1px solid var(--yellow-line); border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer}
-  button.primary:hover{filter:brightness(.97)}
-  button.ghost{background:var(--paper); border:1px solid var(--input-line); border-radius:8px; padding:8px 12px; cursor:pointer; color:var(--ink)}
-  button.mini{font-size:12px; padding:4px 9px}
-  button.primary:disabled,button.ghost:disabled{opacity:.5; cursor:default}
-
-  /* automation row */
-  .autorow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
-  .autorow button{flex:1; min-width:9em}
-  #autoStatus{display:none; font-size:13px; color:var(--muted); background:#FAFAFA; border:1px solid var(--line); border-radius:8px; padding:9px 11px; margin-bottom:12px}
-  #autoStatus.show{display:flex; align-items:center; gap:8px}
-  #autoStatus .grow{flex:1}
-  #pasteBox{display:none; flex-direction:column; gap:8px; margin-bottom:12px}
-  #pasteBox.show{display:flex}
-  #pasteBox textarea{min-height:72px; font-size:13px}
-  .formflash{animation:flash 1.2s ease-out}
-  @keyframes flash{0%{background:var(--yellow-soft)} 100%{background:transparent}}
-
-  /* ---------- entry rows (영수증) ---------- */
-  .rows{display:flex; flex-direction:column}
-  .row{display:flex; align-items:center; gap:8px; padding:8px 2px; border-bottom:1px dashed var(--line-dash)}
-  .row:last-child{border-bottom:none}
-  .row .d{color:var(--muted); font-size:12px; flex:none; width:3.3em}
-  .row .chip{flex:none; font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:5px; padding:1px 7px; white-space:nowrap}
-  .row .who{flex:none; font-size:11px; color:var(--muted); white-space:nowrap}
-  .row .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .row .amt{flex:none; font-weight:600; font-size:14px}
-  .row .amt.in{color:var(--income)} .row .amt.ex{color:var(--expense)}
-  .row .del{flex:none; background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;
-    min-width:40px; min-height:40px; padding:2px 6px; border-radius:6px; margin-left:2px}
-  .row .del.arm{background:var(--expense); color:#FFFFFF; font-size:11px; font-weight:600}
-  .empty{color:var(--muted); font-size:13px; padding:10px 2px}
-  .sumline{display:flex; justify-content:space-between; border-top:2px solid var(--ink); margin-top:6px; padding-top:9px; font-size:13px; color:var(--muted)}
-  .sumline b{color:var(--ink); font-size:15px}
-
-  /* ---------- 달력 ---------- */
-  #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
-  .cal-h{text-align:center; font-size:11px; color:var(--muted); padding:2px 0}
+  /* ---------- 달력 (가계부 탭 위) ---------- */
+  #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px}
+  .cal-h{text-align:center; font-size:11px; color:var(--muted)}
   .cal-h.sun{color:var(--expense)} .cal-h.sat{color:var(--income)}
-  .cal-c{background:var(--paper); border:1px solid var(--line); border-radius:7px; min-height:48px;
-    padding:4px 2px; display:flex; flex-direction:column; align-items:center; gap:1px;
+  .cal-c{background:var(--paper); border:1px solid transparent; border-radius:8px; min-height:42px;
+    padding:3px 1px 2px; display:flex; flex-direction:column; align-items:center;
     position:relative; cursor:pointer; font:inherit; color:var(--ink)}
-  .cal-c.pad{border:none; background:none; cursor:default; min-height:0}
-  .cal-c .cal-d{font-size:12px; line-height:1.2}
+  .cal-c.pad{background:none; cursor:default; min-height:0}
+  .cal-c .cal-d{font-size:12px; line-height:1.3}
   .cal-c .cal-a{font-size:10px; color:#8E1F1F; line-height:1.2; font-variant-numeric:tabular-nums}
   /* 지출 많은 날일수록 진하게 — 한 색의 명도 단계 */
   .cal-c.lv1{background:#FFF8DE} .cal-c.lv2{background:#FFEDB0} .cal-c.lv3{background:var(--yellow)}
   .cal-c.today .cal-d{font-weight:700; text-decoration:underline}
-  .cal-c.sel{outline:2px solid var(--ink); outline-offset:1px}
+  .cal-c.sel{border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink)}
   .cal-c:hover:not(.pad){border-color:var(--ink)}
   .cal-in{position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--income)}
-  .cal-key{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--income); vertical-align:middle}
-  .filter-chip{display:inline-flex; align-items:center; gap:6px; background:var(--ink); color:#FFFFFF;
-    border:none; border-radius:99px; padding:3px 10px; font-size:12px; cursor:pointer; margin-bottom:10px}
+  .filter-chip{align-self:flex-start; display:inline-flex; align-items:center; gap:6px; background:var(--ink); color:#FFFFFF;
+    border:none; border-radius:99px; padding:5px 12px; font-size:12px; cursor:pointer; margin:2px 0 4px}
 
-  /* ---------- charts ---------- */
-  .crow{display:flex; align-items:center; gap:10px; padding:5px 0}
-  .crow .clabel{flex:none; width:6em; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .crow .ctrack{flex:1; background:var(--track); border-radius:0 4px 4px 0; height:16px; overflow:hidden}
-  .crow .cbar{height:100%; background:var(--bar); border-radius:0 4px 4px 0; min-width:2px; transition:width .25s ease}
-  .crow:hover .cbar{background:#4A5158}
-  .crow .cval{flex:none; width:6.4em; text-align:right; font-size:13px; color:var(--ink); font-variant-numeric:tabular-nums}
-  .chart + h2{margin-top:16px}
+  /* ---------- 목록: 날짜 머리 + 두 줄 행 ---------- */
+  .rows{display:flex; flex-direction:column}
+  .dayhead{display:flex; align-items:baseline; gap:6px; padding:14px 2px 5px; border-bottom:1px solid var(--ink)}
+  .dayhead .dd{font-size:15px; font-weight:600}
+  .dayhead .dw{font-size:12px; color:var(--muted)}
+  .dayhead.sun .dw{color:var(--expense)} .dayhead.sat .dw{color:var(--income)}
+  .dayhead .dsum{margin-left:auto; display:flex; gap:8px; font-size:12px; font-weight:600}
+  .dsum .in{color:var(--income)} .dsum .ex{color:var(--expense)}
 
-  /* ---------- 사이드바 서랍 ---------- */
-  #drawerWrap{position:fixed; inset:0; z-index:55; display:none}
-  #drawerWrap.open{display:block}
-  #drawerBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
-  #drawer{position:absolute; top:0; right:0; bottom:0; width:min(400px,92vw); background:var(--card);
-    box-shadow:-6px 0 24px rgba(25,25,25,.16); overflow-y:auto; padding:14px 16px 32px;
-    display:flex; flex-direction:column; gap:18px; transform:translateX(100%); transition:transform .22s ease}
-  #drawerWrap.open #drawer{transform:none}
-  .dhead{display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:2px solid var(--ink)}
-  .dsec > h2{display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
-  .dsec > h2 .spacer{flex:1}
-  #rulesCard{border:none; padding:0}
-  #rulesCard > h2{border-bottom:1px solid var(--line)}
-  #settingsPanel{display:block}
-  .logrow{display:flex; gap:8px; align-items:baseline; padding:6px 2px; border-bottom:1px dashed var(--line-dash); font-size:13px}
-  .logrow .lwhen{color:var(--muted); flex:none; font-size:11px; width:5.2em}
-  .logrow .lwho{flex:none; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:0 6px; font-size:11px}
-  .logrow .lwhat{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .logrow .lamt{flex:none; font-size:12px}
-  .reclist .row .memo{white-space:normal}
-  .divider{border:none; border-top:1px solid var(--line); margin:14px 0}
-
-  /* ---------- footer / toast ---------- */
-  footer{color:var(--muted); font-size:12px; text-align:center; line-height:1.7}
-  footer .warn{color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line);
-    border-radius:8px; padding:8px 12px; display:block; text-align:left; margin-bottom:6px}
-  #quickAdd{position:fixed; z-index:40; right:16px; bottom:20px; background:var(--ink); color:#FFFFFF;
-    border:none; border-radius:99px; padding:14px 20px; font-size:15px; font-weight:600;
-    box-shadow:0 4px 14px rgba(25,25,25,.28); cursor:pointer}
-  #quickAdd:hover{filter:brightness(1.15)}
-  @media print{#quickAdd,#drawerWrap{display:none}}
-  #toast{position:fixed; z-index:60; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:#FFFFFF;
-    padding:9px 16px; border-radius:99px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; max-width:85vw; text-align:center}
-  #toast.show{opacity:1; transform:translate(-50%,0); pointer-events:auto}
-  .toast-act{margin-left:12px; background:none; border:1px solid #FFFFFF; color:#FFFFFF;
-    border-radius:99px; padding:3px 12px; font-size:12px; cursor:pointer}
-  .row.entry{flex-direction:column; align-items:stretch; gap:2px}
+  .row{display:flex; align-items:center; gap:8px; padding:8px 2px; border-bottom:1px dashed var(--line-dash)}
+  .row:last-child{border-bottom:none}
+  .row .d{color:var(--muted); font-size:12px; flex:none}
+  .row .chip{flex:none; font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:5px; padding:0 7px; white-space:nowrap}
+  .row .chip.inc{color:var(--income); background:var(--income-soft); border-color:#B9D3F3}
+  .row .who{flex:none; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .row .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .row .amt{flex:none; font-weight:600; font-size:15px}
+  .row .amt.in{color:var(--income)} .row .amt.ex{color:var(--expense)}
+  .row .del{flex:none; background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;
+    min-width:40px; min-height:40px; padding:2px 6px; border-radius:6px}
+  .row.entry{flex-direction:column; align-items:stretch; gap:1px; padding:10px 2px; border-bottom:1px solid var(--line)}
   .rmain{display:flex; align-items:baseline; gap:8px}
-  .rmain .memo{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .rmain .amt{margin-left:auto}
-  .rsub{display:flex; align-items:center; gap:6px}
-  .rsub .who{flex:1}
+  .rmain .memo{font-size:15px}
+  .rsub{display:flex; align-items:center; gap:6px; min-height:22px}
+  .rsub .who{flex:1; min-width:0}
   .row.editable{cursor:pointer; border-radius:6px}
   .row.editable:hover{background:#FAFAFA}
   .row.editable:focus-visible{outline:2px solid var(--ink); outline-offset:-2px}
+  .empty{color:var(--muted); font-size:13px; padding:18px 2px; text-align:center}
+  .sumline{display:flex; justify-content:space-between; border-top:2px solid var(--ink); padding-top:9px; font-size:13px; color:var(--muted)}
+  .sumline b{color:var(--ink); font-size:15px}
 
-  /* ---------- 금액 칸 계산기 ---------- */
-  .amt-row{display:flex; gap:8px; align-items:stretch}
-  .amt-row input.amt{flex:1; min-width:0}
-  .calc-open{flex:none; background:var(--yellow); color:var(--ink);
-    border:1px solid var(--yellow-line); border-radius:8px; padding:0 14px;
-    font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; min-height:44px}
-  .calc-open:hover{filter:brightness(.97)}
-  .amt-preview{font-size:12px; color:var(--muted); text-align:right; padding:3px 2px 0;
-    font-family:'IBM Plex Mono',ui-monospace,monospace}
-  .amt-preview.bad{color:var(--expense)}
-
-  /* ---------- 보관함 ---------- */
-  .tbadge{display:inline-block; min-width:17px; margin-left:4px; padding:0 4px; border-radius:99px;
-    background:var(--expense); color:#FFFFFF; font-size:11px; font-weight:700; line-height:17px; text-align:center}
+  /* ---------- 냉장고 ---------- */
+  .row .qty{flex:none; font-size:12px; color:var(--muted)}
   .pchip{flex:none; font-size:11px; border-radius:5px; padding:1px 7px; white-space:nowrap;
     background:var(--track); color:var(--muted); border:1px solid var(--line)}
   .pchip.soon{background:var(--yellow-soft); color:var(--tag-ink); border-color:var(--yellow-line)}
@@ -254,17 +128,78 @@
   .pguess{flex:none; font-size:10px; color:var(--muted); border:1px dashed var(--line); border-radius:5px; padding:0 5px}
   .row.done .rmain{opacity:.55; text-decoration:line-through}
   .peat{flex:none; background:var(--paper); border:1px solid var(--input-line); border-radius:99px;
-    padding:3px 10px; font-size:12px; cursor:pointer; color:var(--ink)}
+    padding:4px 11px; font-size:12px; cursor:pointer; color:var(--ink)}
   .peat:hover{background:var(--track)}
+  .donebox summary{color:var(--muted); font-size:13px; cursor:pointer; padding:6px 2px}
 
-  /* ---------- CSV 가져오기 시트 ---------- */
-  #csvSheet{display:none; position:fixed; inset:0; z-index:52}
-  #csvSheet.show{display:block}
-  #csvBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
-  #csvPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:min(520px,100%);
-    max-height:88vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
-    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:8px}
-  @media(min-width:560px){#csvPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}}
+  /* ---------- 폼 ---------- */
+  .formbody{display:flex; flex-direction:column; gap:10px}
+  .frow{display:flex; gap:8px; flex-wrap:wrap}
+  .frow > *{flex:1; min-width:0}
+  .f{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted)}
+  input,select,textarea,button{font:inherit; color:var(--ink)}
+  input,select,textarea{
+    background:var(--paper); border:1px solid var(--input-line); border-radius:8px; padding:9px 10px; width:100%;
+  }
+  input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{
+    outline:2px solid var(--ink); outline-offset:1px;
+  }
+  input.amt{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:18px; text-align:right}
+
+  .seg{display:flex; border:1px solid var(--input-line); border-radius:8px; overflow:hidden}
+  .seg button{flex:1; background:var(--paper); border:none; padding:9px 4px; cursor:pointer; color:var(--muted); border-right:1px solid var(--input-line); white-space:nowrap}
+  .seg button:last-child{border-right:none}
+  .seg button[aria-pressed="true"]{background:var(--yellow); color:var(--ink); font-weight:600}
+  .seg.kind button{padding:11px 4px; font-size:16px}
+  .seg.kind button[data-val="income"][aria-pressed="true"]{background:var(--income); color:#FFFFFF}
+
+  button.primary{background:var(--yellow); color:var(--ink); border:1px solid var(--yellow-line); border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer}
+  button.primary:hover{filter:brightness(.97)}
+  button.primary.big{padding:13px 14px; font-size:16px}
+  button.ghost{background:var(--paper); border:1px solid var(--input-line); border-radius:8px; padding:9px 12px; cursor:pointer; color:var(--ink)}
+  button.mini{font-size:12px; padding:5px 10px}
+  button.primary:disabled,button.ghost:disabled{opacity:.5; cursor:default}
+  button.dangerlink{background:none; border:none; color:var(--expense); font-size:13px; padding:8px; cursor:pointer; border-radius:8px}
+  button.dangerlink.arm{background:var(--expense); color:#FFFFFF; font-weight:600}
+  .btnrow{display:flex; gap:8px}
+
+  /* 자동 입력: 스크린샷 · 문자 */
+  .autorow{display:flex; gap:8px}
+  .autorow button{flex:1}
+  #autoStatus{display:none; font-size:13px; color:var(--muted); background:#FAFAFA; border:1px solid var(--line); border-radius:8px; padding:9px 11px}
+  #autoStatus.show{display:flex; align-items:center; gap:8px}
+  #autoStatus .grow{flex:1}
+  #pasteBox{display:none; flex-direction:column; gap:8px}
+  #pasteBox.show{display:flex}
+  #pasteBox textarea{min-height:72px; font-size:13px}
+  .formflash{animation:flash 1.2s ease-out}
+  @keyframes flash{0%{background:var(--yellow-soft)} 100%{background:transparent}}
+
+  /* ---------- 금액 칸 계산기 ---------- */
+  .amt-row{display:flex; gap:8px; align-items:stretch}
+  .amt-row input.amt{flex:1; min-width:0}
+  .calc-open{flex:none; background:var(--yellow-soft); color:var(--tag-ink);
+    border:1px solid var(--yellow-line); border-radius:8px; padding:0 12px;
+    font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; min-height:46px}
+  .calc-open:hover{filter:brightness(.97)}
+  .amt-preview{font-size:12px; color:var(--muted); text-align:right; padding:3px 2px 0;
+    font-family:'IBM Plex Mono',ui-monospace,monospace}
+  .amt-preview.bad{color:var(--expense)}
+
+  /* ---------- 아래에서 올라오는 시트 (기록 · 냉장고 · CSV · 여러 품목 · 계산기) ---------- */
+  .sheet{display:none; position:fixed; inset:0; z-index:50}
+  .sheet.show{display:block}
+  .sheet-bg{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  .sheet-panel{position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:min(520px,100%);
+    max-height:92vh; overflow-y:auto; overscroll-behavior:contain; background:var(--card);
+    border-radius:16px 16px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:12px; box-shadow:0 -6px 24px rgba(25,25,25,.14)}
+  @media(min-width:560px){.sheet-panel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:16px}}
+  .sheet-head{display:flex; align-items:center; gap:8px}
+  .sheet-head h2{flex:1}
+  #multiSheet,#csvSheet{z-index:52}
+  #calcSheet{z-index:58}
+
   .crow-csv{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line-dash); font-size:13px}
   .crow-csv input[type="checkbox"]{width:20px; height:20px}
   .crow-csv .cmemo{color:var(--muted); font-size:12px}
@@ -272,17 +207,9 @@
   .crow-csv.dup .ctext{opacity:.6}
   .crow-csv.err{grid-template-columns:1fr; color:var(--muted); background:#FAFAFA}
   .cbadge{grid-column:2 / span 2; font-size:11px; color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:5px; padding:1px 7px; justify-self:start}
-  #csvActions{display:flex; gap:8px; margin-top:6px}
-  #csvActions button{flex:1}
+  #csvActions,#multiActions,#calcActions{display:flex; gap:8px}
+  #csvActions button,#multiActions button,#calcActions button{flex:1}
 
-  /* ---------- 여러 품목 시트 ---------- */
-  #multiSheet{display:none; position:fixed; inset:0; z-index:52}
-  #multiSheet.show{display:block}
-  #multiBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
-  #multiPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:min(460px,100%);
-    max-height:88vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
-    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:8px}
-  @media(min-width:520px){#multiPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}}
   .mrow{display:grid; grid-template-columns:auto 1fr 7.5em; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line-dash)}
   .mrow input[type="checkbox"]{width:20px; height:20px}
   .mrow input.mname{font-size:13px; padding:6px 8px}
@@ -290,20 +217,8 @@
   .msub{grid-column:1 / -1; display:flex; align-items:center; gap:8px; padding:2px 0 4px 26px}
   .mpklabel{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); white-space:nowrap}
   .msub input[type="date"]{flex:1; min-width:0; font-size:12px; padding:5px 8px}
-  #multiActions{display:flex; gap:8px; margin-top:6px}
-  #multiActions button{flex:1}
 
-  /* ---------- 계산기 패드 ---------- */
-  #calcSheet{display:none; position:fixed; inset:0; z-index:50}
-  #calcSheet.show{display:block}
-  #calcBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
-  #calcPanel{position:absolute; left:50%; bottom:0; transform:translateX(-50%);
-    width:min(420px,100%); background:var(--card); border:1px solid var(--line);
-    border-radius:14px 14px 0 0; padding:14px; display:flex; flex-direction:column; gap:10px;
-    box-shadow:0 -6px 24px rgba(25,25,25,.14)}
-  @media(min-width:520px){
-    #calcPanel{bottom:auto; top:50%; transform:translate(-50%,-50%); border-radius:14px}
-  }
+  #calcPanel{width:min(420px,100%)}
   #calcScreen{background:var(--track); border-radius:10px; padding:10px 12px; text-align:right}
   #calcExpr{font-size:14px; color:var(--muted); min-height:1.5em; word-break:break-all}
   #calcResult{font-size:26px; font-weight:600; color:var(--ink); margin-top:2px}
@@ -315,8 +230,61 @@
   #calcKeys button.op{background:var(--yellow-soft); border-color:var(--yellow-line); color:var(--tag-ink)}
   #calcKeys button.fn{background:var(--track); color:var(--muted)}
   #calcKeys button.eq{grid-column:span 4; background:var(--yellow); border-color:var(--yellow-line); font-weight:700}
-  #calcActions{display:flex; gap:8px}
-  #calcActions button{flex:1}
+
+  /* ---------- 메뉴 서랍: 매일 쓰지 않는 것들 ---------- */
+  #drawerWrap{position:fixed; inset:0; z-index:45; display:none}
+  #drawerWrap.open{display:block}
+  #drawerBackdrop{position:absolute; inset:0; background:rgba(25,25,25,.35)}
+  #drawer{position:absolute; top:0; right:0; bottom:0; width:min(400px,92vw); background:var(--card);
+    box-shadow:-6px 0 24px rgba(25,25,25,.16); overflow-y:auto; overscroll-behavior:contain; padding:12px 16px 32px;
+    display:flex; flex-direction:column; transform:translateX(100%); transition:transform .22s ease}
+  #drawerWrap.open #drawer{transform:none}
+  .dhead{display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:2px solid var(--ink)}
+  details.dsec{border-bottom:1px solid var(--line)}
+  details.dsec > summary{list-style:none; cursor:pointer; padding:14px 2px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px}
+  details.dsec > summary::-webkit-details-marker{display:none}
+  details.dsec > summary::after{content:"›"; margin-left:auto; color:var(--muted); font-size:18px; transition:transform .15s ease}
+  details.dsec[open] > summary::after{transform:rotate(90deg)}
+  .dbody{display:flex; flex-direction:column; gap:10px; padding:0 2px 16px}
+  .dbody h3{font-size:12px; font-weight:500; color:var(--muted); margin:4px 0 0}
+  .dnote{color:var(--muted); font-size:12px; line-height:1.6; margin:14px 2px 0}
+  .dnote.warn{color:var(--tag-ink); background:var(--yellow-soft); border:1px solid var(--yellow-line); border-radius:8px; padding:8px 12px}
+
+  #rulesList{margin:0; padding:0; list-style:none; display:flex; flex-direction:column}
+  #rulesList li{display:flex; gap:10px; align-items:baseline; padding:7px 2px; border-bottom:1px dashed var(--line-dash)}
+  #rulesList li:last-child{border-bottom:none}
+  #rulesList .no{background:var(--yellow); color:var(--ink); font-weight:600; font-size:12px; flex:none;
+    min-width:1.7em; text-align:center; border-radius:5px; padding:1px 4px}
+  #rulesText{min-height:110px; resize:vertical}
+
+  .crow{display:flex; align-items:center; gap:10px; padding:4px 0}
+  .crow .clabel{flex:none; width:6em; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .crow .ctrack{flex:1; background:var(--track); border-radius:0 4px 4px 0; height:14px; overflow:hidden}
+  .crow .cbar{height:100%; background:var(--bar); border-radius:0 4px 4px 0; min-width:2px; transition:width .25s ease}
+  .crow .cval{flex:none; width:6.4em; text-align:right; font-size:13px; color:var(--ink); font-variant-numeric:tabular-nums}
+
+  .logrow{display:flex; gap:8px; align-items:baseline; padding:6px 2px; border-bottom:1px dashed var(--line-dash); font-size:13px}
+  .logrow .lwhen{color:var(--muted); flex:none; font-size:11px; width:5.2em}
+  .logrow .lwho{flex:none; color:var(--tag-ink); background:var(--yellow-soft); border-radius:5px; padding:0 6px; font-size:11px}
+  .logrow .lwhat{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .logrow .lamt{flex:none; font-size:12px}
+  .logrow .lamt.in{color:var(--income)} .logrow .lamt.ex{color:var(--expense)}
+  .reclist .row .memo{white-space:normal}
+
+  /* ---------- ＋ 버튼 · 토스트 ---------- */
+  #quickAdd{position:fixed; z-index:40; right:max(16px, calc(50vw - 324px)); bottom:calc(20px + env(safe-area-inset-bottom));
+    width:60px; height:60px; border-radius:50%; background:var(--yellow); color:var(--ink);
+    border:1px solid var(--yellow-line); font-size:34px; line-height:1; font-weight:300; cursor:pointer;
+    box-shadow:0 4px 14px rgba(25,25,25,.25); display:grid; place-items:center; padding:0 0 3px}
+  #quickAdd:hover{filter:brightness(.97)}
+  @media print{#quickAdd,#drawerWrap{display:none}}
+  #toast{position:fixed; z-index:60; left:50%; bottom:calc(92px + env(safe-area-inset-bottom)); transform:translate(-50%,20px); background:var(--ink); color:#FFFFFF;
+    padding:9px 16px; border-radius:99px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; max-width:85vw; text-align:center}
+  #toast.show{opacity:1; transform:translate(-50%,0); pointer-events:auto}
+  /* 시트가 떠 있으면 위로 — 아래에 두면 시트의 입력칸을 가린다 */
+  body:has(.sheet.show) #toast{bottom:auto; top:calc(14px + env(safe-area-inset-top))}
+  .toast-act{margin-left:12px; background:none; border:1px solid #FFFFFF; color:#FFFFFF;
+    border-radius:99px; padding:3px 12px; font-size:12px; cursor:pointer}
 
   @media (prefers-reduced-motion: reduce){
     *{animation:none !important; transition:none !important}
@@ -327,274 +295,224 @@
 
 <div class="wrap">
 
-  <header>
-    <div class="top">
-      <div>
-        <h1>다니랑 생활비 통장</h1>
-        <div class="subtitle">우리 둘의 한 달 살림 기록</div>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
-        <span class="conn" id="conn"><span class="dot"></span><span id="connText">연결 확인 중…</span></span>
-        <button class="ghost mini" id="settingsBtn" aria-expanded="false" aria-controls="drawer">☰ 메뉴</button>
-      </div>
-    </div>
+  <header class="apphead">
+    <h1>다니랑 생활비</h1>
+    <span class="conn" id="conn"><span class="dot"></span><span id="connText">연결 확인 중…</span></span>
+    <button class="iconbtn" id="settingsBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="drawer">☰</button>
   </header>
 
-  <div class="band" aria-hidden="true"></div>
-
-
-
-  <!-- 공유가 꺼진 상태 알림 -->
+  <!-- 공유가 꺼진 상태 알림 — 늘 보이는 유일한 배너 (모르고 혼자 한 달을 적지 않게) -->
   <div class="banner warnbar" id="shareBanner" role="status">
     <span class="grow" id="shareBannerText"></span>
     <button class="ghost mini" id="shareWhy">자세히</button>
   </div>
 
-  <!-- 유통기한 배너 -->
-  <div class="banner" id="pantryBanner" role="status">
-    <span class="grow" id="pantryBannerText"></span>
-    <button class="ghost mini" id="pantryGo">보관함 열기</button>
-  </div>
-
-  <!-- 고정지출 배너 -->
-  <div class="banner" id="recBanner" role="status">
-    <span class="grow" id="recBannerText"></span>
-    <button class="primary mini" id="recFill">한 번에 채우기</button>
-  </div>
-
-  <!-- 2. 월 내비게이션 + 요약 -->
   <div class="topbar">
-  <nav class="monthnav" aria-label="월 이동">
-    <button class="ghost mini" id="prevM" aria-label="이전 달">◀</button>
-    <span class="mlabel num" id="monthLabel"></span>
-    <button class="ghost mini" id="nextM" aria-label="다음 달">▶</button>
-    <button class="ghost mini tothis" id="toThis" hidden>이번 달</button>
-  </nav>
-
-  <div class="tabbar" role="tablist" aria-label="화면">
-    <button role="tab" id="tb-daily" aria-selected="true" aria-controls="tab-daily">일일</button>
-    <button role="tab" id="tb-cal" aria-selected="false" aria-controls="tab-cal">달력</button>
-    <button role="tab" id="tb-income" aria-selected="false" aria-controls="tab-income">입금</button>
-    <button role="tab" id="tb-pantry" aria-selected="false" aria-controls="tab-pantry">보관함<span id="pantryBadge" class="tbadge" hidden></span></button>
-    <button role="tab" id="tb-stats" aria-selected="false" aria-controls="tab-stats">분석</button>
-  </div>
-  <div class="strip" aria-label="이번 달 요약">
-    <div><span class="sl">입금</span><b class="num pos" id="tIn">0원</b></div>
-    <div><span class="sl">지출</span><b class="num neg" id="tOut">0원</b></div>
-    <div><span class="sl">남은 돈</span><b class="num" id="tNet">0원</b></div>
-  </div>
-  </div><!-- /topbar -->
-
-  <!-- 달력 -->
-
-  <!-- 이 기기 기록 → 공유 저장소 이사 제안 -->
-  <div class="banner" id="migBanner" role="status">
-    <span class="grow" id="migText"></span>
-    <button class="primary mini" id="migUpload">올리기</button>
-    <button class="ghost mini" id="migClose">닫기</button>
+    <div class="tabbar" role="tablist" aria-label="화면">
+      <button role="tab" id="tb-ledger" aria-selected="true" aria-controls="tab-ledger">가계부</button>
+      <button role="tab" id="tb-fridge" aria-selected="false" aria-controls="tab-fridge">냉장고<span id="pantryBadge" class="tbadge" hidden></span></button>
+    </div>
+    <div class="ledgerbar" id="ledgerBar">
+      <nav class="monthnav" aria-label="월 이동">
+        <button class="navbtn" id="prevM" aria-label="이전 달">◀</button>
+        <span class="mlabel" id="monthLabel"></span>
+        <button class="navbtn" id="nextM" aria-label="다음 달">▶</button>
+        <button class="ghost mini" id="toThis" hidden>이번 달</button>
+      </nav>
+      <div class="strip" aria-label="이번 달 요약">
+        <div><span class="sl">입금</span><b class="num pos" id="tIn">0원</b></div>
+        <div><span class="sl">지출</span><b class="num neg" id="tOut">0원</b></div>
+        <div><span class="sl">남은 돈</span><b class="num" id="tNet">0원</b></div>
+      </div>
+    </div>
   </div>
 
-  <div id="tab-daily" role="tabpanel" aria-labelledby="tb-daily">
-  <section class="card" aria-label="지출 내역">
-    <h2 class="serif">지출 내역</h2>
+  <!-- 가계부: 달력 + 입금·지출 한 목록 -->
+  <div id="tab-ledger" role="tabpanel" aria-labelledby="tb-ledger">
+    <div class="banner" id="recBanner" role="status">
+      <span class="grow" id="recBannerText"></span>
+      <button class="primary mini" id="recFill">한 번에 채우기</button>
+    </div>
+    <div class="banner" id="migBanner" role="status">
+      <span class="grow" id="migText"></span>
+      <button class="primary mini" id="migUpload">올리기</button>
+      <button class="ghost mini" id="migClose">닫기</button>
+    </div>
+    <div id="calGrid" role="group" aria-label="달력 — 날짜를 누르면 그날 기록만 보여요"></div>
+    <div class="rows" id="ledgerRows"></div>
+  </div>
 
-    <div class="autorow">
-      <button class="ghost" id="photoBtn" hidden>스크린샷으로 등록</button>
-      <button class="ghost" id="pasteBtn">결제 문자 붙여넣기</button>
+  <!-- 냉장고: 유통기한 임박한 순 -->
+  <div id="tab-fridge" role="tabpanel" aria-labelledby="tb-fridge" hidden>
+    <div class="banner" id="pantryBanner" role="status"><span class="grow" id="pantryBannerText"></span></div>
+    <div class="rows" id="pantryRows"></div>
+    <details id="pantryDone" class="donebox">
+      <summary>다 먹은 것 보기</summary>
+      <div class="rows" id="pantryDoneRows"></div>
+    </details>
+  </div>
+
+</div>
+
+<!-- 메뉴 서랍: 매일 쓰지 않는 것들 -->
+<div id="drawerWrap" aria-hidden="true">
+  <div id="drawerBackdrop"></div>
+  <aside id="drawer" role="dialog" aria-modal="true" aria-label="메뉴">
+    <div class="dhead">
+      <h2 class="serif">메뉴</h2>
+      <button class="iconbtn sm" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+    </div>
+
+    <details class="dsec" id="rulesCard" open>
+      <summary>통장 규칙</summary>
+      <div class="dbody">
+        <ol id="rulesList"></ol>
+        <div id="rulesEdit" hidden>
+          <textarea id="rulesText" placeholder="한 줄에 규칙 하나씩 적어요"></textarea>
+          <div class="btnrow" style="margin-top:8px">
+            <button class="primary mini" id="rulesSave">저장</button>
+            <button class="ghost mini" id="rulesCancel">취소</button>
+          </div>
+        </div>
+        <p class="hint" id="rulesHint" hidden>아직 예시 규칙이에요 — 둘만의 규칙으로 바꿔 보세요.</p>
+        <div><button class="ghost mini" id="rulesEditBtn">규칙 고치기</button></div>
+      </div>
+    </details>
+
+    <details class="dsec" id="statsSec">
+      <summary id="statsTitle">이번 달 분석</summary>
+      <div class="dbody">
+        <h3>어디에 썼나</h3>
+        <div class="chart" id="catChart"></div>
+        <h3>누가 썼나</h3>
+        <div class="chart" id="whoChart"></div>
+        <div class="sumline"><span>기록한 돈 합계 (전체 기간)</span><b class="num" id="tBal">0원</b></div>
+      </div>
+    </details>
+
+    <details class="dsec" id="recSec">
+      <summary>고정지출</summary>
+      <div class="dbody">
+        <p class="hint">월세·통신비처럼 매달 나가는 지출을 등록해 두면, 그날이 지나도 기록이 없을 때 가계부 위에서 한 번에 채울 수 있어요.</p>
+        <div class="rows reclist" id="recList"></div>
+        <label class="f" for="recAmt">금액<input id="recAmt" class="amt" inputmode="numeric" placeholder="0" autocomplete="off"></label>
+        <div class="frow">
+          <label class="f" style="flex:0 0 5.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
+          <label class="f">내용<input id="recMemo" placeholder="예: 월세"></label>
+        </div>
+        <div class="frow">
+          <label class="f">카테고리<select id="recCat"></select></label>
+          <label class="f">누가<select id="recWho"></select></label>
+        </div>
+        <button class="ghost" id="recAdd">고정지출 추가</button>
+      </div>
+    </details>
+
+    <details class="dsec" id="inviteRow" hidden>
+      <summary>다니 초대하기</summary>
+      <div class="dbody">
+        <p class="hint">이 링크를 보내면 같은 가계부에 바로 연결돼요. 링크를 아는 사람은 누구나 열 수 있으니 둘만 알게 보관하세요.</p>
+        <input id="inviteUrl" readonly>
+        <button class="ghost" id="copyInvite">초대 링크 복사</button>
+      </div>
+    </details>
+
+    <details class="dsec" id="settingsPanel">
+      <summary>이름 설정</summary>
+      <div class="dbody">
+        <div class="frow">
+          <label class="f">첫 번째 사람<input id="setM0" maxlength="10"></label>
+          <label class="f">두 번째 사람<input id="setM1" maxlength="10"></label>
+        </div>
+        <div><button class="primary mini" id="saveSettings">이름 저장</button></div>
+      </div>
+    </details>
+
+    <details class="dsec" id="dataSec">
+      <summary>CSV 내보내기 · 가져오기</summary>
+      <div class="dbody">
+        <button class="ghost" id="csvBtn">전체 내역 CSV로 내보내기</button>
+        <button class="ghost" id="csvImportBtn">CSV 가져오기</button>
+        <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+      </div>
+    </details>
+
+    <details class="dsec" id="logSec">
+      <summary>최근 활동</summary>
+      <div class="dbody"><div class="rows" id="logRows"></div></div>
+    </details>
+
+    <p class="dnote" id="footNote"></p>
+  </aside>
+</div>
+
+<!-- 기록 적기 · 고치기 (＋ 버튼 / 목록 행) -->
+<div id="entrySheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="entryTitle" aria-hidden="true">
+  <div class="sheet-bg" id="entryBackdrop"></div>
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <h2 class="serif" id="entryTitle">기록 적기</h2>
+      <button class="iconbtn sm" id="entryClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="seg kind" id="entKind" role="group" aria-label="종류">
+      <button type="button" data-val="expense" aria-pressed="true">지출</button>
+      <button type="button" data-val="income" aria-pressed="false">입금</button>
+    </div>
+
+    <div class="autorow" id="autoRow">
+      <button class="ghost" id="photoBtn" hidden>📷 스크린샷</button>
+      <button class="ghost" id="pasteBtn">💬 문자 붙여넣기</button>
     </div>
     <input type="file" id="photoFile" accept="image/*" hidden>
     <div id="pasteBox">
       <textarea id="pasteText" placeholder="카드 결제 문자나 알림 내용을 그대로 붙여넣으세요"></textarea>
-      <div style="display:flex; gap:8px">
+      <div class="btnrow">
         <button class="primary mini" id="pasteParse">인식하기</button>
         <button class="ghost mini" id="pasteClose">닫기</button>
       </div>
     </div>
     <div id="autoStatus"><span class="grow" id="autoStatusText"></span><button class="ghost mini" id="autoStop" hidden>중지</button></div>
 
-    <details class="adder" id="expAdder">
-      <summary>직접 적기</summary>
-      <div class="formbody" id="expForm">
-        <div class="frow">
-          <label class="f">금액 (원)<input id="expAmt" class="amt" inputmode="numeric" placeholder="0"></label>
-        </div>
-        <div class="frow">
-          <label class="f">날짜<input id="expDate" type="date"></label>
-          <label class="f">카테고리<select id="expCat"></select></label>
-        </div>
-        <div class="frow">
-          <label class="f">내용 · 가맹점<input id="expMemo" placeholder="예: 이마트 장보기"></label>
-        </div>
-        <div class="frow">
-          <label class="f">누가 썼나<div class="seg" id="expWho"></div></label>
-        </div>
-        <div style="display:flex; gap:8px"><button class="primary" id="expSave">지출 저장</button><button class="ghost" id="expCancel" hidden>고치기 취소</button></div>
+    <div class="formbody" id="entForm">
+      <label class="f" for="entAmt">금액 (원)<input id="entAmt" class="amt" inputmode="numeric" placeholder="0" autocomplete="off"></label>
+      <label class="f">내용<input id="entMemo" placeholder="예: 이마트 장보기" autocomplete="off"></label>
+      <div class="f">누가<div class="seg" id="entWho"></div></div>
+      <div class="frow">
+        <label class="f" id="entCatWrap">카테고리<select id="entCat"></select></label>
+        <label class="f">날짜<input id="entDate" type="date"></label>
       </div>
-    </details>
-
-    <div class="rows" id="expRows"></div>
-    <div class="sumline"><span id="expSumLabel">이번 달 지출 합계</span><b class="num" id="expSum">0원</b></div>
-  </section>
+      <button class="primary big" id="entSave">지출 저장</button>
+      <button class="dangerlink" id="entDelete" hidden>이 기록 지우기</button>
+    </div>
   </div>
-  <div id="tab-cal" role="tabpanel" aria-labelledby="tb-cal" hidden>
-  <section class="card" aria-label="달력">
-    <h2 class="serif">달력</h2>
-    <div id="calGrid"></div>
-    <p class="rules-hint" id="calHint">날짜를 누르면 그날 내역이 보이고 바로 적을 수 있어요. <span class="cal-key"></span> 파란 점은 입금이 있던 날이에요.</p>
-  </section>
-  </div>
-  <div id="tab-income" role="tabpanel" aria-labelledby="tb-income" hidden>
-  <section class="card" aria-label="생활비 입금">
-    <h2 class="serif">생활비 입금</h2>
-    <details class="adder" id="incAdder">
-      <summary>입금 적기</summary>
-      <div class="formbody">
-        <div class="frow">
-          <label class="f">금액 (원)<input id="incAmt" class="amt" inputmode="numeric" placeholder="0"></label>
-        </div>
-        <div class="frow">
-          <label class="f">날짜<input id="incDate" type="date"></label>
-          <label class="f">내용<input id="incMemo" placeholder="예: 9월 생활비"></label>
-        </div>
-        <div class="frow">
-          <label class="f">누가<div class="seg" id="incWho"></div></label>
-        </div>
-        <div style="display:flex; gap:8px"><button class="primary" id="incSave">입금 저장</button><button class="ghost" id="incCancel" hidden>고치기 취소</button></div>
-      </div>
-    </details>
-    <div class="rows" id="incRows"></div>
-    <div class="sumline"><span>이번 달 입금 합계</span><b class="num" id="incSum">0원</b></div>
-  </section>
-  </div>
-  <div id="tab-pantry" role="tabpanel" aria-labelledby="tb-pantry" hidden>
-    <section class="card" aria-label="보관함">
-      <h2 class="serif">보관함 <span class="spacer"></span><button class="ghost mini" id="pantryAddBtn">직접 담기</button></h2>
-      <p class="rules-hint">영수증으로 담은 것과 직접 담은 것이 임박한 순서로 보여요. 먹었으면 눌러서 치우세요.<br>
-        이 페이지가 닫혀 있을 땐 알림을 보낼 수 없어서, <b>열었을 때</b> 위쪽 배너로 알려 드려요.</p>
-
-      <details class="adder" id="pantryAdder">
-        <summary>직접 담기</summary>
-        <div class="formbody">
-          <div class="frow"><label class="f">이름<input id="pName" placeholder="예: 서울우유 900ml"></label></div>
-          <div class="frow">
-            <label class="f">유통기한<input id="pExpire" type="date"></label>
-            <label class="f">수량<input id="pQty" placeholder="예: 1개"></label>
-          </div>
-          <div class="frow"><label class="f">메모<input id="pMemo" placeholder="예: 냉장 문쪽"></label></div>
-          <div style="display:flex; gap:8px">
-            <button class="primary" id="pSave">보관함에 담기</button>
-            <button class="ghost" id="pCancel" hidden>고치기 취소</button>
-          </div>
-        </div>
-      </details>
-
-      <div class="rows" id="pantryRows"></div>
-      <details id="pantryDone" style="margin-top:10px">
-        <summary class="rules-hint" style="cursor:pointer">치운 것 보기</summary>
-        <div class="rows" id="pantryDoneRows"></div>
-      </details>
-    </section>
-  </div>
-
-  <div id="tab-stats" role="tabpanel" aria-labelledby="tb-stats" hidden>
-  <section class="card" aria-label="이번 달 분석">
-    <div class="sumline" style="margin:0 0 14px; padding-top:0; border:none"><span>기록한 돈 합계 (전체 기간)</span><b class="num" id="tBal">0원</b></div>
-    <h2 class="serif">어디에 얼마나 썼나</h2>
-    <div class="chart" id="catChart"></div>
-    <h2 class="serif" style="border:none; padding:0; margin-top:18px; margin-bottom:8px">누가 얼마나 썼나</h2>
-    <div class="chart" id="whoChart"></div>
-  </section>
-  </div>
-
-  <!-- 3. 수입 -->
-
-  <!-- 4. 지출 -->
-
-  <!-- 5. 분석 -->
-
-  <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap">
-    <button class="ghost mini" id="csvBtn">전체 내역 CSV로 내보내기</button>
-    <button class="ghost mini" id="csvImportBtn">CSV 가져오기</button>
-    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
-  </div>
-
-  <footer>
-    <div id="footNote">이 페이지가 열려 있는 동안 기록할 수 있어요.</div>
-    <div>사진·문자 인식 결과는 저장 전에 꼭 한 번 확인해 주세요.</div>
-  </footer>
-
 </div>
 
-<!-- 사이드바 서랍: 매일 쓰지 않는 것들을 여기로 -->
-<div id="drawerWrap" aria-hidden="true">
-  <div id="drawerBackdrop"></div>
-  <aside id="drawer" role="dialog" aria-modal="true" aria-label="메뉴">
-    <div class="dhead">
-      <h2 class="serif">메뉴</h2>
-      <button class="ghost mini" id="drawerClose" aria-label="메뉴 닫기">닫기 ✕</button>
+<!-- 냉장고에 담기 · 고치기 -->
+<div id="pantrySheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="pantryTitle" aria-hidden="true">
+  <div class="sheet-bg" id="pantryBackdrop"></div>
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <h2 class="serif" id="pantryTitle">냉장고에 담기</h2>
+      <button class="iconbtn sm" id="pantryClose" aria-label="닫기">✕</button>
     </div>
-  <section class="dsec" id="rulesCard" aria-label="통장 규칙">
-    <h2 class="serif">통장 규칙 <span class="spacer"></span><button class="ghost mini" id="rulesEditBtn">고치기</button></h2>
-    <ol id="rulesList"></ol>
-    <div id="rulesEdit" hidden>
-      <textarea id="rulesText" placeholder="한 줄에 규칙 하나씩 적어요"></textarea>
-      <div style="display:flex; gap:8px; margin-top:8px">
-        <button class="primary mini" id="rulesSave">저장</button>
-        <button class="ghost mini" id="rulesCancel">취소</button>
-      </div>
-    </div>
-    <p class="rules-hint" id="rulesHint" hidden>아직 예시 규칙이에요 — "고치기"를 눌러 둘만의 규칙으로 바꿔 보세요.</p>
-  </section>
-
-    <section class="dsec" aria-label="최근 활동">
-      <h2 class="serif">최근 활동</h2>
-      <div class="rows" id="logRows"></div>
-      <p class="rules-hint">최근에 적힌 기록이에요. 누가 무엇을 언제 적었는지 볼 수 있어요.</p>
-    </section>
-  <section class="dsec" id="settingsPanel" aria-label="설정">
-    <h2>설정</h2>
+    <p class="hint" id="pantryHint">영수증·주문 화면은 가계부 ＋에서 올리면 지출과 함께 여기 담겨요.</p>
+    <label class="f">이름<input id="pName" placeholder="예: 서울우유 900ml" autocomplete="off"></label>
     <div class="frow">
-      <label class="f">첫 번째 사람<input id="setM0" maxlength="10"></label>
-      <label class="f">두 번째 사람<input id="setM1" maxlength="10"></label>
+      <label class="f">유통기한<input id="pExpire" type="date"></label>
+      <label class="f">수량<input id="pQty" placeholder="예: 1개"></label>
     </div>
-    <div style="margin-top:10px"><button class="primary mini" id="saveSettings">이름 저장</button></div>
-
-    <hr class="divider">
-    <h2 style="border:none; margin:0 0 4px; padding:0">고정지출 (매달 자동 채움)</h2>
-    <p class="rules-hint" style="margin:0 0 10px">월세·통신비처럼 매달 나가는 지출을 등록해 두면, 그 달에 아직 기록이 없을 때 위쪽 배너에서 한 번에 채울 수 있어요.</p>
-    <div class="rows reclist" id="recList"></div>
-    <div class="frow" style="margin-top:10px">
-      <label class="f">금액<input id="recAmt" class="amt" inputmode="numeric" placeholder="0"></label>
-    </div>
-    <div class="frow" style="margin-top:8px">
-      <label class="f" style="flex:0 0 5.5em">매달 며칠<input id="recDay" inputmode="numeric" placeholder="25"></label>
-      <label class="f">내용<input id="recMemo" placeholder="예: 월세"></label>
-    </div>
-    <div class="frow" style="margin-top:8px">
-      <label class="f">카테고리<select id="recCat"></select></label>
-      <label class="f">누가<select id="recWho"></select></label>
-      <label class="f" style="flex:0 0 auto; justify-content:flex-end"><span>&nbsp;</span><button class="ghost" id="recAdd">추가</button></label>
-    </div>
-
-    <div id="inviteRow" hidden>
-      <hr class="divider">
-      <h2 style="border:none; margin:0 0 4px; padding:0">다니 초대하기</h2>
-      <p class="rules-hint" style="margin:0 0 10px">아래 링크를 보내면 같은 가계부에 바로 연결돼요. 링크를 아는 사람은 누구나 열 수 있으니 둘만 알게 보관하세요.</p>
-      <div class="frow">
-        <input id="inviteUrl" readonly>
-        <button class="ghost" id="copyInvite" style="flex:0 0 auto">초대 링크 복사</button>
-      </div>
-    </div>
-  </section>
-  </aside>
+    <label class="f">메모<input id="pMemo" placeholder="예: 냉장 문쪽"></label>
+    <button class="primary big" id="pSave">냉장고에 담기</button>
+    <button class="dangerlink" id="pDelete" hidden>목록에서 지우기</button>
+  </div>
 </div>
 
 <!-- CSV 가져오기 미리보기 -->
-<div id="csvSheet" role="dialog" aria-modal="true" aria-label="CSV 가져오기" aria-hidden="true">
-  <div id="csvBackdrop"></div>
-  <div id="csvPanel">
-    <h2 class="serif">CSV 가져오기 <span class="spacer"></span><span class="rules-hint" id="csvFileName"></span></h2>
-    <p class="rules-hint" id="csvHint"></p>
+<div id="csvSheet" class="sheet" role="dialog" aria-modal="true" aria-label="CSV 가져오기" aria-hidden="true">
+  <div class="sheet-bg" id="csvBackdrop"></div>
+  <div class="sheet-panel" id="csvPanel">
+    <div class="sheet-head"><h2 class="serif">CSV 가져오기</h2><span class="hint" id="csvFileName"></span></div>
+    <p class="hint" id="csvHint"></p>
     <div id="csvRows"></div>
     <div id="csvActions">
       <button class="primary" id="csvGo">가져오기</button>
@@ -604,13 +522,13 @@
 </div>
 
 <!-- 여러 품목 확인 시트 -->
-<div id="multiSheet" role="dialog" aria-modal="true" aria-label="여러 품목 등록" aria-hidden="true">
-  <div id="multiBackdrop"></div>
-  <div id="multiPanel">
+<div id="multiSheet" class="sheet" role="dialog" aria-modal="true" aria-label="여러 품목 등록" aria-hidden="true">
+  <div class="sheet-bg" id="multiBackdrop"></div>
+  <div class="sheet-panel" id="multiPanel">
     <h2 class="serif">여러 품목이 보여요</h2>
-    <p class="rules-hint" id="multiHint">체크된 것만 등록돼요. 이름이나 금액이 틀리면 고쳐 주세요.</p>
+    <p class="hint" id="multiHint">체크된 것만 등록돼요. 이름이나 금액이 틀리면 고쳐 주세요.</p>
     <div id="multiRows"></div>
-    <div class="frow" style="margin-top:8px">
+    <div class="frow">
       <label class="f">날짜<input id="multiDate" type="date"></label>
       <label class="f">가게·출처<input id="multiStore" placeholder="예: 쿠팡"></label>
     </div>
@@ -623,9 +541,9 @@
 </div>
 
 <!-- 계산기 패드 -->
-<div id="calcSheet" role="dialog" aria-modal="true" aria-label="계산기" aria-hidden="true">
-  <div id="calcBackdrop"></div>
-  <div id="calcPanel">
+<div id="calcSheet" class="sheet" role="dialog" aria-modal="true" aria-label="계산기" aria-hidden="true">
+  <div class="sheet-bg" id="calcBackdrop"></div>
+  <div class="sheet-panel" id="calcPanel">
     <div id="calcScreen">
       <div id="calcExpr" class="num">0</div>
       <div id="calcResult" class="num">0원</div>
@@ -638,7 +556,7 @@
   </div>
 </div>
 
-<button id="quickAdd" type="button" aria-label="지출 빠르게 적기">＋ 지출</button>
+<button id="quickAdd" type="button" aria-label="기록 적기">＋</button>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -806,14 +724,14 @@ function newLid(){
 }
 
 const state = {
-  entries: new Map(),
-  pantry: new Map(),          // 보관함 (유통기한 관리)          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
+  entries: new Map(),          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
+  pantry: new Map(),           // 냉장고 (유통기한 관리) id -> {name, qty, memo, buyAt, expireAt, guessed, who, createdAt, doneAt?}
   rules: "",                   // 비어 있으면 예시 규칙 표시
   members: ["나", "다니"],
   recurring: [],               // {id, day, amount, category, memo, who}
   month: thisMonth(),
   dayFilter: "",              // 달력에서 고른 날짜 (YYYY-MM-DD), 빈 값이면 그 달 전체
-  tab: "daily",
+  tab: "ledger",
   mode: "local",               // 'local' | 'db'
 };
 const whoName = w => w === "both" ? "같이" : (w === "m1" ? state.members[1] : state.members[0]);
@@ -895,20 +813,57 @@ function dbWriteFailed(err){
 }
 
 /* ================= 탭 ================= */
-const TABS = ["daily", "cal", "income", "pantry", "stats"];
+const TABS = ["ledger", "fridge"];
 function showTab(name){
-  if (!TABS.includes(name)) name = "daily";
+  if (name === "pantry") name = "fridge";            // 예전 5탭 시절에 기억해 둔 값
+  if (!TABS.includes(name)) name = "ledger";
   TABS.forEach(t => {
     $("#tab-" + t).hidden = t !== name;
     $("#tb-" + t).setAttribute("aria-selected", String(t === name));
   });
+  $("#ledgerBar").hidden = name !== "ledger";       // 냉장고는 달과 상관없다
+  $("#quickAdd").setAttribute("aria-label", name === "fridge" ? "냉장고에 담기" : "기록 적기");
   state.tab = name;
   try { localStorage.setItem("dani-ledger-tab", name); } catch(e){}
 }
 
+/* ================= 시트 · 서랍 ================= */
+function openSheet(sel){ $(sel).classList.add("show"); $(sel).setAttribute("aria-hidden", "false"); }
+function closeSheet(sel){ $(sel).classList.remove("show"); $(sel).setAttribute("aria-hidden", "true"); }
+const sheetOpen = sel => $(sel).classList.contains("show");
+function openDrawer(){
+  $("#drawerWrap").classList.add("open");
+  $("#drawerWrap").setAttribute("aria-hidden", "false");
+  $("#settingsBtn").setAttribute("aria-expanded", "true");
+  $("#drawerClose").focus();
+}
+function closeDrawer(){
+  if (!$("#drawerWrap").classList.contains("open")) return;
+  $("#drawerWrap").classList.remove("open");
+  $("#drawerWrap").setAttribute("aria-hidden", "true");
+  $("#settingsBtn").setAttribute("aria-expanded", "false");
+  $("#settingsBtn").focus();
+}
+/** 지우기는 두 번 눌러야 동작한다 — 첫 번째는 확인 상태로만 바꾸고 false. */
+function armed(btn){
+  if (btn.classList.contains("arm")) return true;
+  btn.dataset.was = btn.textContent;
+  btn.classList.add("arm");
+  btn.textContent = "한 번 더 누르면 지워져요";
+  clearTimeout(btn._armTimer);
+  btn._armTimer = setTimeout(() => disarm(btn), 2600);
+  return false;
+}
+function disarm(btn){
+  clearTimeout(btn._armTimer);
+  if (!btn.classList.contains("arm")) return;
+  btn.classList.remove("arm");
+  btn.textContent = btn.dataset.was;
+}
+
 /* ================= 렌더 ================= */
 function renderAll(){
-  renderRules(); renderMonth(); renderTiles(); renderCalendar(); renderIncome(); renderExpense();
+  renderRules(); renderMonth(); renderTiles(); renderCalendar(); renderLedger();
   renderCharts(); renderSettings(); renderLog(); renderRecBanner();
   renderPantry(); renderPantryBanner();
 }
@@ -957,17 +912,10 @@ function renderCalendar(){
     cell.setAttribute("aria-label",
       mo + "월 " + d + "일" + (amt > 0 ? ", 지출 " + fmtWon(amt) : ", 지출 없음") + (gotPaid.has(d) ? ", 입금 있음" : ""));
     cell.setAttribute("aria-pressed", String(state.dayFilter === iso));
+    // 누르면 아래 목록이 그날 것만 남는다 — 그 상태에서 ＋를 누르면 그날 날짜로 적힌다
     cell.addEventListener("click", () => {
       state.dayFilter = state.dayFilter === iso ? "" : iso;   // 같은 날 다시 누르면 해제
       renderAll();
-      if (!state.dayFilter) return;
-      // 그날 내역을 보여 주면서, 바로 그날 지출을 적을 수 있게 폼을 연다
-      cancelEdit("expense");
-      showTab("daily");
-      $("#expAdder").open = true;
-      $("#expDate").value = iso;
-      $("#expAdder").scrollIntoView({ block: "center", behavior: "smooth" });
-      setTimeout(() => $("#expAmt").focus(), 350);
     });
     grid.append(cell);
   }
@@ -989,13 +937,16 @@ function renderRules(){
 function renderMonth(){
   $("#monthLabel").textContent = monthLabelOf(state.month);
   $("#toThis").hidden = state.month === thisMonth();
+  $("#statsTitle").textContent = Number(state.month.slice(5)) + "월 분석";
 }
 
+/** 그 달 기록 — type을 빼면 입금·지출 모두. 최근 날짜, 같은 날이면 최근에 적은 것이 위. */
 function monthEntries(type){
+  const key = e => e.date + String(e.createdAt || 0).padStart(15, "0");
   return [...state.entries.entries()]
     .map(([id, e]) => ({...e, id}))
-    .filter(e => e.month === state.month && e.type === type)
-    .sort((a, b) => (b.date + String(b.createdAt||0).padStart(15,"0")).localeCompare(a.date + String(a.createdAt||0).padStart(15,"0")));
+    .filter(e => e.month === state.month && (!type || e.type === type))
+    .sort((a, b) => key(b).localeCompare(key(a)));
 }
 const sum = arr => arr.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
@@ -1012,54 +963,26 @@ function renderTiles(){
   $("#tBal").textContent = fmtWon(allIn - allOut);
 }
 
+/* 한 행 = 윗줄 내용·금액 / 아랫줄 카테고리·누가. 누르면 고치기 시트가 열린다
+   (지우기도 거기서) — 행마다 버튼을 달지 않아 목록이 조용하다. */
 function entryRow(e){
-  const row = el("div", "row");
-  const label = e.date.slice(5).replace("-", ".") + " " + (e.memo || "내용 없음") + " " +
+  const inc = e.type === "income";
+  const row = el("div", "row entry editable");
+  const label = e.date.slice(5).replace("-", ".") + " " + (inc ? "입금 " : "") + (e.memo || "내용 없음") + " " +
     fmtWon(Number(e.amount) || 0) + " " + whoName(e.who);
-  row.classList.add("entry");
-  // 윗줄: 날짜 · 내용 · 금액 / 아랫줄: 카테고리 · 누가 · 삭제 — 내용이 폭을 갖도록
   const main = el("div", "rmain"), sub = el("div", "rsub");
-  main.append(el("span", "d num", e.date.slice(5).replace("-", ".")));
-  main.append(el("span", "memo", e.memo || "—"));
-  main.append(el("span", "amt num " + (e.type === "income" ? "in" : "ex"),
-    (e.type === "income" ? "+" : "−") + fmtWon(Number(e.amount)||0)));
-  if (e.type === "expense") sub.append(el("span", "chip", e.category || "기타"));
+  main.append(el("span", "memo", e.memo || (inc ? "입금" : e.category || "—")));
+  main.append(el("span", "amt num " + (inc ? "in" : "ex"), (inc ? "+" : "−") + fmtWon(Number(e.amount) || 0)));
+  sub.append(el("span", "chip" + (inc ? " inc" : ""), inc ? "입금" : (e.category || "기타")));
   sub.append(el("span", "who", whoName(e.who)));
   row.append(main, sub);
-
-  // 행을 누르면 고치기 — 오타를 지웠다 다시 넣지 않아도 되게
-  row.classList.add("editable");
   row.setAttribute("role", "button");
   row.tabIndex = 0;
   row.setAttribute("aria-label", label + " — 누르면 고칠 수 있어요");
-  const openEdit = ev => { if (ev.target.closest(".del")) return; startEdit(e); };
-  row.addEventListener("click", openEdit);
+  row.addEventListener("click", () => openEntrySheet({ edit: e }));
   row.addEventListener("keydown", ev => {
-    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); startEdit(e); }
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openEntrySheet({ edit: e }); }
   });
-
-  const del = el("button", "del", "×");
-  del.setAttribute("aria-label", label + " 삭제");
-  del.addEventListener("click", async () => {
-    if (!del.classList.contains("arm")) {
-      del.classList.add("arm"); del.textContent = "지우기";
-      del.setAttribute("aria-label", label + " — 한 번 더 누르면 지워집니다");
-      setTimeout(() => {
-        del.classList.remove("arm"); del.textContent = "×";
-        del.setAttribute("aria-label", label + " 삭제");
-      }, 2600);
-      return;
-    }
-    const backup = { ...e };            // 되돌리기용 사본
-    delete backup.id;
-    try { await deleteEntry(e.id); }
-    catch (err) { dbWriteFailed(err); return; }
-    toast("지웠어요", "되돌리기", async () => {
-      try { await addEntry(backup); toast("되돌렸어요"); }
-      catch (err) { dbWriteFailed(err); }
-    });
-  });
-  sub.append(del);
   return row;
 }
 
@@ -1086,86 +1009,51 @@ function renderLog(){
   });
 }
 
-/* ================= 고치기 ================= */
-const editing = { income: null, expense: null };   // 고치는 중인 기록 id
-let expCatTouched = false;                         // 카테고리를 사용자가 직접 골랐는지
-
 function setSeg(container, val){
   const btns = [...container.querySelectorAll("button")];
   btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.val === val)));
   if (!btns.some(b => b.dataset.val === val) && btns[0]) btns[0].setAttribute("aria-pressed", "true");
 }
 
-function startEdit(e){
-  const inc = e.type === "income";
-  const k = inc ? "income" : "expense";
-  editing[k] = e.id;
-  const adder = $(inc ? "#incAdder" : "#expAdder");
-  adder.open = true;
-  const amt = $(inc ? "#incAmt" : "#expAmt");
-  amt.value = (Number(e.amount) || 0).toLocaleString("ko-KR");
-  updateAmtPreview(amt);
-  $(inc ? "#incMemo" : "#expMemo").value = e.memo || "";
-  $(inc ? "#incDate" : "#expDate").value = e.date || todayStr();
-  if (!inc) $("#expCat").value = CATEGORIES.includes(e.category) ? e.category : CATEGORIES[0];
-  setSeg($(inc ? "#incWho" : "#expWho"), e.who);
-  $(inc ? "#incSave" : "#expSave").textContent = "고친 내용 저장";
-  $(inc ? "#incCancel" : "#expCancel").hidden = false;
-  adder.scrollIntoView({ block: "center", behavior: "smooth" });
-  toast("고치는 중이에요");
-}
-
-function cancelEdit(kind){
-  if (!editing[kind]) return;
-  editing[kind] = null;
-  const inc = kind === "income";
-  $(inc ? "#incSave" : "#expSave").textContent = inc ? "입금 저장" : "지출 저장";
-  $(inc ? "#incCancel" : "#expCancel").hidden = true;
-}
-
-function renderList(sel, type, sumSel, emptyMsg){
-  const box = $(sel);
+/* 입금·지출 한 목록 — 날짜별로 묶어 하루 단위로 읽히게 */
+const WEEKDAYS = ["일","월","화","수","목","금","토"];
+function renderLedger(){
+  const box = $("#ledgerRows");
   box.textContent = "";
-  let list = monthEntries(type);
-  const filtered = !!state.dayFilter;
-  if (filtered) {
-    const day = Number(state.dayFilter.slice(8));
+  let list = monthEntries();
+  if (state.dayFilter) {
     list = list.filter(e => e.date === state.dayFilter);
-    const chip = el("button", "filter-chip", Number(state.month.slice(5)) + "월 " + day + "일만 보는 중  ✕");
+    const chip = el("button", "filter-chip",
+      Number(state.month.slice(5)) + "월 " + Number(state.dayFilter.slice(8)) + "일만 보는 중  ✕");
     chip.type = "button";
     chip.addEventListener("click", () => { state.dayFilter = ""; renderAll(); });
     box.append(chip);
-    emptyMsg = type === "income" ? "이 날은 입금이 없어요." : "이 날은 쓴 기록이 없어요.";
   }
-  if (!list.length) box.append(el("div", "empty", emptyMsg));
-  else if (type === "expense" && !filtered) {
-    // 날짜별로 묶어 하루 단위로 읽히게 — 참고한 가계부 앱의 일일 화면처럼
-    const W = ["일","월","화","수","목","금","토"];
-    let cur = null, group = [];
-    const flush = () => {
-      if (!cur) return;
-      const d = new Date(cur + "T00:00:00");
-      const head = el("div", "dayhead" + (d.getDay() === 0 ? " sun" : d.getDay() === 6 ? " sat" : ""));
-      head.append(el("span", "dd", String(d.getDate()).padStart(2, "0")));
-      head.append(el("span", "dw", W[d.getDay()] + "요일"));
-      head.append(el("span", "dsum num", "−" + fmtWon(sum(group))));
-      box.append(head);
-      group.forEach(e => box.append(entryRow(e)));
-      group = [];
-    };
-    list.forEach(e => { if (e.date !== cur) { flush(); cur = e.date; } group.push(e); });
-    flush();
+  if (!list.length) {
+    box.append(el("div", "empty", state.dayFilter
+      ? "이 날은 기록이 없어요. ＋를 누르면 이 날짜로 적혀요."
+      : "이번 달 기록이 아직 없어요. 아래 ＋를 눌러 적어 보세요."));
+    return;
   }
-  else list.forEach(e => box.append(entryRow(e)));
-  const total = sum(list);
-  $(sumSel).textContent = (total > 0 ? (type === "income" ? "+" : "−") : "") + fmtWon(total);
-  if (type === "expense")
-    $("#expSumLabel").textContent = filtered
-      ? Number(state.month.slice(5)) + "월 " + Number(state.dayFilter.slice(8)) + "일 지출 합계"
-      : "이번 달 지출 합계";
+  let cur = null, group = [];
+  const flush = () => {
+    if (!cur) return;
+    const d = new Date(cur + "T00:00:00");
+    const head = el("div", "dayhead" + (d.getDay() === 0 ? " sun" : d.getDay() === 6 ? " sat" : ""));
+    head.append(el("span", "dd num", pad2(d.getMonth() + 1) + "." + pad2(d.getDate())));
+    head.append(el("span", "dw", WEEKDAYS[d.getDay()]));
+    const sums = el("span", "dsum num");
+    const gotIn = sum(group.filter(e => e.type === "income")), spent = sum(group.filter(e => e.type === "expense"));
+    if (gotIn) sums.append(el("span", "in", "+" + fmtWon(gotIn)));
+    if (spent) sums.append(el("span", "ex", "−" + fmtWon(spent)));
+    head.append(sums);
+    box.append(head);
+    group.forEach(e => box.append(entryRow(e)));
+    group = [];
+  };
+  list.forEach(e => { if (e.date !== cur) { flush(); cur = e.date; } group.push(e); });
+  flush();
 }
-const renderIncome  = () => renderList("#incRows", "income", "#incSum", "아직 입금 기록이 없어요.");
-const renderExpense = () => renderList("#expRows", "expense", "#expSum", "이번 달 지출이 아직 없어요.");
 
 function chartRows(box, pairs){
   box.textContent = "";
@@ -1291,13 +1179,11 @@ function calcOpen(input){
   calcExpr = looksLikeFormula(input.value) ? input.value.replace(/,/g, "")
     : String(parseAmt(input.value) || "");
   calcRender();
-  $("#calcSheet").classList.add("show");
-  $("#calcSheet").setAttribute("aria-hidden", "false");
+  openSheet("#calcSheet");
   $("#calcKeys").querySelector("button").focus();
 }
 function calcClose(){
-  $("#calcSheet").classList.remove("show");
-  $("#calcSheet").setAttribute("aria-hidden", "true");
+  closeSheet("#calcSheet");
   if (calcTarget) calcTarget.focus();
   calcTarget = null;
 }
@@ -1518,87 +1404,67 @@ const pantryUrgent = () => pantryList(false).filter(x => { const d = dday(x.expi
 
 function pantryRow(x, done){
   const d = dday(x.expireAt);
-  const row = el("div", "row entry" + (done ? " done" : ""));
+  const row = el("div", "row entry editable" + (done ? " done" : ""));
   const main = el("div", "rmain"), sub = el("div", "rsub");
   main.append(el("span", "memo", x.name || "—"));
-  if (x.qty) main.append(el("span", "who", x.qty));
-  const chip = el("span", "pchip" + (d === null ? "" : d < 0 ? " over" : d <= SOON_DAYS ? " soon" : ""), ddayLabel(d));
-  main.append(chip);
-  sub.append(el("span", "who", (x.buyAt ? x.buyAt.slice(5).replace("-", ".") + " 구입" : "") + (x.expireAt ? " · " + x.expireAt.slice(5).replace("-", ".") + "까지" : "")));
+  if (x.qty) main.append(el("span", "qty", x.qty));
+  if (!done) main.append(el("span", "pchip" + (d === null ? "" : d < 0 ? " over" : d <= SOON_DAYS ? " soon" : ""), ddayLabel(d)));
   if (x.guessed && x.expireAt) sub.append(el("span", "pguess", "기한 추정"));
-  if (x.memo) sub.append(el("span", "who", x.memo));
-  sub.append(el("span", "who", ""));                       // 오른쪽 밀기
-  sub.querySelector(".who:last-child").style.flex = "1";
+  const meta = [];
+  // 올해가 아니면 연도까지 — "09.10까지"가 지난 날짜로 읽히지 않게
+  const md = iso => (iso.slice(0, 4) === todayStr().slice(0, 4) ? "" : iso.slice(0, 4) + ".") + iso.slice(5).replace("-", ".");
+  if (x.buyAt) meta.push(md(x.buyAt) + " 구입");
+  if (x.expireAt) meta.push(md(x.expireAt) + "까지");
+  if (x.memo) meta.push(x.memo);
+  sub.append(el("span", "who", meta.join(" · ")));
 
-  if (!done) {
-    const eat = el("button", "peat", "다 먹었어요");
-    eat.type = "button";
-    eat.setAttribute("aria-label", (x.name || "품목") + " 치우기");
-    eat.addEventListener("click", async ev => {
-      ev.stopPropagation();
-      const before = { ...x }; delete before.id;
-      try { await updatePantry(x.id, { ...before, doneAt: Date.now() }); }
-      catch (err) { return dbWriteFailed(err); }
-      toast("치웠어요", "되돌리기", async () => {
-        try { await updatePantry(x.id, before); } catch (err) { dbWriteFailed(err); }
-      });
-    });
-    sub.append(eat);
-    row.classList.add("editable");
-    row.setAttribute("role", "button"); row.tabIndex = 0;
-    row.setAttribute("aria-label", (x.name || "품목") + " " + ddayLabel(d) + " — 누르면 고칠 수 있어요");
-    const open = ev => { if (ev.target.closest(".peat") || ev.target.closest(".del")) return; startPantryEdit(x); };
-    row.addEventListener("click", open);
-    row.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); startPantryEdit(x); } });
-  } else {
-    const back = el("button", "peat", "되돌리기");
-    back.type = "button";
-    back.addEventListener("click", async () => {
-      const b = { ...x }; delete b.id; delete b.doneAt;
-      try { await updatePantry(x.id, b); toast("보관함으로 되돌렸어요"); } catch (err) { dbWriteFailed(err); }
-    });
-    sub.append(back);
-  }
-
-  const del = el("button", "del", "×");
-  del.setAttribute("aria-label", (x.name || "품목") + " 목록에서 삭제");
-  del.addEventListener("click", async ev => {
+  // 오른쪽 버튼: 남은 것은 "다 먹었어요", 치운 것은 "되돌리기" — 둘 다 되돌릴 수 있다
+  const act = el("button", "peat", done ? "되돌리기" : "다 먹었어요");
+  act.type = "button";
+  act.setAttribute("aria-label", (x.name || "품목") + (done ? " 냉장고로 되돌리기" : " 치우기"));
+  act.addEventListener("click", async ev => {
     ev.stopPropagation();
-    if (!del.classList.contains("arm")) {
-      del.classList.add("arm"); del.textContent = "지우기";
-      setTimeout(() => { del.classList.remove("arm"); del.textContent = "×"; }, 2600);
+    const before = { ...x }; delete before.id;
+    if (done) {
+      const back = { ...before }; delete back.doneAt;
+      try { await updatePantry(x.id, back); toast("냉장고로 되돌렸어요"); } catch (err) { dbWriteFailed(err); }
       return;
     }
-    const backup = { ...x }; delete backup.id;
-    try { await deletePantry(x.id); } catch (err) { return dbWriteFailed(err); }
-    toast("지웠어요", "되돌리기", async () => {
-      try { await addPantry(backup); } catch (err) { dbWriteFailed(err); }
+    try { await updatePantry(x.id, { ...before, doneAt: Date.now() }); }
+    catch (err) { return dbWriteFailed(err); }
+    toast("치웠어요", "되돌리기", async () => {
+      try { await updatePantry(x.id, before); } catch (err) { dbWriteFailed(err); }
     });
   });
-  sub.append(del);
+  sub.append(act);
   row.append(main, sub);
+
+  row.setAttribute("role", "button"); row.tabIndex = 0;
+  row.setAttribute("aria-label", (x.name || "품목") + (done ? " (다 먹음)" : " " + ddayLabel(d)) + " — 누르면 고칠 수 있어요");
+  row.addEventListener("click", ev => { if (!ev.target.closest(".peat")) openPantrySheet(x); });
+  row.addEventListener("keydown", ev => {
+    if (ev.target === row && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); openPantrySheet(x); }
+  });
   return row;
 }
 
 function renderPantry(){
   const box = $("#pantryRows"), doneBox = $("#pantryDoneRows");
-  if (!box) return;
   const live = pantryList(false), done = pantryList(true);
   box.textContent = "";
-  if (!live.length) box.append(el("div", "empty", "보관함이 비었어요. 영수증을 올리거나 직접 담아 보세요."));
+  if (!live.length) box.append(el("div", "empty", "냉장고가 비었어요. ＋로 담거나, 가계부 ＋에서 영수증을 올리면 식품이 여기 담겨요."));
   else live.forEach(x => box.append(pantryRow(x, false)));
   doneBox.textContent = "";
-  if (!done.length) doneBox.append(el("div", "empty", "치운 것이 없어요."));
+  if (!done.length) doneBox.append(el("div", "empty", "다 먹은 것이 없어요."));
   else done.slice(0, 50).forEach(x => doneBox.append(pantryRow(x, true)));
 }
 
+/* 임박 알림은 냉장고 탭 안과 탭 배지에만 — 가계부 화면을 가리지 않게 */
 function renderPantryBanner(){
   const urgent = pantryUrgent();
   const over = urgent.filter(x => dday(x.expireAt) < 0).length;
   const soon = urgent.length - over;
-  const b = $("#pantryBanner");
-  if (!b) return;
-  b.classList.toggle("show", urgent.length > 0);
+  $("#pantryBanner").classList.toggle("show", urgent.length > 0);
   if (urgent.length) {
     const parts = [];
     if (soon) parts.push(SOON_DAYS + "일 안에 먹어야 할 게 " + soon + "개");
@@ -1610,22 +1476,24 @@ function renderPantryBanner(){
   badge.textContent = String(urgent.length);
 }
 
-function startPantryEdit(x){
-  editingPantry = x.id;
-  $("#pantryAdder").open = true;
-  $("#pName").value = x.name || "";
-  $("#pExpire").value = x.expireAt || "";
-  $("#pQty").value = x.qty || "";
-  $("#pMemo").value = x.memo || "";
-  $("#pSave").textContent = "고친 내용 저장";
-  $("#pCancel").hidden = false;
-  $("#pantryAdder").scrollIntoView({ block: "center", behavior: "smooth" });
+/** 냉장고 시트 — x가 있으면 그 품목 고치기, 없으면 새로 담기. */
+function openPantrySheet(x){
+  editingPantry = x ? x.id : null;
+  $("#pName").value = (x && x.name) || "";
+  $("#pExpire").value = (x && x.expireAt) || "";
+  $("#pQty").value = (x && x.qty) || "";
+  $("#pMemo").value = (x && x.memo) || "";
+  $("#pantryTitle").textContent = x ? "품목 고치기" : "냉장고에 담기";
+  $("#pSave").textContent = x ? "고친 내용 저장" : "냉장고에 담기";
+  $("#pantryHint").hidden = !!x;
+  $("#pDelete").hidden = !x;
+  disarm($("#pDelete"));
+  openSheet("#pantrySheet");
+  $("#pName").focus();
 }
-function cancelPantryEdit(){
+function closePantrySheet(){
+  closeSheet("#pantrySheet");
   editingPantry = null;
-  ["#pName", "#pExpire", "#pQty", "#pMemo"].forEach(sel => { $(sel).value = ""; });
-  $("#pSave").textContent = "보관함에 담기";
-  $("#pCancel").hidden = true;
 }
 
 /* ================= CSV 가져오기 ================= */
@@ -1719,8 +1587,7 @@ function openCsvSheet(parsed, filename){
   });
   $("#csvFileName").textContent = filename || "";
   updateCsvCount();
-  $("#csvSheet").classList.add("show");
-  $("#csvSheet").setAttribute("aria-hidden", "false");
+  openSheet("#csvSheet");
   $("#csvGo").focus();
 }
 function updateCsvCount(){
@@ -1731,8 +1598,7 @@ function updateCsvCount(){
   $("#csvHint").textContent = (csvPending || []).length + "건 읽었어요." + (dup ? " " + dup + "건은 이미 있거나 중복이라 체크를 풀어 뒀어요 — 진짜 두 번 넣은 거면 다시 체크하세요." : "");
 }
 function closeCsvSheet(){
-  $("#csvSheet").classList.remove("show");
-  $("#csvSheet").setAttribute("aria-hidden", "true");
+  closeSheet("#csvSheet");
   csvPending = null;
   $("#csvFile").value = "";
 }
@@ -1749,8 +1615,9 @@ async function importCsvRows(){
     }
     const last = picked[picked.length - 1].entry;
     closeCsvSheet();
+    closeDrawer();
     state.month = last.month; state.dayFilter = "";
-    showTab(last.type === "income" ? "income" : "daily");
+    showTab("ledger");
     renderAll();
     toast(done + "건을 가져왔어요");
   } catch (err) {
@@ -1803,8 +1670,8 @@ function openMultiSheet(items, ctx, text){
     const sub = el("div", "msub");
     const pk = document.createElement("input"); pk.type = "checkbox"; pk.className = "mpk";
     pk.checked = !!decided.expireAt;
-    pk.setAttribute("aria-label", (it.name || "품목") + " 보관함에 담기");
-    const lb = el("label", "mpklabel", "보관함");
+    pk.setAttribute("aria-label", (it.name || "품목") + " 냉장고에 담기");
+    const lb = el("label", "mpklabel", "냉장고");
     lb.prepend(pk);
     const ex = document.createElement("input"); ex.type = "date"; ex.className = "mexp"; ex.value = decided.expireAt;
     ex.setAttribute("aria-label", (it.name || "품목") + " 유통기한");
@@ -1817,14 +1684,12 @@ function openMultiSheet(items, ctx, text){
   $("#multiDate").value = ctx.date || todayStr();
   $("#multiStore").value = guessStore(text || "");
   $("#multiHint").textContent = items.length + "개 품목이 보여요. 체크된 것만 등록돼요. 이름·금액이 틀리면 고치고, "
-    + "유통기한을 챙길 것은 '보관함'을 켜 두세요 — '추정'이라고 적힌 날짜는 이름으로 짐작한 값이라 꼭 확인해 주세요.";
-  $("#multiSheet").classList.add("show");
-  $("#multiSheet").setAttribute("aria-hidden", "false");
+    + "유통기한을 챙길 것은 '냉장고'를 켜 두세요 — '추정'이라고 적힌 날짜는 이름으로 짐작한 값이라 꼭 확인해 주세요.";
+  openSheet("#multiSheet");
   $("#multiRows input.mname").focus();
 }
 function closeMultiSheet(){
-  $("#multiSheet").classList.remove("show");
-  $("#multiSheet").setAttribute("aria-hidden", "true");
+  closeSheet("#multiSheet");
   multiCtx = null;
 }
 function multiPicked(){
@@ -1845,7 +1710,7 @@ async function multiSubmit(mode){
   if (!picked.length) { toast("등록할 품목을 하나 이상 체크해 주세요"); return; }
   const date = $("#multiDate").value || todayStr();
   const store = $("#multiStore").value.trim();
-  const who = segValue($("#expWho"));
+  const who = segValue($("#entWho"));
   const base = { type: multiCtx.kind === "income" ? "income" : "expense", date, month: date.slice(0, 7), who };
   const btns = [$("#multiEach"), $("#multiMerge")];
   btns.forEach(b => b.disabled = true);
@@ -1864,7 +1729,7 @@ async function multiSubmit(mode){
       }
       toast(n + "건을 각각 등록했어요");
     }
-    // 지출과 별개로 보관함에도 담는다 — 여기 실패는 지출 등록을 되돌리지 않고 따로 알린다
+    // 지출과 별개로 냉장고에도 담는다 — 여기 실패는 지출 등록을 되돌리지 않고 따로 알린다
     const forPantry = base.type === "expense" ? picked.filter(x => x.toPantry) : [];
     let stored = 0, pantryErr = null;
     for (const x of forPantry) {
@@ -1878,42 +1743,125 @@ async function multiSubmit(mode){
       } catch (err) { pantryErr = err; break; }
     }
     closeMultiSheet();
+    closeEntrySheet();
     state.month = date.slice(0, 7); if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
-    showTab(base.type === "income" ? "income" : "daily");
+    showTab("ledger");
     renderAll();
-    if (pantryErr) toast("보관함에는 " + stored + "개만 담겼어요 — 나머지는 다시 담아 주세요");
-    else if (stored) toast("보관함에도 " + stored + "개 담았어요");
+    if (pantryErr) toast("냉장고에는 " + stored + "개만 담겼어요 — 나머지는 다시 담아 주세요");
+    else if (stored) toast("냉장고에도 " + stored + "개 담았어요");
   } catch (err) { dbWriteFailed(err); }
   finally { btns.forEach(b => b.disabled = false); }
 }
 
-/* ================= 자동화: 폼 채우기 ================= */
-/** 입금 알림에서 읽은 값을 입금 폼에 채운다 (저장은 사용자가 확인 후). */
-function fillIncomeForm({amount, merchant, date}, sourceLabel){
-  $("#incAdder").open = true;
-  if (amount) { $("#incAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#incAmt")); }
-  if (merchant) $("#incMemo").value = merchant;
-  $("#incDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
-  $("#incAdder").scrollIntoView({ block: "center", behavior: "smooth" });
-  toast(sourceLabel + " — 입금으로 읽었어요. 확인하고 저장을 눌러 주세요");
+/* ================= 기록 시트 (＋ 버튼 · 행 누르기) =================
+   입금과 지출을 한 시트에서 적는다 — 위쪽 [지출|입금]만 바꾸면 된다. */
+let editingId = null;         // 고치는 중인 기록 id — 비어 있으면 새 기록
+let catTouched = false;       // 카테고리를 사용자가 직접 골랐는지
+const WHO_KEY = "dani-ledger-who";   // 이 기기에서 마지막에 고른 "누가" — 폰 주인이 거의 늘 같다
+
+const entryKind = () => segValue($("#entKind")) === "income" ? "income" : "expense";
+function setKind(kind){
+  setSeg($("#entKind"), kind);
+  const inc = kind === "income";
+  $("#entCatWrap").hidden = inc;
+  $("#entMemo").placeholder = inc ? "예: 9월 생활비" : "예: 이마트 장보기";
+  $("#entSave").textContent = editingId ? "고친 내용 저장" : inc ? "입금 저장" : "지출 저장";
 }
-/** 읽은 결과를 종류에 맞는 폼으로 보낸다. */
-function fillFromParsed(parsed, sourceLabel){
-  if (parsed.kind === "income") fillIncomeForm(parsed, sourceLabel);
-  else fillExpenseForm({ ...parsed, category: parsed.category || "" }, sourceLabel);
+function resetEntryForm(){
+  editingId = null; catTouched = false;
+  clearAmtField($("#entAmt"));
+  $("#entMemo").value = "";
+  $("#entCat").value = CATEGORIES[0];
+  $("#entDate").value = todayStr();
+  $("#pasteBox").classList.remove("show"); $("#pasteText").value = "";
+  autoStatus("");
+  disarm($("#entDelete"));
+}
+/** opts.edit: 고칠 기록 / opts.date: 새 기록의 날짜 / opts.focus: false면 금액 칸에 커서를 두지 않는다. */
+function openEntrySheet(opts = {}){
+  resetEntryForm();
+  const e = opts.edit;
+  if (e) {
+    editingId = e.id;
+    $("#entAmt").value = (Number(e.amount) || 0).toLocaleString("ko-KR");
+    updateAmtPreview($("#entAmt"));
+    $("#entMemo").value = e.memo || "";
+    $("#entDate").value = e.date || todayStr();
+    if (e.type !== "income") { $("#entCat").value = CATEGORIES.includes(e.category) ? e.category : CATEGORIES[0]; catTouched = true; }
+    setSeg($("#entWho"), e.who);
+  } else {
+    if (opts.date) $("#entDate").value = opts.date;
+    let who = ""; try { who = localStorage.getItem(WHO_KEY) || ""; } catch(_){}
+    if (who) setSeg($("#entWho"), who);
+  }
+  $("#entryTitle").textContent = e ? "기록 고치기" : "기록 적기";
+  $("#autoRow").hidden = !!e;          // 고칠 때는 스크린샷·문자 인식이 필요 없다
+  $("#entDelete").hidden = !e;
+  setKind(e ? e.type : "expense");
+  openSheet("#entrySheet");
+  if (opts.focus !== false) $("#entAmt").focus();   // 눌린 순간 바로 — iOS는 지연된 focus로는 키보드를 안 띄운다
+}
+function closeEntrySheet(){
+  closeSheet("#entrySheet");
+  resetEntryForm();
+}
+async function saveEntrySheet(){
+  const btn = $("#entSave"), was = btn.textContent;
+  const kind = entryKind();
+  const amount = evalAmount($("#entAmt").value);
+  const date = $("#entDate").value || todayStr();
+  if (!amount) { toast(amtError($("#entAmt").value)); $("#entAmt").focus(); return; }
+  const id = editingId;
+  const prev = id ? state.entries.get(id) : null;
+  const who = segValue($("#entWho"));
+  const entry = { type: kind, date, month: date.slice(0, 7), who,
+    category: kind === "expense" ? $("#entCat").value : "", memo: $("#entMemo").value.trim(), amount,
+    createdAt: (prev && prev.createdAt) || Date.now() };
+  if (prev && prev.rec && kind === "expense") entry.rec = prev.rec;   // 고정지출 표식은 유지
+  btn.disabled = true; btn.textContent = "저장 중…";
+  try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
+  catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }   // 폼은 그대로 둔다
+  btn.disabled = false;
+  try { localStorage.setItem(WHO_KEY, who); } catch(_){}
+  closeEntrySheet();
+  // 달력에서 고른 날에 적었으면 그 날에 머문다 — 다른 날이면 필터를 풀어 방금 것이 보이게
+  if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
+  state.month = date.slice(0, 7);
+  showTab("ledger");
+  renderAll();
+  toast(id ? "고쳤어요" : kind === "income" ? "입금을 저장했어요" : "지출을 저장했어요");
+}
+async function deleteEditingEntry(){
+  const id = editingId, btn = $("#entDelete");
+  if (!id || !armed(btn)) return;
+  const backup = { ...state.entries.get(id) };      // 되돌리기용 사본
+  delete backup.id;
+  btn.disabled = true;
+  try { await deleteEntry(id); }
+  catch (err) { dbWriteFailed(err); btn.disabled = false; return; }
+  btn.disabled = false;
+  closeEntrySheet();
+  toast("지웠어요", "되돌리기", async () => {
+    try { await addEntry(backup); toast("되돌렸어요"); }
+    catch (err) { dbWriteFailed(err); }
+  });
 }
 
-function fillExpenseForm({amount, merchant, date, category}, sourceLabel){
-  $("#expAdder").open = true;
-  if (amount) { $("#expAmt").value = amount.toLocaleString("ko-KR"); updateAmtPreview($("#expAmt")); }
-  if (merchant) $("#expMemo").value = merchant;
-  $("#expDate").value = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr();
-  const cat = (category && CATEGORIES.includes(category)) ? category : suggestCategory(merchant || "");
-  if (cat) $("#expCat").value = cat;
-  const form = $("#expForm");
+/** 스크린샷·문자에서 읽은 값을 시트에 채운다 — 저장은 사람이 확인하고 누른다. */
+function fillFromParsed(parsed, sourceLabel){
+  if (!sheetOpen("#entrySheet")) openEntrySheet({ focus: false });   // 인식이 끝나기 전에 시트를 닫았으면 다시 연다
+  const inc = parsed.kind === "income";
+  setKind(inc ? "income" : "expense");
+  if (parsed.amount) { $("#entAmt").value = parsed.amount.toLocaleString("ko-KR"); updateAmtPreview($("#entAmt")); }
+  if (parsed.merchant) $("#entMemo").value = parsed.merchant;
+  $("#entDate").value = (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) ? parsed.date : todayStr();
+  if (!inc) {
+    const cat = (parsed.category && CATEGORIES.includes(parsed.category)) ? parsed.category : suggestCategory(parsed.merchant || "");
+    if (cat) $("#entCat").value = cat;
+  }
+  const form = $("#entForm");
   form.classList.remove("formflash"); void form.offsetWidth; form.classList.add("formflash");
-  $("#expForm").scrollIntoView({ block: "center", behavior: "smooth" });
-  toast(sourceLabel + " — 누가 썼는지 고르고 저장을 눌러 주세요");
+  toast(sourceLabel + (inc ? " — 입금으로 읽었어요. 확인하고 저장을 눌러 주세요" : " — 누가 썼는지 고르고 저장을 눌러 주세요"));
 }
 
 /* ================= 캐퍼빌리티 ================= */
@@ -1924,9 +1872,11 @@ function setConn(mode){
   const conn = $("#conn");
   const shared = mode === "db" || mode === "fs";
   conn.classList.toggle("on", shared);
-  $("#connText").textContent =
-    mode === "db" ? "실시간 공유 연결됨" :
-    mode === "fs" ? "실시간 공유 연결됨 (Firebase)" : "이 기기에만 저장 중";
+  // 머리에는 짧게, 자세한 상태는 메뉴 맨 아래(footNote)에
+  $("#connText").textContent = shared ? "공유 중" : "이 기기에만";
+  conn.title =
+    mode === "db" ? "claude.ai 공유 저장소에 실시간 연결됨" :
+    mode === "fs" ? "Firebase로 실시간 공유 중" : "이 기기에만 저장 중";
   // 공유가 아니면 상단에 크게 알린다 — 그 사실이 푸터에 묻히면 혼자 한 달을 적게 된다
   const bar = $("#shareBanner");
   bar.classList.toggle("show", !shared);
@@ -2125,8 +2075,7 @@ function renderSettings(){
   const focused = document.activeElement;
   if (focused !== $("#setM0")) $("#setM0").value = state.members[0];
   if (focused !== $("#setM1")) $("#setM1").value = state.members[1];
-  buildWhoSeg($("#incWho"), true);
-  buildWhoSeg($("#expWho"), true);
+  buildWhoSeg($("#entWho"), true);
   const prevWho = $("#recWho").value;
   buildWhoSelect("#recWho");
   if (prevWho) $("#recWho").value = prevWho;
@@ -2165,92 +2114,34 @@ function buildCsv(){
 
 /* ================= 이벤트 연결 ================= */
 function bindEvents(){
-  // 규칙
-  $("#rulesEditBtn").addEventListener("click", () => {
-    $("#rulesText").value = state.rules || DEFAULT_RULES;
-    $("#rulesEdit").hidden = false;
-    $("#rulesList").hidden = true;
-    $("#rulesText").focus();
-  });
-  $("#rulesCancel").addEventListener("click", () => { $("#rulesEdit").hidden = true; $("#rulesList").hidden = false; });
-  $("#rulesSave").addEventListener("click", () => {
-    saveRules($("#rulesText").value.trim()).catch(dbWriteFailed);
-    $("#rulesEdit").hidden = true; $("#rulesList").hidden = false;
-    toast("규칙을 저장했어요");
-  });
-
-  // 월 이동
+  // 탭 · 월 이동
+  TABS.forEach(t => $("#tb-" + t).addEventListener("click", () => showTab(t)));
   const goMonth = m => { state.month = m; state.dayFilter = ""; renderAll(); };
   $("#prevM").addEventListener("click", () => goMonth(shiftMonth(state.month, -1)));
   $("#nextM").addEventListener("click", () => goMonth(shiftMonth(state.month, +1)));
   $("#toThis").addEventListener("click", () => goMonth(thisMonth()));
 
-  // 입금 저장
-  bindAmtField($("#incAmt")); attachCalcButton($("#incAmt"));
-  $("#incSave").addEventListener("click", async () => {
-    const btn = $("#incSave"), was = btn.textContent;
-    const amount = evalAmount($("#incAmt").value);
-    const date = $("#incDate").value || todayStr();
-    if (!amount) { toast(amtError($("#incAmt").value)); $("#incAmt").focus(); return; }
-    const id = editing.income;
-    const prev = id ? state.entries.get(id) : null;
-    const entry = { type: "income", date, month: date.slice(0,7), who: segValue($("#incWho")),
-      category: "", memo: $("#incMemo").value.trim(), amount,
-      createdAt: (prev && prev.createdAt) || Date.now() };
-    btn.disabled = true; btn.textContent = "저장 중…";
-    try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
-    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }  // 폼은 그대로 둔다
-    btn.disabled = false;
-    cancelEdit("income");
-    if (state.dayFilter && state.dayFilter !== date) state.dayFilter = "";
-    clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
-    state.month = date.slice(0,7); renderAll();
-    toast(id ? "입금을 고쳤어요" : "입금을 저장했어요");
-  });
-  $("#incCancel").addEventListener("click", () => {
-    cancelEdit("income");
-    clearAmtField($("#incAmt")); $("#incMemo").value = ""; $("#incDate").value = todayStr();
+  // ＋ 버튼 — 가계부에선 기록 시트, 냉장고에선 담기 시트. 달력에서 고른 날이 있으면 그 날짜로
+  $("#quickAdd").addEventListener("click", () => {
+    if (state.tab === "fridge") openPantrySheet(null);
+    else openEntrySheet({ date: state.dayFilter });
   });
 
-  // 지출 저장
-  bindAmtField($("#expAmt")); attachCalcButton($("#expAmt"));
-  $("#expCat").addEventListener("change", () => { expCatTouched = true; });
-  $("#expMemo").addEventListener("change", () => {
-    if (expCatTouched) return;                        // 사용자가 고른 것을 덮지 않는다
-    const cat = suggestCategory($("#expMemo").value);
-    if (cat) { $("#expCat").value = cat; }
+  // 기록 시트
+  $("#entKind").querySelectorAll("button").forEach(b => b.addEventListener("click", () => setKind(b.dataset.val)));
+  bindAmtField($("#entAmt")); attachCalcButton($("#entAmt"));
+  $("#entCat").addEventListener("change", () => { catTouched = true; });
+  $("#entMemo").addEventListener("change", () => {
+    if (catTouched || entryKind() !== "expense") return;   // 사용자가 고른 것을 덮지 않는다
+    const cat = suggestCategory($("#entMemo").value);
+    if (cat) $("#entCat").value = cat;
   });
-  $("#expSave").addEventListener("click", async () => {
-    const btn = $("#expSave"), was = btn.textContent;
-    const amount = evalAmount($("#expAmt").value);
-    const date = $("#expDate").value || todayStr();
-    if (!amount) { toast(amtError($("#expAmt").value)); $("#expAmt").focus(); return; }
-    const id = editing.expense;
-    const prev = id ? state.entries.get(id) : null;
-    const entry = { type: "expense", date, month: date.slice(0,7), who: segValue($("#expWho")),
-      category: $("#expCat").value, memo: $("#expMemo").value.trim(), amount,
-      createdAt: (prev && prev.createdAt) || Date.now() };
-    if (prev && prev.rec) entry.rec = prev.rec;        // 고정지출 표식은 유지
-    btn.disabled = true; btn.textContent = "저장 중…";
-    try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
-    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
-    btn.disabled = false;
-    cancelEdit("expense");
-    // 달력에서 고른 날에 적었으면 그 날에 머문다 (연속 입력) — 다른 날이면 필터를 풀어 방금 것이 보이게
-    const stay = state.dayFilter && state.dayFilter === date;
-    if (!stay) state.dayFilter = "";
-    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = stay ? date : todayStr();
-    $("#expCat").value = CATEGORIES[0]; expCatTouched = false;
-    state.month = date.slice(0,7); renderAll();
-    toast(id ? "지출을 고쳤어요" : "지출을 저장했어요");
-  });
-  $("#expCancel").addEventListener("click", () => {
-    cancelEdit("expense");
-    clearAmtField($("#expAmt")); $("#expMemo").value = ""; $("#expDate").value = todayStr();
-    $("#expCat").value = CATEGORIES[0]; expCatTouched = false;
-  });
+  $("#entSave").addEventListener("click", saveEntrySheet);
+  $("#entDelete").addEventListener("click", deleteEditingEntry);
+  $("#entryClose").addEventListener("click", closeEntrySheet);
+  $("#entryBackdrop").addEventListener("click", closeEntrySheet);
 
-  // 자동화: 사진
+  // 자동 입력: 스크린샷
   $("#photoBtn").addEventListener("click", () => $("#photoFile").click());
   $("#photoFile").addEventListener("change", () => {
     const f = $("#photoFile").files && $("#photoFile").files[0];
@@ -2258,13 +2149,96 @@ function bindEvents(){
   });
   $("#autoStop").addEventListener("click", () => { if (currentAbort) currentAbort.abort(); });
 
-  // 자동화: 문자 붙여넣기
+  // 자동 입력: 문자 붙여넣기
   $("#pasteBtn").addEventListener("click", () => {
     $("#pasteBox").classList.toggle("show");
     if ($("#pasteBox").classList.contains("show")) $("#pasteText").focus();
   });
   $("#pasteClose").addEventListener("click", () => $("#pasteBox").classList.remove("show"));
   $("#pasteParse").addEventListener("click", parsePastedText);
+
+  // 여러 품목 시트
+  $("#multiEach").addEventListener("click", () => multiSubmit("each"));
+  $("#multiMerge").addEventListener("click", () => multiSubmit("merge"));
+  $("#multiCancel").addEventListener("click", closeMultiSheet);
+  $("#multiBackdrop").addEventListener("click", closeMultiSheet);
+
+  // 냉장고 시트
+  $("#pantryClose").addEventListener("click", closePantrySheet);
+  $("#pantryBackdrop").addEventListener("click", closePantrySheet);
+  $("#pSave").addEventListener("click", async () => {
+    const name = $("#pName").value.trim();
+    if (!name) { toast("이름을 적어 주세요"); $("#pName").focus(); return; }
+    const btn = $("#pSave"), was = btn.textContent;
+    const id = editingPantry;
+    const prev = id ? state.pantry.get(id) : null;
+    const item = {
+      name, expireAt: $("#pExpire").value || "",
+      // 날짜를 그대로 두고 이름만 고쳤으면 "추정" 표시도 그대로 — 날짜를 바꿨으면 사람이 정한 값
+      guessed: !!(prev && prev.guessed && prev.expireAt === ($("#pExpire").value || "")),
+      qty: $("#pQty").value.trim(), memo: $("#pMemo").value.trim(),
+      buyAt: (prev && prev.buyAt) || todayStr(), who: (prev && prev.who) || segValue($("#entWho")),
+      category: (prev && prev.category) || "", createdAt: (prev && prev.createdAt) || Date.now(),
+    };
+    if (prev && prev.doneAt) item.doneAt = prev.doneAt;
+    btn.disabled = true; btn.textContent = "저장 중…";
+    try { if (id) await updatePantry(id, item); else await addPantry(item); }
+    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
+    btn.disabled = false;
+    closePantrySheet();
+    showTab("fridge"); renderAll();
+    toast(id ? "고쳤어요" : "냉장고에 담았어요");
+  });
+  $("#pDelete").addEventListener("click", async () => {
+    const id = editingPantry, btn = $("#pDelete");
+    if (!id || !armed(btn)) return;
+    const backup = { ...state.pantry.get(id) }; delete backup.id;
+    btn.disabled = true;
+    try { await deletePantry(id); } catch (err) { dbWriteFailed(err); btn.disabled = false; return; }
+    btn.disabled = false;
+    closePantrySheet();
+    toast("지웠어요", "되돌리기", async () => {
+      try { await addPantry(backup); } catch (err) { dbWriteFailed(err); }
+    });
+  });
+
+  // 계산기 패드
+  buildCalcPad();
+  $("#calcApply").addEventListener("click", calcApply);
+  $("#calcCancel").addEventListener("click", calcClose);
+  $("#calcBackdrop").addEventListener("click", calcClose);
+
+  // 메뉴 서랍
+  $("#settingsBtn").addEventListener("click", openDrawer);
+  $("#drawerClose").addEventListener("click", closeDrawer);
+  $("#drawerBackdrop").addEventListener("click", closeDrawer);
+
+  // Esc는 맨 위에 떠 있는 것 하나만 닫는다 (계산기 → 품목 확인 → CSV → 시트 → 서랍)
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    if (sheetOpen("#calcSheet")) calcClose();
+    else if (sheetOpen("#multiSheet")) closeMultiSheet();
+    else if (sheetOpen("#csvSheet")) closeCsvSheet();
+    else if (sheetOpen("#entrySheet")) closeEntrySheet();
+    else if (sheetOpen("#pantrySheet")) closePantrySheet();
+    else closeDrawer();
+  });
+
+  // 규칙
+  $("#rulesEditBtn").addEventListener("click", () => {
+    $("#rulesText").value = state.rules || DEFAULT_RULES;
+    $("#rulesEdit").hidden = false;
+    $("#rulesList").hidden = true;
+    $("#rulesEditBtn").hidden = true;
+    $("#rulesText").focus();
+  });
+  const closeRulesEdit = () => { $("#rulesEdit").hidden = true; $("#rulesList").hidden = false; $("#rulesEditBtn").hidden = false; };
+  $("#rulesCancel").addEventListener("click", closeRulesEdit);
+  $("#rulesSave").addEventListener("click", () => {
+    saveRules($("#rulesText").value.trim()).catch(dbWriteFailed);
+    closeRulesEdit();
+    toast("규칙을 저장했어요");
+  });
 
   // 고정지출
   $("#recFill").addEventListener("click", fillRecurring);
@@ -2281,36 +2255,7 @@ function bindEvents(){
     toast("고정지출을 등록했어요");
   });
 
-  // 설정
-  const drawerOpen = () => {
-    $("#drawerWrap").classList.add("open");
-    $("#drawerWrap").setAttribute("aria-hidden", "false");
-    $("#settingsBtn").setAttribute("aria-expanded", "true");
-    $("#drawerClose").focus();
-  };
-  const drawerClose = () => {
-    $("#drawerWrap").classList.remove("open");
-    $("#drawerWrap").setAttribute("aria-hidden", "true");
-    $("#settingsBtn").setAttribute("aria-expanded", "false");
-    $("#settingsBtn").focus();
-  };
-  $("#settingsBtn").addEventListener("click", drawerOpen);
-  $("#drawerClose").addEventListener("click", drawerClose);
-  $("#drawerBackdrop").addEventListener("click", drawerClose);
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && $("#drawerWrap").classList.contains("open")) drawerClose();
-  });
-
-  TABS.forEach(t => $("#tb-" + t).addEventListener("click", () => showTab(t)));
-
-  // 하단 빠른 추가 — 목록 맨 아래까지 스크롤하지 않고 바로 적게
-  $("#quickAdd").addEventListener("click", () => {
-    cancelEdit("expense");
-    showTab("daily");
-    $("#expAdder").open = true;
-    $("#expAdder").scrollIntoView({ block: "center", behavior: "smooth" });
-    setTimeout(() => $("#expAmt").focus(), 350);
-  });
+  // 이름
   $("#saveSettings").addEventListener("click", () => {
     const a = $("#setM0").value.trim(), b = $("#setM1").value.trim();
     if (!a || !b) { toast("이름을 비울 수 없어요"); return; }
@@ -2319,7 +2264,7 @@ function bindEvents(){
     toast("이름을 저장했어요");
   });
 
-  // CSV
+  // CSV 내보내기 · 가져오기
   $("#csvBtn").addEventListener("click", async () => {
     if (!downloadsNs) { downloadTextFallback("생활비통장.csv", buildCsv()); toast("CSV를 내려받아요"); return; }
     try {
@@ -2330,14 +2275,11 @@ function bindEvents(){
       toast("내보내기에 실패했어요 — 다시 시도해 주세요");
     }
   });
-
-  // CSV 가져오기
   $("#csvImportBtn").addEventListener("click", () => $("#csvFile").click());
   $("#csvFile").addEventListener("change", () => handleCsvFile($("#csvFile").files && $("#csvFile").files[0]));
   $("#csvGo").addEventListener("click", importCsvRows);
   $("#csvCancel").addEventListener("click", closeCsvSheet);
   $("#csvBackdrop").addEventListener("click", closeCsvSheet);
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#csvSheet").classList.contains("show")) closeCsvSheet(); });
 
   // 초대 링크 (Firebase 모드)
   $("#copyInvite").addEventListener("click", async () => {
@@ -2350,55 +2292,10 @@ function bindEvents(){
   $("#migUpload").addEventListener("click", migrateLocal);
   $("#migClose").addEventListener("click", () => { migDismissed = true; renderMigBanner(); });
 
-  // 공유 꺼짐 배너의 "자세히" — 기술적 원인은 접어 둔다
+  // 공유 꺼짐 배너의 "자세히" — 원인은 메뉴 맨 아래에 적혀 있다
   $("#shareWhy").addEventListener("click", () => {
-    const note = $("#footNote");
-    note.scrollIntoView({ block: "center", behavior: "smooth" });
-    toast(fbFailReason || "공유 저장소에 연결되지 않았어요");
-  });
-
-  // 여러 품목 시트
-  $("#multiEach").addEventListener("click", () => multiSubmit("each"));
-  $("#multiMerge").addEventListener("click", () => multiSubmit("merge"));
-  $("#multiCancel").addEventListener("click", closeMultiSheet);
-  $("#multiBackdrop").addEventListener("click", closeMultiSheet);
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#multiSheet").classList.contains("show")) closeMultiSheet(); });
-
-  // 보관함
-  $("#pantryGo").addEventListener("click", () => { showTab("pantry"); $("#tab-pantry").scrollIntoView({ block: "start", behavior: "smooth" }); });
-  $("#pantryAddBtn").addEventListener("click", () => {
-    cancelPantryEdit(); $("#pantryAdder").open = true; setTimeout(() => $("#pName").focus(), 200);
-  });
-  $("#pCancel").addEventListener("click", cancelPantryEdit);
-  $("#pSave").addEventListener("click", async () => {
-    const name = $("#pName").value.trim();
-    if (!name) { toast("이름을 적어 주세요"); $("#pName").focus(); return; }
-    const btn = $("#pSave"), was = btn.textContent;
-    const id = editingPantry;
-    const prev = id ? state.pantry.get(id) : null;
-    const item = {
-      name, expireAt: $("#pExpire").value || "", guessed: false,
-      qty: $("#pQty").value.trim(), memo: $("#pMemo").value.trim(),
-      buyAt: (prev && prev.buyAt) || todayStr(), who: (prev && prev.who) || segValue($("#expWho")),
-      category: (prev && prev.category) || "", createdAt: (prev && prev.createdAt) || Date.now(),
-    };
-    if (prev && prev.doneAt) item.doneAt = prev.doneAt;
-    btn.disabled = true; btn.textContent = "저장 중…";
-    try { if (id) await updatePantry(id, item); else await addPantry(item); }
-    catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
-    btn.disabled = false;
-    cancelPantryEdit();
-    showTab("pantry"); renderAll();
-    toast(id ? "고쳤어요" : "보관함에 담았어요");
-  });
-
-  // 계산기 패드
-  buildCalcPad();
-  $("#calcApply").addEventListener("click", calcApply);
-  $("#calcCancel").addEventListener("click", calcClose);
-  $("#calcBackdrop").addEventListener("click", calcClose);
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && $("#calcSheet").classList.contains("show")) calcClose();
+    openDrawer();
+    $("#footNote").scrollIntoView({ block: "end" });
   });
 }
 
@@ -2585,11 +2482,10 @@ async function initCapabilities(){
 /* ================= 시작 ================= */
 function init(){
   loadLocal();
-  buildCatSelect("#expCat"); buildCatSelect("#recCat");
-  $("#incDate").value = todayStr(); $("#expDate").value = todayStr();
+  buildCatSelect("#entCat"); buildCatSelect("#recCat");
   bindEvents();
-  let lastTab = "daily";
-  try { lastTab = localStorage.getItem("dani-ledger-tab") || "daily"; } catch(e){}
+  let lastTab = "ledger";
+  try { lastTab = localStorage.getItem("dani-ledger-tab") || "ledger"; } catch(e){}
   showTab(lastTab);
   renderAll();
   setConn("local");
