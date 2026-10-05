@@ -2,7 +2,10 @@
 
 둘이서 함께 쓰는 생활비통장 가계부 — 단일 파일 웹앱(`index.html`).
 
-배포 주소: **https://dani-yongcheol.web.app**
+홈 화면에 설치되는 앱(PWA)으로도 쓸 수 있다. 배포 주소:
+
+- **GitHub Pages** — https://cyc53233-coder.github.io/me/ledger/ (`main`에 머지하면 자동)
+- **Netlify** — `npm run build`가 만든 `dist/ledger-pwa.zip`을 Netlify Drop에 끌어다 놓는다 (아래 [배포](#배포))
 
 ## 구성
 
@@ -32,7 +35,13 @@
 
 공유 모드로 처음 연결될 때 이 기기에만 있던 기록이 있으면 "올릴까요?" 배너로 이사를 제안한다.
 
-데이터는 `ledgers/<가계부 코드>/` 아래에 들어간다 — `entries/`(입금·지출), `meta/rules`, `meta/settings`, `meta/recurring`.
+데이터는 `ledgers/<가계부 코드>/` 아래에 들어간다 — `entries/`(입금·지출), `pantry/`(냉장고), `recurring/`(고정지출), `meta/rules`, `meta/settings`. 예전 판이 `meta/recurring`에 배열로 둔 고정지출은 처음 열 때 `recurring/`으로 옮겨진다.
+
+공유 저장은 이렇게 한다:
+
+- **실시간 구독은 하나** — 가계부 노드 전체를 리스너 하나로 받는다
+- **항목별 저장** — 기록 하나를 고치면 그 항목 하나만 쓴다. 목록을 통째로 덮어쓰지 않으므로 둘이 동시에 적어도 서로 지우지 않는다. 값이 하나뿐인 규칙·이름은 고치기 시작한 뒤 상대가 먼저 바꿨으면 덮어쓰지 않고 알린다
+- **저장 확인** — 머리에 "저장 중… / 저장됨 / 저장 실패". 10초 안에 확인이 안 오면 실패로 보고 화면을 되돌린다 (입력값은 남아 있어 다시 누르면 되고, 두 번 들어가지 않는다)
 
 ## Firebase 설정
 
@@ -56,9 +65,28 @@
 
 ## 배포
 
-`main`에 `ledger/` 변경이 푸시되면 [`firebase-hosting.yml`](../.github/workflows/firebase-hosting.yml)이 Firebase Hosting에 자동 배포한다. 저장소 시크릿 **`FIREBASE_SERVICE_ACCOUNT`** 가 필요하다 — Firebase 콘솔 > 프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성으로 받은 JSON 전체를 Settings > Secrets and variables > Actions 에 등록한다. (이 JSON은 비밀이므로 커밋하거나 채팅에 붙여넣지 말 것.)
+배포물은 `index.html`, `manifest.webmanifest`, `sw.js`, `icons/` 뿐이다 (목록은 `build-zip.mjs`의 `FILES`).
 
-호스팅 루트는 `ledger/`라서 가계부가 도메인 최상단에서 열린다. 저장소 루트의 핫딜 사이트와 섞이지 않는다.
+```
+cd ledger
+npm run build     # 아티팩트 변형 + sw.js 버전 찍기 + dist/ledger-pwa.zip
+npm test          # 전부 통과해야 배포
+```
+
+- **GitHub Pages** — `main`에 머지하면 자동으로 올라간다. 바뀐 `sw.js`도 함께 커밋해야 설치된 앱이 "새 버전이 있어요"를 띄운다
+- **Netlify Drop** — https://app.netlify.com/drop 에 `dist/ledger-pwa.zip`을 끌어다 놓는다. 이미 만든 사이트를 고칠 때는 그 사이트의 **Deploys** 탭 아래 칸에 끌어다 놓는다 (새로 끌면 주소가 새로 생긴다). 무료 플랜은 배포 횟수 한도가 있으니 수정은 모아서 올린다
+- **Firebase Hosting** — [`firebase-hosting.yml`](../.github/workflows/firebase-hosting.yml)이 `main` 푸시 때 시도한다. 저장소 시크릿 **`FIREBASE_SERVICE_ACCOUNT`**가 있어야 돈다 — Firebase 콘솔 > 프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성으로 받은 JSON 전체를 Settings > Secrets and variables > Actions 에 등록한다. (이 JSON은 비밀이므로 커밋하거나 채팅에 붙여넣지 말 것.) 호스팅 루트는 `ledger/`다
+
+### 주소를 옮기거나 홈 화면에 설치할 때
+
+가계부 코드는 주소의 `#l=<코드>` → 그 주소에서 저장해 둔 값 순으로 찾는다. 저장해 둔 값은 **도메인마다 따로**이고, **아이폰 홈 화면 앱은 사파리와도 따로**다. 코드가 없으면 앱이 "어느 가계부를 열까요?"를 묻는다 — 이때 **초대 링크를 붙여넣으면** 원래 가계부로 들어간다 (새로 만들면 빈 가계부가 하나 더 생긴다). 그래서 옮기기 전에 메뉴 > 다니 초대하기 > **초대 링크 복사**를 먼저 해 둔다.
+
+### 홈 화면 앱
+
+- 안드로이드 크롬: 화면 위 설치 안내의 **[설치]** (또는 크롬 메뉴 > 홈 화면에 추가)
+- 아이폰: 사파리 아래 **공유 → 홈 화면에 추가**. 설치한 앱을 처음 열면 초대 링크를 붙여넣는다
+- 카톡에서 링크를 열었으면: 안내의 **[브라우저로 열기]** — 카톡 안에서는 설치가 안 된다
+- 오프라인에서는 앱 화면만 뜨고 "이 기기에만"으로 표시된다 (기록은 Firebase에 있다)
 
 ## claude.ai 아티팩트로 발행할 때
 
@@ -68,4 +96,4 @@
 node ledger/build-artifact.mjs      # → ledger/artifact.html (gitignore됨)
 ```
 
-이 스크립트가 어떤 줄을 빼는지가 유일한 기준이다 — 문서 스켈레톤이나 Firebase 스크립트 줄을 고치면 스크립트의 `DROP` 목록도 함께 고쳐야 하고, 어긋나면 오류로 알려 준다. CI에서도 `--check`로 검증한다.
+이 스크립트가 어떤 줄을 빼는지가 유일한 기준이다 — 문서 스켈레톤, 홈 화면 앱(manifest·아이콘) 줄, Firebase 스크립트 줄을 고치면 스크립트의 `DROP` 목록도 함께 고쳐야 하고, 어긋나면 오류로 알려 준다. CI에서도 `--check`로 검증한다.

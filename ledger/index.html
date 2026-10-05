@@ -2,8 +2,16 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>다니랑 생활비 통장</title>
+<!-- 홈 화면 앱(PWA) — 호스팅판 전용. 아티팩트 변형에서는 이 줄들이 빠진다 (build-artifact.mjs) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="생활비">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
   /* 심플 화이트 · 마트 컨셉 — 단일 라이트 테마 (배경·색 전부 명시) */
@@ -21,9 +29,21 @@
   body{
     background:var(--paper); color:var(--ink);
     font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-    font-size:15px; line-height:1.55; margin:0;
+    font-size:15px; line-height:1.55; margin:0; padding-top:env(safe-area-inset-top);
   }
-  .wrap{max-width:680px; margin:0 auto; padding:8px 16px 112px; display:flex; flex-direction:column; gap:12px}
+  .wrap{max-width:680px; margin:0 auto; padding:8px 16px calc(112px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:12px}
+
+  /* ---------- 로딩 화면: 저장소 연결이 끝날 때까지 (빈 목록을 "기록 없음"으로 오해하지 않게) ---------- */
+  #splash{position:fixed; inset:0; z-index:100; background:var(--paper); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; transition:opacity .25s ease}
+  #splash.gone{opacity:0; pointer-events:none}
+  .sp-mark{width:84px; height:84px; border-radius:20px; background:var(--yellow); display:grid; place-items:center}
+  .sp-mark::before{content:""; width:46px; height:36px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 5px, transparent 5px 8px, var(--ink) 8px 10px, transparent 10px 14px)}
+  .sp-name{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-size:24px}
+  .sp-bar{width:120px; height:3px; border-radius:3px; background:var(--track); overflow:hidden; position:relative}
+  .sp-bar::after{content:""; position:absolute; top:0; bottom:0; width:40%; background:var(--ink); animation:spload 1s ease-in-out infinite}
+  @keyframes spload{0%{left:-40%} 100%{left:100%}}
 
   h1,h2,.serif{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-weight:400; letter-spacing:.01em}
   h1{font-size:24px; margin:0; line-height:1.2; word-break:keep-all}
@@ -45,7 +65,7 @@
   .iconbtn.sm{width:36px; height:36px; font-size:15px}
 
   /* ---------- 상단 고정: 탭 · 월 · 요약 ---------- */
-  .topbar{position:sticky; top:0; z-index:30; background:var(--paper); margin:0 -16px; padding:0 16px;
+  .topbar{position:sticky; top:env(safe-area-inset-top); z-index:30; background:var(--paper); margin:0 -16px; padding:0 16px;
     border-bottom:1px solid var(--line)}
   .tabbar{display:flex}
   .tabbar button{flex:1; background:none; border:none; padding:11px 4px 9px; cursor:pointer; color:var(--muted);
@@ -69,6 +89,7 @@
   .banner.show{display:flex}
   .banner.warnbar{background:#FFF1F1; border-color:var(--expense); color:#7A1E1E}
   .banner .grow{flex:1}
+  .banner .iconbtn.sm{width:30px; height:30px; font-size:12px; background:transparent; border-color:transparent}
 
   /* ---------- 달력 (가계부 탭 위) ---------- */
   #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px}
@@ -294,6 +315,7 @@
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="sp-mark"></div><div class="sp-name">다니랑 생활비</div><div class="sp-bar"></div></div>
 
 <div class="wrap">
 
@@ -303,6 +325,18 @@
     <span class="conn" id="conn"><span class="dot"></span><span id="connText">연결 확인 중…</span></span>
     <button class="iconbtn" id="settingsBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="drawer">☰</button>
   </header>
+
+  <!-- 새 버전 · 설치 안내 — 해당될 때만 잠깐 -->
+  <div class="banner" id="updateBanner" role="status">
+    <span class="grow">새 버전이 있어요</span>
+    <button class="primary mini" id="updateGo">새로고침</button>
+  </div>
+  <div class="banner" id="installBanner" role="region" aria-label="홈 화면에 설치">
+    <span class="grow" id="installText"></span>
+    <button class="primary mini" id="installGo" hidden></button>
+    <button class="ghost mini" id="installCopy" hidden>링크 복사</button>
+    <button class="iconbtn sm" id="installClose" aria-label="설치 안내 닫기">✕</button>
+  </div>
 
   <!-- 공유가 꺼진 상태 알림 — 늘 보이는 유일한 배너 (모르고 혼자 한 달을 적지 않게) -->
   <div class="banner warnbar" id="shareBanner" role="status">
@@ -507,6 +541,22 @@
     <label class="f">메모<input id="pMemo" placeholder="예: 냉장 문쪽"></label>
     <button class="primary big" id="pSave">냉장고에 담기</button>
     <button class="dangerlink" id="pDelete" hidden>목록에서 지우기</button>
+  </div>
+</div>
+
+<!-- 이 기기에 가계부 코드가 없을 때: 초대 링크로 들어갈지, 새로 만들지 -->
+<div id="connectSheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="connectTitle" aria-hidden="true">
+  <div class="sheet-bg"></div>
+  <div class="sheet-panel">
+    <h2 class="serif" id="connectTitle">어느 가계부를 열까요?</h2>
+    <p class="hint">함께 쓰는 가계부가 있으면 초대 링크를 붙여넣어 주세요. 홈 화면에 추가한 앱은 브라우저와 저장 공간이 따로라서, 처음 한 번은 이렇게 연결해야 해요.</p>
+    <label class="f">초대 링크<input id="connectUrl" placeholder="https://…#l=…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="btnrow">
+      <button class="ghost" id="connectPaste">붙여넣기</button>
+      <button class="primary" id="connectGo" style="flex:1">이 가계부 열기</button>
+    </div>
+    <p class="hint" style="margin-top:6px">처음 쓰는 거라면</p>
+    <button class="ghost" id="connectNew">새 가계부 만들기</button>
   </div>
 </div>
 
@@ -1940,18 +1990,19 @@ function fillFromParsed(parsed, sourceLabel){
 let sampleFn = null, downloadsNs = null, sampleImagesOk = false;
 let currentAbort = null;
 
+/** mode: 'db' | 'fs' (공유) · 'local' (이 기기만) · 'pending' (아직 확인 중 — 경고를 미리 띄우지 않는다) */
 function setConn(mode){
   const conn = $("#conn");
   const shared = mode === "db" || mode === "fs";
   conn.classList.toggle("on", shared);
   // 머리에는 짧게, 자세한 상태는 메뉴 맨 아래(footNote)에
-  $("#connText").textContent = shared ? "공유 중" : "이 기기에만";
+  $("#connText").textContent = shared ? "공유 중" : mode === "pending" ? "연결 확인 중…" : "이 기기에만";
   conn.title =
     mode === "db" ? "claude.ai 공유 저장소에 실시간 연결됨" :
     mode === "fs" ? "Firebase로 실시간 공유 중" : "이 기기에만 저장 중";
   // 공유가 아니면 상단에 크게 알린다 — 그 사실이 푸터에 묻히면 혼자 한 달을 적게 된다
   const bar = $("#shareBanner");
-  bar.classList.toggle("show", !shared);
+  bar.classList.toggle("show", !shared && mode !== "pending");
   if (!shared) $("#shareBannerText").textContent =
     "지금 적는 기록은 이 기기에만 저장돼요 — 상대방 화면에는 안 보입니다";
 
@@ -1959,6 +2010,7 @@ function setConn(mode){
   note.textContent =
     mode === "db" ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요." :
     mode === "fs" ? "초대 링크를 아는 사람끼리 같은 기록을 실시간으로 봐요." :
+    mode === "pending" ? "공유 저장소에 연결하는 중이에요." :
     fbFailReason ? "공유가 안 켜졌어요 — " + fbFailReason :
     "지금은 이 기기에만 저장돼요. 공유하려면 claude.ai 아티팩트로 열거나 Firebase 설정을 넣어 주세요.";
   note.classList.toggle("warn", mode !== "db" && mode !== "fs" && !!fbFailReason);
@@ -2417,7 +2469,7 @@ function connectSharedStore(adapter, mode){
   // 둘이 쓰는 규모에선 문제없다. 느려지면 달별로 나눌 자리.
   db.subscribeAll(tree => {
     const legacy = applyTree(tree);
-    renderAll(); renderMigBanner();
+    renderAll(); renderMigBanner(); hideSplash();
     migrateLegacyRecurring(legacy);
   }, () => toast("공유 저장소 연결이 끊겼어요 — 새로고침해 주세요"));
 }
@@ -2563,7 +2615,7 @@ async function initFirebase(){
     let lid = hashLid();
     let created = false;
     if (!lid) { try { lid = localStorage.getItem(LID_KEY) || ""; } catch(e){} }
-    if (!lid) { lid = newLid(); created = true; }
+    if (!lid) ({ lid, created } = await askWhichLedger());
     try { localStorage.setItem(LID_KEY, lid); } catch(e){}
     if (hashLid() !== lid) { try { history.replaceState(null, "", "#l=" + lid); } catch(e){} }
     connectSharedStore(rtdbAdapter(firebase.database().ref("ledgers/" + lid)), "fs");
@@ -2581,6 +2633,133 @@ async function initFirebase(){
   }
 }
 
+/* 이 기기에 가계부 코드가 없을 때 — 받은 초대 링크로 들어갈지, 새로 만들지 묻는다.
+   아이폰 홈 화면 앱은 사파리와 저장 공간이 따로라, 묻지 않고 새로 만들면
+   기존 가계부 대신 빈 가계부가 하나 더 생겨 둘이 다른 곳에 적게 된다. */
+function askWhichLedger(){
+  hideSplash();
+  openSheet("#connectSheet");
+  return new Promise(resolve => {
+    const done = (lid, created) => { closeSheet("#connectSheet"); resolve({ lid, created }); };
+    $("#connectGo").onclick = () => {
+      const v = $("#connectUrl").value.trim();
+      const m = v.match(/[#&]l=([A-Za-z0-9]{8,})/) || v.match(/^([A-Za-z0-9]{8,})$/);
+      if (!m) { toast("초대 링크를 찾지 못했어요 — #l= 이 들어간 주소 전체를 붙여넣어 주세요"); $("#connectUrl").focus(); return; }
+      done(m[1], false);
+    };
+    $("#connectPaste").onclick = async () => {
+      try { $("#connectUrl").value = (await navigator.clipboard.readText()).trim(); }
+      catch (e) { $("#connectUrl").focus(); toast("칸을 길게 눌러 붙여넣어 주세요"); }
+    };
+    $("#connectNew").onclick = () => done(newLid(), true);
+  });
+}
+
+/* ================= 로딩 화면 ================= */
+function hideSplash(){
+  const sp = $("#splash");
+  if (!sp || sp.classList.contains("gone")) return;
+  sp.classList.add("gone");
+  setTimeout(() => sp.remove(), 300);
+}
+
+/* ================= 홈 화면 앱 (서비스 워커 · 새 버전 · 설치 안내) ================= */
+const hostedPage = () => /^https?:$/.test(location.protocol) && !(window.claude && window.claude.use);
+function initServiceWorker(){
+  if (!("serviceWorker" in navigator) || !hostedPage()) return;
+  // 처음 설치될 때도 controllerchange가 온다 — 이미 워커가 있던 화면만 새로고침한다
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloading) return;
+    reloading = true; location.reload();
+  });
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    const offer = w => {
+      if (!w || !navigator.serviceWorker.controller) return;
+      $("#updateBanner").classList.add("show");
+      $("#updateGo").onclick = () => w.postMessage({ type: "SKIP_WAITING" });
+    };
+    offer(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const w = reg.installing;
+      if (w) w.addEventListener("statechange", () => { if (w.state === "installed") offer(w); });
+    });
+    // 홈 화면 앱은 껐다 켜지 않고 다시 열리는 일이 많다 — 다시 볼 때마다 새 버전이 있는지 본다
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+}
+
+const INSTALL_KEY = "dani-ledger-install-closed";
+let installPrompt = null;     // 안드로이드 크롬이 준 설치 창 (beforeinstallprompt)
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+function installContext(){
+  const ua = navigator.userAgent || "";
+  if (/KAKAOTALK/i.test(ua)) return "kakao";
+  // 다른 앱 안의 브라우저(네이버·인스타·페북·라인)는 홈 화면에 추가할 수 없다. 크롬·엣지는 iOS 16.4부터 된다
+  if (/iPhone|iPad|iPod/i.test(ua)) return /NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua) ? "ios-inapp" : "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "other";
+}
+function renderInstallBanner(){
+  const b = $("#installBanner"), go = $("#installGo"), copy = $("#installCopy");
+  let closed = false;
+  try { closed = localStorage.getItem(INSTALL_KEY) === "1"; } catch(e){}
+  const ctx = installContext();
+  let text = "", goLabel = "", withCopy = false;
+  if (!hostedPage() || isStandalone()) text = "";
+  else if (ctx === "kakao") {
+    // 카톡 안에서는 설치도, 저장도 브라우저와 따로 논다 — 닫았어도 다시 알린다
+    text = "카톡 안에서는 홈 화면에 설치할 수 없어요. 브라우저로 열어 주세요.";
+    goLabel = "브라우저로 열기"; withCopy = true;
+  }
+  else if (closed) text = "";
+  else if (ctx === "ios") {
+    text = "홈 화면에 앱으로 추가: 아래 공유 버튼 → '홈 화면에 추가'. 추가한 앱을 처음 열면 초대 링크를 붙여넣어야 하니 먼저 복사해 두세요.";
+    withCopy = true;
+  }
+  else if (ctx === "ios-inapp") { text = "이 앱 안에서는 홈 화면에 추가할 수 없어요. 링크를 복사해 사파리에서 열어 주세요."; withCopy = true; }
+  else if (installPrompt) { text = "홈 화면에 앱으로 설치할 수 있어요."; goLabel = "설치"; }
+  b.classList.toggle("show", !!text);
+  $("#installText").textContent = text;
+  go.hidden = !goLabel; go.textContent = goLabel;
+  copy.hidden = !withCopy;
+  $("#installClose").hidden = ctx === "kakao";
+}
+function bindInstall(){
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; renderInstallBanner(); });
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    try { localStorage.setItem(INSTALL_KEY, "1"); } catch(e){}
+    renderInstallBanner();
+    toast("홈 화면에 설치했어요");
+  });
+  $("#installGo").addEventListener("click", async () => {
+    if (installContext() === "kakao") {
+      location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+      return;
+    }
+    if (!installPrompt) return;
+    const p = installPrompt;
+    installPrompt = null;
+    p.prompt();
+    try { await p.userChoice; } catch(e){}
+    renderInstallBanner();
+  });
+  // 복사하는 주소에는 가계부 코드(#l=…)가 붙어 있다 — 새 브라우저·설치한 앱에서 같은 가계부로 들어가게
+  $("#installCopy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(location.href); toast("링크를 복사했어요"); }
+    catch (e) { toast("주소창의 주소를 길게 눌러 복사해 주세요"); }
+  });
+  $("#installClose").addEventListener("click", () => {
+    try { localStorage.setItem(INSTALL_KEY, "1"); } catch(e){}
+    renderInstallBanner();
+  });
+  renderInstallBanner();
+}
+
 /* ================= 캐퍼빌리티 초기화 ================= */
 async function initCapabilities(){
   const use = window.claude && window.claude.use ? name => window.claude.use(name) : () => Promise.resolve(null);
@@ -2592,6 +2771,7 @@ async function initCapabilities(){
     connectSharedStore(artifactAdapter(artifactDb), "db");
   } else if (!(await initFirebase())) {
     setConn("local");
+    hideSplash();
   }
 
   // sample: 사진/문자 인식
@@ -2623,8 +2803,10 @@ function init(){
   try { lastTab = localStorage.getItem("dani-ledger-tab") || "ledger"; } catch(e){}
   showTab(lastTab);
   renderAll();
-  setConn("local");
-  $("#connText").textContent = "연결 확인 중…";
+  setConn("pending");
+  bindInstall();
+  initServiceWorker();
+  setTimeout(hideSplash, 8000);     // 연결이 오래 걸려도 화면은 열어 준다 (상태는 머리에 보인다)
   initCapabilities();
 }
 init();
