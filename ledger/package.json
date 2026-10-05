@@ -3,9 +3,11 @@
   "private": true,
   "description": "다니랑 생활비 통장 — 개발용 검증 스크립트 (배포물이 아님)",
   "scripts": {
-    "build": "node build-artifact.mjs",
-    "check": "node build-artifact.mjs --check",
-    "test": "node test/calc.mjs && node test/sms.mjs && node test/pantry.mjs && node build-artifact.mjs && node test/page.mjs",
+    "build": "node build-artifact.mjs && node build-zip.mjs",
+    "check": "node build-artifact.mjs --check && node build-zip.mjs --check",
+    "zip": "node build-zip.mjs",
+    "icons": "node make-icons.mjs",
+    "test": "node test/calc.mjs && node test/sms.mjs && node test/pantry.mjs && node build-artifact.mjs && node build-zip.mjs --check && node test/page.mjs && node test/pwa.mjs",
     "shot": "node test/shot.mjs"
   },
   "devDependencies": {

@@ -551,96 +551,236 @@ const openMenu = async sec => {
 }
 
 // ---- RTDB 어댑터: 가짜 firebase.database() 스텁으로 연결까지 통과시키기 ----
+// 스텁은 진짜 RTDB처럼 트리 하나를 들고, 쓰기는 화면(리스너)에 먼저 반영한 뒤 응답한다.
+// hang/reject 에 경로 조각을 넣으면 그 쓰기는 응답이 없거나(오프라인) 거절된다(규칙).
+const LID = "abcdefgh12345678abcdef";
+const RTDB_STUB = (lid) => {
+  const tree = {};
+  const listeners = [];
+  const R = window.__rtdb = { tree, onCalls: [], writes: [], hang: "", reject: "" };
+  const parts = p => p.split("/").filter(Boolean);
+  const getAt = p => { let n = tree; for (const k of parts(p)) { if (n == null || typeof n !== "object") return null; n = n[k]; } return n === undefined ? null : n; };
+  const setAt = (p, v) => {
+    const ks = parts(p), last = ks.pop();
+    let n = tree; const trail = [];
+    for (const k of ks) { if (n[k] == null || typeof n[k] !== "object") n[k] = {}; trail.push([n, k]); n = n[k]; }
+    if (v === null || v === undefined) delete n[last]; else n[last] = JSON.parse(JSON.stringify(v));
+    for (let i = trail.length - 1; i >= 0; i--) { const [o, k] = trail[i]; if (o[k] && !Object.keys(o[k]).length) delete o[k]; }
+  };
+  const clone = v => v === null ? null : JSON.parse(JSON.stringify(v));
+  const emit = () => listeners.forEach(({ p, cb }) => cb({ val: () => clone(getAt(p)), exists: () => getAt(p) !== null }));
+  R.get = p => clone(getAt(p));
+  R.write = (p, v) => { setAt(p, v); emit(); };            // 다른 기기가 쓴 것처럼
+  function write(p, v){
+    R.writes.push(p);
+    const before = clone(getAt(p));
+    setAt(p, v); emit();                                     // 화면엔 먼저 반영 (RTDB의 로컬 반영)
+    if (R.hang && p.includes(R.hang)) return new Promise(() => {});
+    if (R.reject && p.includes(R.reject)) {
+      setAt(p, before); emit();                              // 거절되면 RTDB가 스스로 되돌린다
+      return Promise.reject(Object.assign(new Error("PERMISSION_DENIED: Permission denied"), { code: "PERMISSION_DENIED" }));
+    }
+    return Promise.resolve();
+  }
+  function makeRef(p){
+    return {
+      child: sub => makeRef(p + "/" + sub),
+      on(evt, cb){ R.onCalls.push(p); listeners.push({ p, cb }); cb({ val: () => clone(getAt(p)), exists: () => getAt(p) !== null }); return cb; },
+      off(){},
+      set: v => write(p, v),
+      remove: () => write(p, null),
+    };
+  }
+  // 예전 판이 남긴 고정지출 배열 — 첫 로드 때 항목별로 옮겨져야 한다
+  setAt("ledgers/" + lid + "/meta/recurring", { items: [{ id: "r1", day: 25, amount: 500000, memo: "월세", category: "주거·공과금", who: "both" }], updatedAt: 1 });
+  window.firebase = {
+    initializeApp(){},
+    auth: () => ({ signInAnonymously: () => Promise.resolve({}) }),
+    database: () => ({ ref: p => makeRef(p) }),
+  };
+};
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, colorScheme: "light", locale: "ko-KR" });
   page = await ctx.newPage();
   page.on("pageerror", e => { console.log("PAGEERROR(rtdb)", e.message); fails.push("rtdb pageerror: " + e.message); });
-
-  // 페이지 스크립트보다 먼저 firebase 스텁을 심는다 (in-memory RTDB 흉내)
-  await page.addInitScript(() => {
-    const store = {};                       // 절대경로 -> 값
-    const listeners = {};                   // 절대경로 -> [fn]
-    window.__rtdb = { store, pushes: 0, removes: 0 };
-    const emit = path => (listeners[path] || []).forEach(fn => fn(snapOf(path)));
-    const snapOf = path => ({
-      val: () => (store[path] === undefined ? null : store[path]),
-      exists: () => store[path] !== undefined,
-    });
-    function makeRef(path){
-      return {
-        child: sub => makeRef(path + "/" + sub),
-        on(evt, cb){ (listeners[path] = listeners[path] || []).push(cb); cb(snapOf(path)); return cb; },
-        off(){},
-        set(v){ store[path] = v; emit(path); return Promise.resolve(); },
-        remove(){
-          const parent = path.slice(0, path.lastIndexOf("/"));
-          const key = path.slice(path.lastIndexOf("/") + 1);
-          if (store[parent]) { delete store[parent][key]; emit(parent); }
-          delete store[path]; window.__rtdb.removes++;
-          return Promise.resolve();
-        },
-        push(v){
-          window.__rtdb.pushes++;
-          const key = "k" + window.__rtdb.pushes;
-          store[path] = Object.assign({}, store[path], { [key]: v });
-          emit(path);
-          return Promise.resolve({ key });
-        },
-      };
-    }
-    window.firebase = {
-      initializeApp(){},
-      auth: () => ({ signInAnonymously: () => Promise.resolve({}) }),
-      database: () => ({ ref: p => makeRef(p) }),
-    };
-  });
+  await page.addInitScript(RTDB_STUB, LID);
   // 설정 플레이스홀더를 통과시키기 위해 apiKey를 심은 사본을 사용
   const hosted = readFileSync(INDEX, "utf-8").replace(/apiKey: "[^"]*"/, 'apiKey: "test-key"');
   writeFileSync(`${SCRATCH}/hosted-stub.html`, hosted);
-  await page.goto("file://" + SCRATCH + "/hosted-stub.html");
+  await page.goto("file://" + SCRATCH + "/hosted-stub.html#l=" + LID);
   await page.waitForTimeout(900);
+  const base = "ledgers/" + LID;
+  const get = p => page.evaluate(p => window.__rtdb.get(p), base + "/" + p);
+  const writesSince = async n => (await page.evaluate(() => window.__rtdb.writes)).slice(n);
+  const writeCount = () => page.evaluate(() => window.__rtdb.writes.length);
 
   check("RTDB: 공유 연결 표시", (await page.locator("#connText").textContent()).includes("공유 중"));
   check("RTDB: 자세한 상태는 메뉴에", (await page.locator("#footNote").textContent()).includes("초대 링크"));
   check("RTDB: 초대 UI 노출", !(await page.evaluate(() => document.querySelector("#inviteRow").hidden)));
-  check("RTDB: 초대 링크에 코드 포함", /#l=[a-z0-9]{22}/.test(await page.inputValue("#inviteUrl")));
+  check("RTDB: 초대 링크에 코드 포함", (await page.inputValue("#inviteUrl")).endsWith("#l=" + LID));
+  const onCalls = await page.evaluate(() => window.__rtdb.onCalls);
+  check("RTDB: 실시간 구독은 하나 — 가계부 루트에만", onCalls.length === 1 && onCalls[0] === base, JSON.stringify(onCalls));
 
+  // 예전 고정지출 배열 → 항목별 문서로 이사
+  check("RTDB: 예전 고정지출이 recurring/<id>로 옮겨짐", (await get("recurring/r1"))?.memo === "월세");
+  check("RTDB: 예전 배열은 비워짐", !((await get("meta/recurring"))?.items || []).length);
+  check("RTDB: 옮긴 고정지출이 메뉴에 보임", (await page.locator("#recList").textContent()).includes("월세"));
+
+  // 지출 추가 — 항목 하나만 쓴다
+  let n0 = await writeCount();
   await openAdd();
   await page.fill("#entAmt", "8800");
   await page.fill("#entMemo", "메가커피");
   await saveSheet();
-  check("RTDB: 지출 추가 → push 호출", (await page.evaluate(() => window.__rtdb.pushes)) === 1);
+  const addWrites = await writesSince(n0);
+  check("RTDB: 지출 추가 → entries/<id> 한 곳만 씀", addWrites.length === 1 && /\/entries\/[a-z0-9]+$/.test(addWrites[0]), JSON.stringify(addWrites));
   check("RTDB: 스냅샷 반영 → 목록 1건", await rowCount() === 1);
   check("RTDB: 요약 반영", (await page.locator("#tOut").textContent()).includes("8,800"));
+  check("RTDB: 저장됨 표시", (await page.locator("#saveState").textContent()) === "저장됨");
+  check("RTDB: 구독은 여전히 하나", (await page.evaluate(() => window.__rtdb.onCalls.length)) === 1);
 
-  // 규칙 저장 → meta/rules 경로에 set
-  await openMenu();
+  // 고정지출 동시 추가 — 다른 기기가 방금 넣은 것을 지우지 않는다
+  await page.evaluate(b => window.__rtdb.write(b + "/recurring/rOther", { day: 5, amount: 30000, memo: "다니가 넣은 구독", category: "통신·구독", who: "m1" }), base);
+  await openMenu("#recSec");
+  n0 = await writeCount();
+  await page.fill("#recDay", "10");
+  await page.fill("#recAmt", "55000");
+  await page.fill("#recMemo", "통신비");
+  await page.click("#recAdd");
+  await page.waitForTimeout(300);
+  const recWrites = await writesSince(n0);
+  check("RTDB: 고정지출 추가 → 그 항목 하나만 씀", recWrites.length === 1 && /\/recurring\/[a-z0-9]+$/.test(recWrites[0]), JSON.stringify(recWrites));
+  const recs = Object.values((await get("recurring")) || {}).map(r => r.memo).sort();
+  check("RTDB: 동시에 넣은 고정지출이 모두 남음", JSON.stringify(recs) === JSON.stringify(["다니가 넣은 구독", "월세", "통신비"]), JSON.stringify(recs));
+
+  // 규칙 저장 → meta/rules
   await page.click("#rulesEditBtn");
   await page.fill("#rulesText", "커피는 하루 한 잔");
   await page.click("#rulesSave");
-  await page.keyboard.press("Escape"); await page.waitForTimeout(200);
   await page.waitForTimeout(300);
-  const rulesPath = await page.evaluate(() => Object.keys(window.__rtdb.store).find(k => k.endsWith("/meta/rules")));
-  check("RTDB: 규칙이 meta/rules 경로에 저장", !!rulesPath, rulesPath);
+  check("RTDB: 규칙이 meta/rules 경로에 저장", (await get("meta/rules"))?.text === "커피는 하루 한 잔");
   check("RTDB: 규칙 스냅샷 반영", (await page.locator("#rulesList").textContent()).includes("커피는 하루 한 잔"));
 
-  // 지우기 → remove 호출
+  // 규칙 동시 수정 — 고치는 사이 상대가 먼저 저장했으면 덮어쓰지 않는다
+  await page.click("#rulesEditBtn");
+  await page.fill("#rulesText", "내가 고친 규칙");
+  await page.evaluate(b => window.__rtdb.write(b + "/meta/rules", { text: "다니가 고친 규칙", updatedAt: Date.now() + 1000 }), base);
+  await page.click("#rulesSave");
+  await page.waitForTimeout(300);
+  check("RTDB: 규칙 충돌 → 덮어쓰지 않음", (await get("meta/rules"))?.text === "다니가 고친 규칙");
+  check("RTDB: 규칙 충돌 → 알림", (await page.locator("#toast").textContent()).includes("다른 기기에서 규칙이 바뀌었어요"));
+  check("RTDB: 규칙 충돌 → 최신 규칙이 보이고 내 글은 남음",
+    (await page.locator("#rulesList").isVisible()) && (await page.locator("#rulesList").textContent()).includes("다니가 고친 규칙") && (await page.inputValue("#rulesText")) === "내가 고친 규칙");
+  await page.click("#rulesSave");
+  await page.waitForTimeout(300);
+  check("RTDB: 확인 후 다시 저장하면 반영", (await get("meta/rules"))?.text === "내가 고친 규칙");
+
+  // 이름 동시 수정
+  await page.evaluate(() => { document.querySelector("#settingsPanel").open = true; });
+  await page.fill("#setM0", "용철");
+  await page.evaluate(b => window.__rtdb.write(b + "/meta/settings", { members: ["철수", "다니"], updatedAt: Date.now() + 2000 }), base);
+  await page.click("#saveSettings");
+  await page.waitForTimeout(300);
+  check("RTDB: 이름 충돌 → 덮어쓰지 않음", JSON.stringify((await get("meta/settings"))?.members) === JSON.stringify(["철수", "다니"]));
+  check("RTDB: 이름 충돌 → 최신 이름으로 칸 갱신", (await page.inputValue("#setM0")) === "철수");
+  await page.fill("#setM0", "용철");
+  await page.click("#saveSettings");
+  await page.waitForTimeout(300);
+  check("RTDB: 이름 다시 저장하면 반영", (await get("meta/settings"))?.members?.[0] === "용철");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+
+  // 저장 응답이 없으면(오프라인) 10초 뒤 실패로 보고 되돌린다 — 다시 눌러도 한 건만
+  await page.evaluate(() => { window.__rtdb.hang = "/entries/"; });
+  await openAdd();
+  await page.fill("#entAmt", "4500");
+  await page.fill("#entMemo", "응답 없는 저장");
+  await page.click("#entSave");
+  await page.waitForTimeout(150);
+  check("RTDB 타임아웃: 기다리는 동안 저장 중 표시", (await page.locator("#saveState").textContent()) === "저장 중…" && (await page.locator("#entSave").textContent()) === "저장 중…");
+  await page.clock.fastForward(10500);
+  await page.waitForTimeout(200);
+  check("RTDB 타임아웃: 화면에서 되돌림", !(await page.locator("#ledgerRows").textContent()).includes("응답 없는 저장"));
+  check("RTDB 타임아웃: 저장 실패 표시", (await page.locator("#saveState").textContent()) === "저장 실패");
+  check("RTDB 타임아웃: 이유 안내", (await page.locator("#toast").textContent()).includes("되돌렸어요"));
+  check("RTDB 타임아웃: 시트와 입력값은 그대로", await page.locator("#entrySheet.show").count() === 1 && (await page.inputValue("#entMemo")) === "응답 없는 저장");
+  await page.evaluate(() => { window.__rtdb.hang = ""; });
+  await saveSheet();
+  const memos = Object.values((await get("entries")) || {}).map(e => e.memo);
+  check("RTDB 타임아웃: 다시 누르면 한 건만 들어감", memos.filter(m => m === "응답 없는 저장").length === 1, JSON.stringify(memos));
+  check("RTDB 타임아웃: 다시 저장하면 저장됨", (await page.locator("#saveState").textContent()) === "저장됨");
+
+  // 규칙이 거절하면 화면이 되돌아가고 이유를 알린다
+  await page.evaluate(() => { window.__rtdb.reject = "/pantry/"; });
+  await goTab("fridge");
+  await page.click("#quickAdd"); await page.waitForTimeout(120);
+  await page.fill("#pName", "거절될 우유");
+  await page.click("#pSave"); await page.waitForTimeout(300);
+  check("RTDB 거절: 목록에 남지 않음", await page.locator("#pantryRows .row").count() === 0);
+  check("RTDB 거절: 권한 안내", (await page.locator("#toast").textContent()).includes("권한"));
+  check("RTDB 거절: 시트는 열린 채로", await page.locator("#pantrySheet.show").count() === 1);
+  await page.evaluate(() => { window.__rtdb.reject = ""; });
+  await page.click("#pSave"); await page.waitForTimeout(300);
+  check("RTDB: 냉장고는 pantry 경로에 저장", Object.keys((await get("pantry")) || {}).length === 1);
+  check("RTDB: 냉장고 스냅샷 반영", await page.locator("#pantryRows .row").count() === 1);
+  await goTab("ledger");
+
+  // 지우기 → 그 항목만 삭제
+  const before = await rowCount();
+  n0 = await writeCount();
   await page.locator(ROWS).first().click();
   await page.waitForTimeout(150);
   await page.click("#entDelete"); await page.click("#entDelete");
   await page.waitForTimeout(300);
-  check("RTDB: 지우기 → remove 호출", (await page.evaluate(() => window.__rtdb.removes)) >= 1);
-  check("RTDB: 지운 뒤 목록 비었음", await rowCount() === 0);
+  const delWrites = await writesSince(n0);
+  check("RTDB: 지우기 → 그 항목 하나만", delWrites.length === 1 && /\/entries\/[a-z0-9]+$/.test(delWrites[0]), JSON.stringify(delWrites));
+  check("RTDB: 지운 뒤 한 줄 줄어듦", await rowCount() === before - 1);
 
-  // 냉장고도 pantry/ 경로로
-  await goTab("fridge");
-  await page.click("#quickAdd"); await page.waitForTimeout(120);
-  await page.fill("#pName", "우유");
-  await page.click("#pSave"); await page.waitForTimeout(300);
-  const pantryPath = await page.evaluate(() => Object.keys(window.__rtdb.store).find(k => k.endsWith("/pantry")));
-  check("RTDB: 냉장고는 pantry 경로에 저장", !!pantryPath, pantryPath);
-  check("RTDB: 냉장고 스냅샷 반영", await page.locator("#pantryRows .row").count() === 1);
+  await ctx.close();
+}
 
+// ---- 아티팩트 내장 db: 컬렉션별 구독을 한 트리로 모아도 똑같이 동작하는지 ----
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 940 }, locale: "ko-KR" });
+  page = await ctx.newPage();
+  page.on("pageerror", e => { console.log("PAGEERROR(artdb)", e.message); fails.push("artdb pageerror: " + e.message); });
+  await page.addInitScript(() => {
+    const cols = {}, docs = {}, subs = [];
+    const fire = () => subs.forEach(f => f());
+    const colSnap = name => ({ docs: Object.entries(cols[name] || {}).map(([id, v]) => ({ id, exists: true, data: () => v })) });
+    const docSnap = path => ({ exists: path in docs, data: () => docs[path] });
+    const db = {
+      collection: name => ({
+        onSnapshot(cb){ const f = () => cb(colSnap(name)); subs.push(f); f(); },
+        doc: id => ({
+          set: async v => { (cols[name] = cols[name] || {})[id] = v; fire(); },
+          delete: async () => { if (cols[name]) delete cols[name][id]; fire(); },
+        }),
+      }),
+      doc: path => ({
+        onSnapshot(cb){ const f = () => cb(docSnap(path)); subs.push(f); f(); },
+        set: async v => { docs[path] = v; fire(); },
+        delete: async () => { delete docs[path]; fire(); },
+      }),
+    };
+    window.__art = { cols, docs };
+    window.claude = { use: name => Promise.resolve(name === "db" ? db : null) };
+  });
+  await page.goto("file://" + SCRATCH + "/wrapped.html");
+  await page.waitForTimeout(700);
+  check("아티팩트 db: 공유 연결 표시", (await page.locator("#connText").textContent()).includes("공유 중"));
+  await openAdd();
+  await page.fill("#entAmt", "3300"); await page.fill("#entMemo", "아티팩트 커피");
+  await saveSheet();
+  check("아티팩트 db: 지출이 entries 컬렉션에", Object.values(await page.evaluate(() => window.__art.cols.entries || {})).some(e => e.memo === "아티팩트 커피"));
+  check("아티팩트 db: 목록 반영", (await page.locator("#ledgerRows").textContent()).includes("아티팩트 커피"));
+  await openMenu("#recSec");
+  await page.fill("#recDay", "3"); await page.fill("#recAmt", "1000"); await page.fill("#recMemo", "구독");
+  await page.click("#recAdd"); await page.waitForTimeout(200);
+  check("아티팩트 db: 고정지출이 recurring 컬렉션에", Object.keys(await page.evaluate(() => window.__art.cols.recurring || {})).length === 1);
+  check("아티팩트 db: 고정지출 목록 반영", (await page.locator("#recList").textContent()).includes("구독"));
+  await page.click("#rulesEditBtn"); await page.fill("#rulesText", "아티팩트 규칙"); await page.click("#rulesSave");
+  await page.waitForTimeout(200);
+  check("아티팩트 db: 규칙 저장·반영", (await page.evaluate(() => window.__art.docs["meta/rules"]?.text)) === "아티팩트 규칙" && (await page.locator("#rulesList").textContent()).includes("아티팩트 규칙"));
   await ctx.close();
 }
 

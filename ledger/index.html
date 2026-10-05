@@ -2,8 +2,16 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>다니랑 생활비 통장</title>
+<!-- 홈 화면 앱(PWA) — 호스팅판 전용. 아티팩트 변형에서는 이 줄들이 빠진다 (build-artifact.mjs) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="생활비">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
   /* 심플 화이트 · 마트 컨셉 — 단일 라이트 테마 (배경·색 전부 명시) */
@@ -21,9 +29,21 @@
   body{
     background:var(--paper); color:var(--ink);
     font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-    font-size:15px; line-height:1.55; margin:0;
+    font-size:15px; line-height:1.55; margin:0; padding-top:env(safe-area-inset-top);
   }
-  .wrap{max-width:680px; margin:0 auto; padding:8px 16px 112px; display:flex; flex-direction:column; gap:12px}
+  .wrap{max-width:680px; margin:0 auto; padding:8px 16px calc(112px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:12px}
+
+  /* ---------- 로딩 화면: 저장소 연결이 끝날 때까지 (빈 목록을 "기록 없음"으로 오해하지 않게) ---------- */
+  #splash{position:fixed; inset:0; z-index:100; background:var(--paper); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; transition:opacity .25s ease}
+  #splash.gone{opacity:0; pointer-events:none}
+  .sp-mark{width:84px; height:84px; border-radius:20px; background:var(--yellow); display:grid; place-items:center}
+  .sp-mark::before{content:""; width:46px; height:36px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 5px, transparent 5px 8px, var(--ink) 8px 10px, transparent 10px 14px)}
+  .sp-name{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-size:24px}
+  .sp-bar{width:120px; height:3px; border-radius:3px; background:var(--track); overflow:hidden; position:relative}
+  .sp-bar::after{content:""; position:absolute; top:0; bottom:0; width:40%; background:var(--ink); animation:spload 1s ease-in-out infinite}
+  @keyframes spload{0%{left:-40%} 100%{left:100%}}
 
   h1,h2,.serif{font-family:'Do Hyeon','Apple SD Gothic Neo',sans-serif; font-weight:400; letter-spacing:.01em}
   h1{font-size:24px; margin:0; line-height:1.2; word-break:keep-all}
@@ -37,13 +57,15 @@
   .conn{display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); white-space:nowrap}
   .conn .dot{width:8px; height:8px; border-radius:50%; background:#C4C4C4; flex:none}
   .conn.on .dot{background:var(--good)}
+  .savest{font-size:12px; white-space:nowrap}
+  .savest.busy{color:var(--muted)} .savest.ok{color:var(--good)} .savest.fail{color:var(--expense); font-weight:700}
   .iconbtn{flex:none; width:44px; height:44px; display:grid; place-items:center; background:var(--paper);
     border:1px solid var(--line); border-radius:10px; font-size:19px; line-height:1; cursor:pointer; color:var(--ink)}
   .iconbtn:hover{background:var(--track)}
   .iconbtn.sm{width:36px; height:36px; font-size:15px}
 
   /* ---------- 상단 고정: 탭 · 월 · 요약 ---------- */
-  .topbar{position:sticky; top:0; z-index:30; background:var(--paper); margin:0 -16px; padding:0 16px;
+  .topbar{position:sticky; top:env(safe-area-inset-top); z-index:30; background:var(--paper); margin:0 -16px; padding:0 16px;
     border-bottom:1px solid var(--line)}
   .tabbar{display:flex}
   .tabbar button{flex:1; background:none; border:none; padding:11px 4px 9px; cursor:pointer; color:var(--muted);
@@ -67,6 +89,7 @@
   .banner.show{display:flex}
   .banner.warnbar{background:#FFF1F1; border-color:var(--expense); color:#7A1E1E}
   .banner .grow{flex:1}
+  .banner .iconbtn.sm{width:30px; height:30px; font-size:12px; background:transparent; border-color:transparent}
 
   /* ---------- 달력 (가계부 탭 위) ---------- */
   #calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px}
@@ -292,14 +315,28 @@
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="sp-mark"></div><div class="sp-name">다니랑 생활비</div><div class="sp-bar"></div></div>
 
 <div class="wrap">
 
   <header class="apphead">
     <h1>다니랑 생활비</h1>
+    <span class="savest" id="saveState" role="status" aria-live="polite" hidden></span>
     <span class="conn" id="conn"><span class="dot"></span><span id="connText">연결 확인 중…</span></span>
     <button class="iconbtn" id="settingsBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="drawer">☰</button>
   </header>
+
+  <!-- 새 버전 · 설치 안내 — 해당될 때만 잠깐 -->
+  <div class="banner" id="updateBanner" role="status">
+    <span class="grow">새 버전이 있어요</span>
+    <button class="primary mini" id="updateGo">새로고침</button>
+  </div>
+  <div class="banner" id="installBanner" role="region" aria-label="홈 화면에 설치">
+    <span class="grow" id="installText"></span>
+    <button class="primary mini" id="installGo" hidden></button>
+    <button class="ghost mini" id="installCopy" hidden>링크 복사</button>
+    <button class="iconbtn sm" id="installClose" aria-label="설치 안내 닫기">✕</button>
+  </div>
 
   <!-- 공유가 꺼진 상태 알림 — 늘 보이는 유일한 배너 (모르고 혼자 한 달을 적지 않게) -->
   <div class="banner warnbar" id="shareBanner" role="status">
@@ -504,6 +541,22 @@
     <label class="f">메모<input id="pMemo" placeholder="예: 냉장 문쪽"></label>
     <button class="primary big" id="pSave">냉장고에 담기</button>
     <button class="dangerlink" id="pDelete" hidden>목록에서 지우기</button>
+  </div>
+</div>
+
+<!-- 이 기기에 가계부 코드가 없을 때: 초대 링크로 들어갈지, 새로 만들지 -->
+<div id="connectSheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="connectTitle" aria-hidden="true">
+  <div class="sheet-bg"></div>
+  <div class="sheet-panel">
+    <h2 class="serif" id="connectTitle">어느 가계부를 열까요?</h2>
+    <p class="hint">함께 쓰는 가계부가 있으면 초대 링크를 붙여넣어 주세요. 홈 화면에 추가한 앱은 브라우저와 저장 공간이 따로라서, 처음 한 번은 이렇게 연결해야 해요.</p>
+    <label class="f">초대 링크<input id="connectUrl" placeholder="https://…#l=…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="btnrow">
+      <button class="ghost" id="connectPaste">붙여넣기</button>
+      <button class="primary" id="connectGo" style="flex:1">이 가계부 열기</button>
+    </div>
+    <p class="hint" style="margin-top:6px">처음 쓰는 거라면</p>
+    <button class="ghost" id="connectNew">새 가계부 만들기</button>
   </div>
 </div>
 
@@ -727,7 +780,9 @@ const state = {
   entries: new Map(),          // id -> {type, date, month, who, category, memo, amount, createdAt, rec?}
   pantry: new Map(),           // 냉장고 (유통기한 관리) id -> {name, qty, memo, buyAt, expireAt, guessed, who, createdAt, doneAt?}
   rules: "",                   // 비어 있으면 예시 규칙 표시
+  rulesDoc: null, rulesAt: 0,  // 공유 모드: 마지막으로 받은 규칙 문서와 그 updatedAt (덮어쓰기 감지용)
   members: ["나", "다니"],
+  settingsDoc: null, settingsAt: 0,
   recurring: [],               // {id, day, amount, category, memo, who}
   month: thisMonth(),
   dayFilter: "",              // 달력에서 고른 날짜 (YYYY-MM-DD), 빈 값이면 그 달 전체
@@ -760,52 +815,116 @@ function saveLocal(){
     }));
   } catch(e){}
 }
-async function addEntry(e){
-  if (db) { await db.collection("entries").add(e); }
-  else { state.entries.set(newId(), e); saveLocal(); renderAll(); }
+/* ---------- 공유 저장: 항목별 쓰기 · 타임아웃 · 실패하면 되돌리기 ----------
+   공유 모드의 쓰기는 전부 guarded()를 지난다. 10초 안에 저장 확인이 안 오면 실패로 보고,
+   이미 화면(과 Firebase 대기열)에 들어간 변경을 반대 쓰기로 상쇄한다 —
+   "저장됐다"고 믿게 둔 채 나중에 사라지거나, 실패라고 해 놓고 나중에 올라가는 일이 없게. */
+const SAVE_TIMEOUT_MS = 10000;
+let savesInFlight = 0, saveStateTimer = null;
+function showSaveState(kind){
+  const s = $("#saveState");
+  clearTimeout(saveStateTimer);
+  s.hidden = false;
+  s.className = "savest " + kind;
+  s.textContent = kind === "busy" ? "저장 중…" : kind === "ok" ? "저장됨" : "저장 실패";
+  if (kind !== "busy") saveStateTimer = setTimeout(() => { s.hidden = true; }, kind === "ok" ? 1600 : 6000);
+}
+async function guarded(write, revert){
+  savesInFlight++;
+  showSaveState("busy");
+  let timer;
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject({ code: "timeout" }), SAVE_TIMEOUT_MS); });
+  try {
+    await Promise.race([Promise.resolve().then(write), timeout]);
+    savesInFlight--;
+    if (!savesInFlight) showSaveState("ok");
+  } catch (err) {
+    savesInFlight--;
+    showSaveState("fail");
+    // 거절된 쓰기는 Firebase가 스스로 되돌린다. 응답이 없던 쓰기는 대기열에 남아 있으니 상쇄해 둔다
+    if (err && err.code === "timeout" && revert) Promise.resolve().then(revert).catch(() => {});
+    throw err;
+  } finally { clearTimeout(timer); }
+}
+const docOf = (col, id) => db.collection(col).doc(id);
+const withoutId = x => { const c = { ...x }; delete c.id; return c; };
+function currentItem(col, id){
+  if (col === "recurring") { const r = state.recurring.find(x => x.id === id); return r ? withoutId(r) : null; }
+  const v = (col === "entries" ? state.entries : state.pantry).get(id);
+  return v ? withoutId(v) : null;
+}
+/** 항목 하나만 쓴다 — 목록 전체를 덮어쓰지 않으므로 둘이 동시에 적어도 서로 지우지 않는다. */
+function putItem(col, id, val){
+  const prev = currentItem(col, id);
+  return guarded(() => docOf(col, id).set(withoutId(val)),
+    () => prev ? docOf(col, id).set(prev) : docOf(col, id).delete());
+}
+function dropItem(col, id){
+  const prev = currentItem(col, id);
+  return guarded(() => docOf(col, id).delete(), () => prev && docOf(col, id).set(prev));
+}
+
+/** 새 기록 — id를 미리 정해 두면 실패 후 다시 눌러도 두 번 들어가지 않는다. */
+async function addEntry(e, id = newId()){
+  if (db) await putItem("entries", id, e);
+  else { state.entries.set(id, e); saveLocal(); renderAll(); }
+  return id;
 }
 /** 기존 기록을 고쳐 쓴다 — 오타 정정이 삭제를 거치지 않게 하려고 둔다. */
 async function updateEntry(id, e){
-  if (db) { await db.collection("entries").doc(id).set(e); }
+  if (db) await putItem("entries", id, e);
   else { state.entries.set(id, e); saveLocal(); renderAll(); }
 }
 async function deleteEntry(id){
-  if (db) { await db.collection("entries").doc(id).delete(); }
+  if (db) await dropItem("entries", id);
   else { state.entries.delete(id); saveLocal(); renderAll(); }
 }
 
-/* 보관함은 지출과 별개 컬렉션 — 지출을 지워도 냉장고 목록은 남고, 먹고 치워도 금액은 남는다. */
-async function addPantry(x){
-  if (db) { await db.collection("pantry").add(x); }
-  else { state.pantry.set(newId(), x); saveLocal(); renderAll(); }
+/* 냉장고는 지출과 별개 컬렉션 — 지출을 지워도 냉장고 목록은 남고, 먹고 치워도 금액은 남는다. */
+async function addPantry(x, id = newId()){
+  if (db) await putItem("pantry", id, x);
+  else { state.pantry.set(id, x); saveLocal(); renderAll(); }
+  return id;
 }
 async function updatePantry(id, x){
-  if (db) { await db.collection("pantry").doc(id).set(x); }
+  if (db) await putItem("pantry", id, x);
   else { state.pantry.set(id, x); saveLocal(); renderAll(); }
 }
 async function deletePantry(id){
-  if (db) { await db.collection("pantry").doc(id).delete(); }
+  if (db) await dropItem("pantry", id);
   else { state.pantry.delete(id); saveLocal(); renderAll(); }
 }
-async function saveRules(text){
-  state.rules = text;
-  if (db) { await db.doc("meta/rules").set({ text, updatedAt: Date.now() }); }
-  else { saveLocal(); }
-  renderRules();
+
+/* 고정지출도 항목별(recurring/<id>) — 예전처럼 배열 통째로 쓰면 동시에 추가한 것끼리 지운다. */
+async function addRecurring(r){
+  if (db) await putItem("recurring", r.id, r);
+  else { state.recurring.push(r); saveLocal(); renderSettings(); renderRecBanner(); }
 }
-async function saveSettingsDoc(){
-  if (db) { await db.doc("meta/settings").set({ members: state.members, updatedAt: Date.now() }); }
-  else { saveLocal(); }
-  renderAll();
+async function deleteRecurring(id){
+  if (db) await dropItem("recurring", id);
+  else { state.recurring = state.recurring.filter(x => x.id !== id); saveLocal(); renderSettings(); renderRecBanner(); }
 }
-async function saveRecurringDoc(){
-  if (db) { await db.doc("meta/recurring").set({ items: state.recurring, updatedAt: Date.now() }); }
-  else { saveLocal(); }
-  renderSettings(); renderRecBanner();
+
+/* 규칙·이름은 값이 하나라 쪼갤 수 없다. 대신 내가 보고 고치기 시작한 판(updatedAt)이
+   그새 바뀌었으면 덮어쓰지 않고 알린다 — 둘이 동시에 고쳐 한쪽 글이 사라지지 않게. */
+async function saveRules(text, baseAt){
+  if (!db) { state.rules = text; saveLocal(); renderRules(); return; }
+  if (baseAt !== state.rulesAt) throw { code: "conflict" };
+  const prev = state.rulesDoc;
+  await guarded(() => db.doc("meta/rules").set({ text, updatedAt: Date.now() }),
+    () => prev ? db.doc("meta/rules").set(prev) : db.doc("meta/rules").delete());
+}
+async function saveSettingsDoc(members, baseAt){
+  if (!db) { state.members = members; saveLocal(); renderAll(); return; }
+  if (baseAt !== state.settingsAt) throw { code: "conflict" };
+  const prev = state.settingsDoc;
+  await guarded(() => db.doc("meta/settings").set({ members, updatedAt: Date.now() }),
+    () => prev ? db.doc("meta/settings").set(prev) : db.doc("meta/settings").delete());
 }
 function dbWriteFailed(err){
   const code = err && err.code;
-  if (code === "quota_exceeded") toast("저장 공간이 가득 찼어요 — 오래된 기록을 지워 주세요");
+  if (code === "timeout") toast("저장이 확인되지 않아 되돌렸어요 — 연결을 확인하고 다시 눌러 주세요");
+  else if (code === "quota_exceeded") toast("저장 공간이 가득 찼어요 — 오래된 기록을 지워 주세요");
   // 권한 거부: 아티팩트 db는 'permission-denied', Realtime Database는 'PERMISSION_DENIED'
   else if (/permission[_-]denied/i.test(String(code) + " " + String(err && err.message)))
     toast("저장 권한이 없어요 — 보안 규칙과 익명 로그인 설정을 확인해 주세요");
@@ -1477,8 +1596,10 @@ function renderPantryBanner(){
 }
 
 /** 냉장고 시트 — x가 있으면 그 품목 고치기, 없으면 새로 담기. */
+let pantryDraftId = null;
 function openPantrySheet(x){
   editingPantry = x ? x.id : null;
+  pantryDraftId = newId();
   $("#pName").value = (x && x.name) || "";
   $("#pExpire").value = (x && x.expireAt) || "";
   $("#pQty").value = (x && x.qty) || "";
@@ -1756,6 +1877,7 @@ async function multiSubmit(mode){
 /* ================= 기록 시트 (＋ 버튼 · 행 누르기) =================
    입금과 지출을 한 시트에서 적는다 — 위쪽 [지출|입금]만 바꾸면 된다. */
 let editingId = null;         // 고치는 중인 기록 id — 비어 있으면 새 기록
+let draftId = null;           // 새 기록에 미리 정해 둔 id — 저장이 실패해 다시 눌러도 한 건만 들어가게
 let catTouched = false;       // 카테고리를 사용자가 직접 골랐는지
 const WHO_KEY = "dani-ledger-who";   // 이 기기에서 마지막에 고른 "누가" — 폰 주인이 거의 늘 같다
 
@@ -1768,7 +1890,7 @@ function setKind(kind){
   $("#entSave").textContent = editingId ? "고친 내용 저장" : inc ? "입금 저장" : "지출 저장";
 }
 function resetEntryForm(){
-  editingId = null; catTouched = false;
+  editingId = null; catTouched = false; draftId = newId();
   clearAmtField($("#entAmt"));
   $("#entMemo").value = "";
   $("#entCat").value = CATEGORIES[0];
@@ -1819,8 +1941,8 @@ async function saveEntrySheet(){
     createdAt: (prev && prev.createdAt) || Date.now() };
   if (prev && prev.rec && kind === "expense") entry.rec = prev.rec;   // 고정지출 표식은 유지
   btn.disabled = true; btn.textContent = "저장 중…";
-  try { if (id) await updateEntry(id, entry); else await addEntry(entry); }
-  catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }   // 폼은 그대로 둔다
+  try { if (id) await updateEntry(id, entry); else await addEntry(entry, draftId); }
+  catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }   // 폼은 그대로 둔다 — 다시 누르면 된다
   btn.disabled = false;
   try { localStorage.setItem(WHO_KEY, who); } catch(_){}
   closeEntrySheet();
@@ -1842,7 +1964,7 @@ async function deleteEditingEntry(){
   btn.disabled = false;
   closeEntrySheet();
   toast("지웠어요", "되돌리기", async () => {
-    try { await addEntry(backup); toast("되돌렸어요"); }
+    try { await addEntry(backup, id); toast("되돌렸어요"); }
     catch (err) { dbWriteFailed(err); }
   });
 }
@@ -1868,18 +1990,19 @@ function fillFromParsed(parsed, sourceLabel){
 let sampleFn = null, downloadsNs = null, sampleImagesOk = false;
 let currentAbort = null;
 
+/** mode: 'db' | 'fs' (공유) · 'local' (이 기기만) · 'pending' (아직 확인 중 — 경고를 미리 띄우지 않는다) */
 function setConn(mode){
   const conn = $("#conn");
   const shared = mode === "db" || mode === "fs";
   conn.classList.toggle("on", shared);
   // 머리에는 짧게, 자세한 상태는 메뉴 맨 아래(footNote)에
-  $("#connText").textContent = shared ? "공유 중" : "이 기기에만";
+  $("#connText").textContent = shared ? "공유 중" : mode === "pending" ? "연결 확인 중…" : "이 기기에만";
   conn.title =
     mode === "db" ? "claude.ai 공유 저장소에 실시간 연결됨" :
     mode === "fs" ? "Firebase로 실시간 공유 중" : "이 기기에만 저장 중";
   // 공유가 아니면 상단에 크게 알린다 — 그 사실이 푸터에 묻히면 혼자 한 달을 적게 된다
   const bar = $("#shareBanner");
-  bar.classList.toggle("show", !shared);
+  bar.classList.toggle("show", !shared && mode !== "pending");
   if (!shared) $("#shareBannerText").textContent =
     "지금 적는 기록은 이 기기에만 저장돼요 — 상대방 화면에는 안 보입니다";
 
@@ -1887,6 +2010,7 @@ function setConn(mode){
   note.textContent =
     mode === "db" ? "둘 다 같은 기록을 실시간으로 봐요. 페이지가 열려 있는 동안 기록할 수 있어요." :
     mode === "fs" ? "초대 링크를 아는 사람끼리 같은 기록을 실시간으로 봐요." :
+    mode === "pending" ? "공유 저장소에 연결하는 중이에요." :
     fbFailReason ? "공유가 안 켜졌어요 — " + fbFailReason :
     "지금은 이 기기에만 저장돼요. 공유하려면 claude.ai 아티팩트로 열거나 Firebase 설정을 넣어 주세요.";
   note.classList.toggle("warn", mode !== "db" && mode !== "fs" && !!fbFailReason);
@@ -2058,23 +2182,31 @@ function renderRecBanner(){
 async function fillRecurring(){
   const miss = missingRecurring();
   const lastDay = new Date(Number(state.month.slice(0,4)), Number(state.month.slice(5)), 0).getDate();
+  let done = 0;
   for (const r of miss) {
-    await addEntry({
-      type: "expense", month: state.month,
-      date: state.month + "-" + pad2(Math.min(Math.max(1, r.day || 1), lastDay)),
-      who: r.who || "both", category: r.category || "주거·공과금",
-      memo: r.memo, amount: r.amount, createdAt: Date.now(), rec: r.id,
-    }).catch(dbWriteFailed);
+    try {
+      await addEntry({
+        type: "expense", month: state.month,
+        date: state.month + "-" + pad2(Math.min(Math.max(1, r.day || 1), lastDay)),
+        who: r.who || "both", category: r.category || "주거·공과금",
+        memo: r.memo, amount: r.amount, createdAt: Date.now(), rec: r.id,
+      });
+      done++;
+    } catch (err) { dbWriteFailed(err); break; }     // 실패를 성공 개수에 섞어 알리지 않는다
   }
-  toast("고정지출 " + miss.length + "건을 기록했어요");
+  if (done) toast("고정지출 " + done + "건을 기록했어요");
   if (state.mode === "local") renderAll();
 }
 
 /* ================= 설정 렌더/저장 ================= */
+let settingsDirty = false;   // 이름 칸을 고치는 중이면 스냅샷이 와도 덮지 않는다
+let settingsBaseAt = 0;      // 이름 칸에 채워 둔 판 — 저장 직전에 그새 바뀌었는지 본다
 function renderSettings(){
-  const focused = document.activeElement;
-  if (focused !== $("#setM0")) $("#setM0").value = state.members[0];
-  if (focused !== $("#setM1")) $("#setM1").value = state.members[1];
+  if (!settingsDirty) {
+    $("#setM0").value = state.members[0];
+    $("#setM1").value = state.members[1];
+    settingsBaseAt = state.settingsAt;
+  }
   buildWhoSeg($("#entWho"), true);
   const prevWho = $("#recWho").value;
   buildWhoSelect("#recWho");
@@ -2091,10 +2223,7 @@ function renderSettings(){
     row.append(el("span", "amt num ex", "−" + fmtWon(r.amount)));
     const del = el("button", "del", "×");
     del.setAttribute("aria-label", "고정지출 삭제");
-    del.addEventListener("click", () => {
-      state.recurring = state.recurring.filter(x => x.id !== r.id);
-      saveRecurringDoc().catch(dbWriteFailed);
-    });
+    del.addEventListener("click", () => deleteRecurring(r.id).catch(dbWriteFailed));
     row.append(del);
     list.append(row);
   });
@@ -2182,7 +2311,7 @@ function bindEvents(){
     };
     if (prev && prev.doneAt) item.doneAt = prev.doneAt;
     btn.disabled = true; btn.textContent = "저장 중…";
-    try { if (id) await updatePantry(id, item); else await addPantry(item); }
+    try { if (id) await updatePantry(id, item); else await addPantry(item, pantryDraftId); }
     catch (err) { dbWriteFailed(err); btn.disabled = false; btn.textContent = was; return; }
     btn.disabled = false;
     closePantrySheet();
@@ -2198,7 +2327,7 @@ function bindEvents(){
     btn.disabled = false;
     closePantrySheet();
     toast("지웠어요", "되돌리기", async () => {
-      try { await addPantry(backup); } catch (err) { dbWriteFailed(err); }
+      try { await addPantry(backup, id); } catch (err) { dbWriteFailed(err); }
     });
   });
 
@@ -2225,7 +2354,9 @@ function bindEvents(){
   });
 
   // 규칙
+  let rulesBaseAt = 0;      // 고치기를 시작할 때 보던 규칙 판 — 저장 직전에 그새 바뀌었는지 본다
   $("#rulesEditBtn").addEventListener("click", () => {
+    rulesBaseAt = state.rulesAt;
     $("#rulesText").value = state.rules || DEFAULT_RULES;
     $("#rulesEdit").hidden = false;
     $("#rulesList").hidden = true;
@@ -2234,34 +2365,53 @@ function bindEvents(){
   });
   const closeRulesEdit = () => { $("#rulesEdit").hidden = true; $("#rulesList").hidden = false; $("#rulesEditBtn").hidden = false; };
   $("#rulesCancel").addEventListener("click", closeRulesEdit);
-  $("#rulesSave").addEventListener("click", () => {
-    saveRules($("#rulesText").value.trim()).catch(dbWriteFailed);
-    closeRulesEdit();
-    toast("규칙을 저장했어요");
+  $("#rulesSave").addEventListener("click", async () => {
+    const btn = $("#rulesSave");
+    btn.disabled = true;
+    try {
+      await saveRules($("#rulesText").value.trim(), rulesBaseAt);
+      closeRulesEdit();
+      toast("규칙을 저장했어요");
+    } catch (err) {
+      if (err && err.code === "conflict") {
+        // 상대가 먼저 고친 판을 위에 보여 주고, 내 글은 그대로 둔다 — 보고 나서 다시 누르면 그때 저장
+        rulesBaseAt = state.rulesAt;
+        $("#rulesList").hidden = false;
+        toast("방금 다른 기기에서 규칙이 바뀌었어요 — 위 최신 규칙을 보고, 이 내용으로 바꾸려면 다시 저장을 눌러 주세요");
+      } else dbWriteFailed(err);
+    } finally { btn.disabled = false; }
   });
 
   // 고정지출
   $("#recFill").addEventListener("click", fillRecurring);
   bindAmtField($("#recAmt")); attachCalcButton($("#recAmt"));
-  $("#recAdd").addEventListener("click", () => {
+  $("#recAdd").addEventListener("click", async () => {
     const day = Number($("#recDay").value) || 0;
     const amount = evalAmount($("#recAmt").value);
     const memo = $("#recMemo").value.trim();
     if (!day || day < 1 || day > 31) { toast("며칠에 나가는지 입력해 주세요 (1–31)"); return; }
     if (!amount || !memo) { toast("금액과 내용을 입력해 주세요"); return; }
-    state.recurring.push({ id: newId(), day, amount, memo, category: $("#recCat").value, who: $("#recWho").value });
+    try { await addRecurring({ id: newId(), day, amount, memo, category: $("#recCat").value, who: $("#recWho").value }); }
+    catch (err) { dbWriteFailed(err); return; }
     $("#recDay").value = ""; clearAmtField($("#recAmt")); $("#recMemo").value = "";
-    saveRecurringDoc().catch(dbWriteFailed);
     toast("고정지출을 등록했어요");
   });
 
   // 이름
-  $("#saveSettings").addEventListener("click", () => {
+  ["#setM0", "#setM1"].forEach(sel => $(sel).addEventListener("input", () => { settingsDirty = true; }));
+  $("#saveSettings").addEventListener("click", async () => {
     const a = $("#setM0").value.trim(), b = $("#setM1").value.trim();
     if (!a || !b) { toast("이름을 비울 수 없어요"); return; }
-    state.members = [a, b];
-    saveSettingsDoc().catch(dbWriteFailed);
-    toast("이름을 저장했어요");
+    try {
+      await saveSettingsDoc([a, b], settingsBaseAt);
+      settingsDirty = false;
+      toast("이름을 저장했어요");
+    } catch (err) {
+      if (err && err.code === "conflict") {
+        settingsDirty = false; renderSettings();
+        toast("방금 다른 기기에서 이름이 바뀌었어요 — 최신 이름을 확인하고 다시 저장해 주세요");
+      } else dbWriteFailed(err);
+    }
   });
 
   // CSV 내보내기 · 가져오기
@@ -2314,27 +2464,51 @@ function connectSharedStore(adapter, mode){
   state.pantry = new Map();
   state.rules = ""; state.recurring = [];
   setConn(mode);
-  db.collection("entries").onSnapshot(snap => {
-    state.entries = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
-    renderAll(); renderMigBanner();
+  // 가계부 전체를 구독 하나로 받는다 — 브라우저 연결을 컬렉션마다 열지 않는다.
+  // 한 건만 바뀌어도 화면은 전체 스냅샷으로 다시 그리지만(네트워크로는 바뀐 부분만 온다)
+  // 둘이 쓰는 규모에선 문제없다. 느려지면 달별로 나눌 자리.
+  db.subscribeAll(tree => {
+    const legacy = applyTree(tree);
+    renderAll(); renderMigBanner(); hideSplash();
+    migrateLegacyRecurring(legacy);
   }, () => toast("공유 저장소 연결이 끊겼어요 — 새로고침해 주세요"));
-  db.collection("pantry").onSnapshot(snap => {
-    state.pantry = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
-    renderPantry(); renderPantryBanner();
-  }, () => {});
-  db.doc("meta/rules").onSnapshot(snap => {
-    state.rules = snap.exists ? String(snap.data().text || "") : "";
-    renderRules();
-  }, () => {});
-  db.doc("meta/settings").onSnapshot(snap => {
-    const m = snap.exists && snap.data().members;
-    if (Array.isArray(m) && m.length === 2) { state.members = m.map(String); renderAll(); }
-  }, () => {});
-  db.doc("meta/recurring").onSnapshot(snap => {
-    const items = snap.exists && snap.data().items;
-    state.recurring = Array.isArray(items) ? items : [];
-    renderSettings(); renderRecBanner();
-  }, () => {});
+}
+
+const asObj = x => (x && typeof x === "object" && !Array.isArray(x)) ? x : {};
+const docsOf = node => Object.entries(asObj(node)).filter(([, v]) => v && typeof v === "object");
+/** 스냅샷(가계부 트리) → state. 아직 항목별로 옮겨지지 않은 예전 고정지출 배열을 돌려준다. */
+function applyTree(tree){
+  const t = asObj(tree), meta = asObj(t.meta);
+  state.entries = new Map(docsOf(t.entries));
+  state.pantry = new Map(docsOf(t.pantry));
+  const rules = Object.keys(asObj(meta.rules)).length ? meta.rules : null;
+  state.rulesDoc = rules;
+  state.rules = rules ? String(rules.text || "") : "";
+  state.rulesAt = rules ? Number(rules.updatedAt) || 0 : 0;
+  const settings = Object.keys(asObj(meta.settings)).length ? meta.settings : null;
+  state.settingsDoc = settings;
+  state.settingsAt = settings ? Number(settings.updatedAt) || 0 : 0;
+  const m = settings && settings.members;
+  if (Array.isArray(m) && m.length === 2) state.members = m.map(String);
+  const rec = docsOf(t.recurring).map(([id, r]) => ({ ...r, id }));
+  const items = asObj(meta.recurring).items;
+  const legacy = (Array.isArray(items) ? items : [])
+    .filter(r => r && r.id && !rec.some(x => x.id === r.id));
+  state.recurring = [...rec, ...legacy].sort((a, b) => (Number(a.day) || 0) - (Number(b.day) || 0));
+  return legacy;
+}
+
+/* 예전 판이 meta/recurring에 배열 통째로 저장한 고정지출을 recurring/<id> 항목으로 옮긴다.
+   두 기기가 동시에 옮겨도 같은 id에 같은 값을 쓰므로 겹치지 않는다. 실패하면 다음 스냅샷에서 다시. */
+let recMigrating = false;
+async function migrateLegacyRecurring(legacy){
+  if (!legacy.length || recMigrating) return;
+  recMigrating = true;
+  try {
+    for (const r of legacy) await docOf("recurring", r.id).set(withoutId(r));
+    await db.doc("meta/recurring").set({ items: [], movedAt: Date.now() });
+  } catch (e) {}
+  finally { recMigrating = false; }
 }
 
 /* 이 기기에만 있던 기록을 공유 저장소로 올리는 배너 */
@@ -2350,44 +2524,57 @@ async function migrateLocal(){
   const b = localBackup;
   migDismissed = true; renderMigBanner();
   try {
-    for (const e of b.entries) { const { id, ...rest } = e; await db.collection("entries").add(rest); }
-    if (b.rules && !state.rules) await db.doc("meta/rules").set({ text: b.rules, updatedAt: Date.now() });
-    if (b.recurring.length && !state.recurring.length) await db.doc("meta/recurring").set({ items: b.recurring, updatedAt: Date.now() });
+    for (const e of b.entries) await addEntry(withoutId(e));
+    if (b.rules && !state.rules) await saveRules(b.rules, state.rulesAt);
+    if (b.recurring.length && !state.recurring.length) for (const r of b.recurring) await addRecurring(r);
     toast("기록 " + b.entries.length + "건을 옮겼어요");
   } catch (err) { dbWriteFailed(err); migDismissed = false; renderMigBanner(); }
 }
 
-/* ================= Firebase (외부 호스팅에서의 실시간 공유) =================
-   Realtime Database를 connectSharedStore()가 기대하는 형태로 감싼다:
-   컬렉션 = 자식들을 담은 노드, 문서 = 그 아래 한 노드. */
+/* ================= 저장소 어댑터 =================
+   connectSharedStore()가 기대하는 모양: collection(p).doc(id).set/delete, doc(p).set/delete,
+   그리고 가계부 전체를 한 번에 넘겨주는 subscribeAll(next, error). */
+
+/* claude.ai 아티팩트 내장 db — 루트 구독이 없어 컬렉션별 구독을 모아 한 트리로 넘긴다. */
+function artifactAdapter(cap){
+  return {
+    collection: p => cap.collection(p),
+    doc: p => cap.doc(p),
+    subscribeAll(next, error){
+      const tree = { meta: {} };
+      for (const name of ["entries", "pantry", "recurring"])
+        cap.collection(name).onSnapshot(snap => {
+          tree[name] = Object.fromEntries(snap.docs.filter(d => d.exists).map(d => [d.id, d.data()]));
+          next(tree);
+        }, error);
+      for (const name of ["rules", "settings", "recurring"])
+        cap.doc("meta/" + name).onSnapshot(snap => {
+          if (snap.exists) tree.meta[name] = snap.data(); else delete tree.meta[name];
+          next(tree);
+        }, error);
+    },
+  };
+}
+
+/* Firebase Realtime Database (외부 호스팅에서의 실시간 공유) —
+   ledgers/<코드> 노드 하나에 리스너 하나. 컬렉션 = 자식 노드, 문서 = 그 아래 한 노드. */
 function rtdbAdapter(root){
-  const collection = p => ({
-    onSnapshot(next, error){
-      const ref = root.child(p);
-      const handler = ref.on("value", snap => {
-        const val = snap.val() || {};
-        next({ docs: Object.keys(val).map(id => ({ id, exists: true, data: () => val[id] })) });
-      }, e => { if (error) error(e); });
-      return () => ref.off("value", handler);
-    },
-    add: data => root.child(p).push(data),
-    doc: id => ({
-      set: data => root.child(p).child(id).set(data),
-      delete: () => root.child(p).child(id).remove(),
+  return {
+    collection: p => ({
+      doc: id => ({
+        set: data => root.child(p).child(id).set(data),
+        delete: () => root.child(p).child(id).remove(),
+      }),
     }),
-  });
-  const doc = p => ({
-    onSnapshot(next, error){
-      const ref = root.child(p);
-      const handler = ref.on("value", snap => {
-        next({ exists: snap.exists(), data: () => snap.val() || {} });
-      }, e => { if (error) error(e); });
-      return () => ref.off("value", handler);
+    doc: p => ({
+      set: data => root.child(p).set(data),
+      delete: () => root.child(p).remove(),
+    }),
+    subscribeAll(next, error){
+      const handler = root.on("value", snap => next(snap.val() || {}), e => { if (error) error(e); });
+      return () => root.off("value", handler);
     },
-    set: data => root.child(p).set(data),
-    delete: () => root.child(p).remove(),
-  });
-  return { collection, doc };
+  };
 }
 
 /* 연결 실패 이유를 화면에 그대로 보여 준다 — "이 기기에만 저장 중"만으로는
@@ -2428,7 +2615,7 @@ async function initFirebase(){
     let lid = hashLid();
     let created = false;
     if (!lid) { try { lid = localStorage.getItem(LID_KEY) || ""; } catch(e){} }
-    if (!lid) { lid = newLid(); created = true; }
+    if (!lid) ({ lid, created } = await askWhichLedger());
     try { localStorage.setItem(LID_KEY, lid); } catch(e){}
     if (hashLid() !== lid) { try { history.replaceState(null, "", "#l=" + lid); } catch(e){} }
     connectSharedStore(rtdbAdapter(firebase.database().ref("ledgers/" + lid)), "fs");
@@ -2446,6 +2633,133 @@ async function initFirebase(){
   }
 }
 
+/* 이 기기에 가계부 코드가 없을 때 — 받은 초대 링크로 들어갈지, 새로 만들지 묻는다.
+   아이폰 홈 화면 앱은 사파리와 저장 공간이 따로라, 묻지 않고 새로 만들면
+   기존 가계부 대신 빈 가계부가 하나 더 생겨 둘이 다른 곳에 적게 된다. */
+function askWhichLedger(){
+  hideSplash();
+  openSheet("#connectSheet");
+  return new Promise(resolve => {
+    const done = (lid, created) => { closeSheet("#connectSheet"); resolve({ lid, created }); };
+    $("#connectGo").onclick = () => {
+      const v = $("#connectUrl").value.trim();
+      const m = v.match(/[#&]l=([A-Za-z0-9]{8,})/) || v.match(/^([A-Za-z0-9]{8,})$/);
+      if (!m) { toast("초대 링크를 찾지 못했어요 — #l= 이 들어간 주소 전체를 붙여넣어 주세요"); $("#connectUrl").focus(); return; }
+      done(m[1], false);
+    };
+    $("#connectPaste").onclick = async () => {
+      try { $("#connectUrl").value = (await navigator.clipboard.readText()).trim(); }
+      catch (e) { $("#connectUrl").focus(); toast("칸을 길게 눌러 붙여넣어 주세요"); }
+    };
+    $("#connectNew").onclick = () => done(newLid(), true);
+  });
+}
+
+/* ================= 로딩 화면 ================= */
+function hideSplash(){
+  const sp = $("#splash");
+  if (!sp || sp.classList.contains("gone")) return;
+  sp.classList.add("gone");
+  setTimeout(() => sp.remove(), 300);
+}
+
+/* ================= 홈 화면 앱 (서비스 워커 · 새 버전 · 설치 안내) ================= */
+const hostedPage = () => /^https?:$/.test(location.protocol) && !(window.claude && window.claude.use);
+function initServiceWorker(){
+  if (!("serviceWorker" in navigator) || !hostedPage()) return;
+  // 처음 설치될 때도 controllerchange가 온다 — 이미 워커가 있던 화면만 새로고침한다
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloading) return;
+    reloading = true; location.reload();
+  });
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    const offer = w => {
+      if (!w || !navigator.serviceWorker.controller) return;
+      $("#updateBanner").classList.add("show");
+      $("#updateGo").onclick = () => w.postMessage({ type: "SKIP_WAITING" });
+    };
+    offer(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const w = reg.installing;
+      if (w) w.addEventListener("statechange", () => { if (w.state === "installed") offer(w); });
+    });
+    // 홈 화면 앱은 껐다 켜지 않고 다시 열리는 일이 많다 — 다시 볼 때마다 새 버전이 있는지 본다
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+}
+
+const INSTALL_KEY = "dani-ledger-install-closed";
+let installPrompt = null;     // 안드로이드 크롬이 준 설치 창 (beforeinstallprompt)
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+function installContext(){
+  const ua = navigator.userAgent || "";
+  if (/KAKAOTALK/i.test(ua)) return "kakao";
+  // 다른 앱 안의 브라우저(네이버·인스타·페북·라인)는 홈 화면에 추가할 수 없다. 크롬·엣지는 iOS 16.4부터 된다
+  if (/iPhone|iPad|iPod/i.test(ua)) return /NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua) ? "ios-inapp" : "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "other";
+}
+function renderInstallBanner(){
+  const b = $("#installBanner"), go = $("#installGo"), copy = $("#installCopy");
+  let closed = false;
+  try { closed = localStorage.getItem(INSTALL_KEY) === "1"; } catch(e){}
+  const ctx = installContext();
+  let text = "", goLabel = "", withCopy = false;
+  if (!hostedPage() || isStandalone()) text = "";
+  else if (ctx === "kakao") {
+    // 카톡 안에서는 설치도, 저장도 브라우저와 따로 논다 — 닫았어도 다시 알린다
+    text = "카톡 안에서는 홈 화면에 설치할 수 없어요. 브라우저로 열어 주세요.";
+    goLabel = "브라우저로 열기"; withCopy = true;
+  }
+  else if (closed) text = "";
+  else if (ctx === "ios") {
+    text = "홈 화면에 앱으로 추가: 아래 공유 버튼 → '홈 화면에 추가'. 추가한 앱을 처음 열면 초대 링크를 붙여넣어야 하니 먼저 복사해 두세요.";
+    withCopy = true;
+  }
+  else if (ctx === "ios-inapp") { text = "이 앱 안에서는 홈 화면에 추가할 수 없어요. 링크를 복사해 사파리에서 열어 주세요."; withCopy = true; }
+  else if (installPrompt) { text = "홈 화면에 앱으로 설치할 수 있어요."; goLabel = "설치"; }
+  b.classList.toggle("show", !!text);
+  $("#installText").textContent = text;
+  go.hidden = !goLabel; go.textContent = goLabel;
+  copy.hidden = !withCopy;
+  $("#installClose").hidden = ctx === "kakao";
+}
+function bindInstall(){
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; renderInstallBanner(); });
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    try { localStorage.setItem(INSTALL_KEY, "1"); } catch(e){}
+    renderInstallBanner();
+    toast("홈 화면에 설치했어요");
+  });
+  $("#installGo").addEventListener("click", async () => {
+    if (installContext() === "kakao") {
+      location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+      return;
+    }
+    if (!installPrompt) return;
+    const p = installPrompt;
+    installPrompt = null;
+    p.prompt();
+    try { await p.userChoice; } catch(e){}
+    renderInstallBanner();
+  });
+  // 복사하는 주소에는 가계부 코드(#l=…)가 붙어 있다 — 새 브라우저·설치한 앱에서 같은 가계부로 들어가게
+  $("#installCopy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(location.href); toast("링크를 복사했어요"); }
+    catch (e) { toast("주소창의 주소를 길게 눌러 복사해 주세요"); }
+  });
+  $("#installClose").addEventListener("click", () => {
+    try { localStorage.setItem(INSTALL_KEY, "1"); } catch(e){}
+    renderInstallBanner();
+  });
+  renderInstallBanner();
+}
+
 /* ================= 캐퍼빌리티 초기화 ================= */
 async function initCapabilities(){
   const use = window.claude && window.claude.use ? name => window.claude.use(name) : () => Promise.resolve(null);
@@ -2454,9 +2768,10 @@ async function initCapabilities(){
   let artifactDb = null;
   try { artifactDb = await use("db"); } catch(e){ artifactDb = null; }
   if (artifactDb) {
-    connectSharedStore(artifactDb, "db");
+    connectSharedStore(artifactAdapter(artifactDb), "db");
   } else if (!(await initFirebase())) {
     setConn("local");
+    hideSplash();
   }
 
   // sample: 사진/문자 인식
@@ -2488,8 +2803,10 @@ function init(){
   try { lastTab = localStorage.getItem("dani-ledger-tab") || "ledger"; } catch(e){}
   showTab(lastTab);
   renderAll();
-  setConn("local");
-  $("#connText").textContent = "연결 확인 중…";
+  setConn("pending");
+  bindInstall();
+  initServiceWorker();
+  setTimeout(hideSplash, 8000);     // 연결이 오래 걸려도 화면은 열어 준다 (상태는 머리에 보인다)
   initCapabilities();
 }
 init();
